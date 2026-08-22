@@ -1,0 +1,35 @@
+import { Link, Outlet } from 'react-router-dom';
+import { Target, Activity, Settings, User } from 'lucide-react';
+
+export function Layout() {
+  return (
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col md:flex-row">
+      <nav className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-zinc-200 flex flex-col p-4">
+        <div className="font-bold text-lg mb-8 tracking-tight">Open Source Scout</div>
+        
+        <div className="flex flex-col space-y-2">
+          <Link to="/" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+            <Target size={20} />
+            <span>Radar</span>
+          </Link>
+          <Link to="/operations" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+            <Activity size={20} />
+            <span>Operations</span>
+          </Link>
+          <Link to="/identity" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+            <User size={20} />
+            <span>Identity</span>
+          </Link>
+          <Link to="/uplink" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+            <Settings size={20} />
+            <span>Uplink</span>
+          </Link>
+        </div>
+      </nav>
+      
+      <main className="flex-1 p-8">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
