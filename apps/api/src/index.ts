@@ -118,6 +118,40 @@ app.post('/api/draft/generate', async (req: Request, res: Response) => {
   }
 });
 
+// GitHub Write Service
+app.post('/api/engagement/post', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { owner, repo, number, draft, intent } = req.body;
+    
+    if (!owner || !repo || !number || !draft || !intent) {
+      return res.status(400).json({ error: 'owner, repo, number, draft, and intent are required' });
+    }
+
+    // Validate intent
+    const validIntents = ['REQUEST_ASSIGNMENT', 'PROPOSE_SOLUTION', 'ASK_CLARIFICATION', 'EXPRESS_INTEREST'];
+    if (!validIntents.includes(intent)) {
+      return res.status(400).json({ error: 'Invalid intent' });
+    }
+
+    // Validate issue exists and is open
+    const issue = await githubAdapter.fetchIssue(owner, repo, parseInt(number));
+    if (issue.state !== 'open') {
+      return res.status(400).json({ error: 'Issue is not open' });
+    }
+
+    // Safely post comment
+    const result = await githubAdapter.postComment(owner, repo, parseInt(number), draft);
+    
+    res.json({ data: result });
+  } catch (error: any) {
+    console.error('[scout-api] GitHub Post Comment Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 import { claimDetector } from './services/claimDetector.js';
 
 // Claim Status Proxy

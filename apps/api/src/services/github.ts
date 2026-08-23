@@ -120,6 +120,34 @@ export class GitHubAdapter {
       updatedAt: raw.updated_at,
     };
   }
+
+  /**
+   * Post a comment to a specific issue on GitHub
+   */
+  async postComment(owner: string, repo: string, issueNumber: number, body: string): Promise<{ commentId: string, url: string }> {
+    if (!this.token) {
+      throw new Error('Cannot post comment without a GITHUB_TOKEN configured.');
+    }
+
+    const url = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ body })
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`GitHub API Error: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+
+    const data = await response.json();
+    return {
+      commentId: data.id.toString(),
+      url: data.html_url
+    };
+  }
 }
 
 // Export a singleton instance
