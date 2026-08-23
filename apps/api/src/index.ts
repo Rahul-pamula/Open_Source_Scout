@@ -119,6 +119,7 @@ app.post('/api/draft/generate', async (req: Request, res: Response) => {
 });
 
 import { idempotencyService } from './services/idempotency.js';
+import { rateLimiterService } from './services/rateLimiter.js';
 
 // GitHub Write Service
 app.post('/api/engagement/post', async (req: Request, res: Response) => {
@@ -144,7 +145,10 @@ app.post('/api/engagement/post', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Issue is not open' });
     }
 
-    // 1. Generate Key and Acquire Lock (Idempotency)
+    // 1. Check Rate Limits
+    await rateLimiterService.checkRateLimits(authHeader, userId, `${owner}/${repo}`);
+
+    // 2. Generate Key and Acquire Lock (Idempotency)
     const idempotencyKey = await idempotencyService.checkAndLockEngagement(
       authHeader,
       userId,
@@ -163,7 +167,10 @@ app.post('/api/engagement/post', async (req: Request, res: Response) => {
     res.json({ data: result });
   } catch (error: any) {
     console.error('[scout-api] GitHub Post Comment Error:', error);
-    res.status(error.message.includes('IDEMPOTENCY_ERROR') ? 409 : 500).json({ error: error.message || 'Internal Server Error' });
+    let status = 500;
+    if (error.message.includes('IDEMPOTENCY_ERROR')) status = 409;
+    if (error.message.includes('AUTONOMOUS_RATE_LIMIT_REACHED')) status = 429;
+    res.status(status).json({ error: error.message || 'Internal Server Error' });
   }
 });
 
