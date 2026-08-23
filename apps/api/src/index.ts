@@ -279,13 +279,16 @@ app.post('/api/worker/run', async (req: Request, res: Response) => {
 app.post('/api/monitor/sync', async (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
-    // Security check: Must have an auth header (either user token or service secret in a real app)
     if (!authHeader) {
       return res.status(401).json({ error: 'Unauthorized: Missing Authentication Header' });
     }
 
-    // In Chunk 1, we just fetch snapshots and log health. Reconciliation happens in Chunk 2.
-    const { snapshots, health } = await syncService.startSync();
+    const { userId, githubUsername } = req.body;
+    if (!userId || !githubUsername) {
+      return res.status(400).json({ error: 'userId and githubUsername are required' });
+    }
+
+    const { snapshots, health } = await syncService.startSync(userId, githubUsername);
 
     res.json({
       message: 'Monitoring sync completed',
