@@ -40,7 +40,9 @@ You MUST output ONLY valid JSON in the following strict format, with no markdown
 {
   "matchScore": <integer between 0 and 100>,
   "intent": "<Very brief 3-5 word summary of what needs to be done>",
-  "explanation": "<1-2 sentence technical explanation of WHY this is a good match or bad match>"
+  "explanation": "<1-2 sentence technical explanation of WHY this is a good match or bad match>",
+  "difficulty": "EASY" | "MEDIUM" | "HARD",
+  "estimatedEffort": "<human readable estimate, e.g. 2-4 hours>"
 }
 `;
 
@@ -60,6 +62,16 @@ You MUST output ONLY valid JSON in the following strict format, with no markdown
       const result = JSON.parse(responseContent) as EvaluationResult;
       // Ensure bounds
       result.matchScore = Math.max(0, Math.min(100, result.matchScore));
+      
+      // Ensure valid difficulty
+      const validDifficulties = ['EASY', 'MEDIUM', 'HARD'];
+      if (!validDifficulties.includes(result.difficulty)) {
+        result.difficulty = 'MEDIUM'; // fallback
+      }
+      if (!result.estimatedEffort) {
+         result.estimatedEffort = 'Unknown effort';
+      }
+
       return result;
     } catch (err) {
       throw new Error('Groq API returned invalid JSON');

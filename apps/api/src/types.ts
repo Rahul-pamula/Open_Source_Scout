@@ -11,10 +11,14 @@ export interface NormalizedIssue {
   createdAt: string;
 }
 
+export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD';
+
 export interface EvaluationResult {
   matchScore: number;
   intent: string;
   explanation: string;
+  difficulty: DifficultyLevel;
+  estimatedEffort: string;
 }
 
 export interface NormalizedComment {
