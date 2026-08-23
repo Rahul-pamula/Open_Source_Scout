@@ -53,6 +53,21 @@ app.get('/api/github/search', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/api/github/issues/:owner/:repo/:number/comments', async (req: Request, res: Response) => {
+  try {
+    const owner = req.params.owner as string;
+    const repo = req.params.repo as string;
+    const number = req.params.number as string;
+    const page = parseInt(req.query.page as string) || 1;
+    
+    const comments = await githubAdapter.fetchIssueComments(owner, repo, parseInt(number), page);
+    res.json({ data: comments });
+  } catch (error: any) {
+    console.error('[scout-api] GitHub Comments Fetch Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 import { groqEvaluator } from './services/groq.js';
 
 // Groq Evaluation Proxy

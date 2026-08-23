@@ -1,4 +1,4 @@
-import type { NormalizedIssue } from '../types.js';
+import type { NormalizedIssue, NormalizedComment } from '../types.js';
 
 export class GitHubAdapter {
   private token: string | undefined;
@@ -46,6 +46,28 @@ export class GitHubAdapter {
   }
 
   /**
+   * Fetch comments for a specific issue
+   */
+  async fetchIssueComments(owner: string, repo: string, issueNumber: number, page: number = 1): Promise<NormalizedComment[]> {
+    const url = new URL(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`);
+    url.searchParams.append('per_page', '100'); // GitHub max
+    url.searchParams.append('page', page.toString());
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`GitHub API Error: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+
+    const data = await response.json();
+    return data.map(this.normalizeComment);
+  }
+
+  /**
    * Map the raw GitHub issue payload into our normalized format.
    * This ensures the rest of the backend (Filters, Groq) doesn't care about GitHub's specific schema.
    */
@@ -67,6 +89,16 @@ export class GitHubAdapter {
       isAssigned: raw.assignee !== null,
       labels: (raw.labels || []).map((l: any) => l.name),
       createdAt: raw.created_at,
+    };
+  }
+
+  private normalizeComment(raw: any): NormalizedComment {
+    return {
+      id: raw.id.toString(),
+      author: raw.user?.login || 'unknown',
+      body: raw.body || '',
+      createdAt: raw.created_at,
+      updatedAt: raw.updated_at,
     };
   }
 }
