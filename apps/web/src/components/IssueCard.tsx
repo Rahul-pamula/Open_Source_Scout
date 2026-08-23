@@ -1,4 +1,5 @@
 import { ExternalLink, Bookmark } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { ScoutedIssue } from '../types';
 
 interface IssueCardProps {
@@ -87,14 +88,12 @@ export function IssueCard({ issue, onSave }: IssueCardProps) {
 
       {/* Footer Actions */}
       <div className="mt-auto flex items-center justify-between pt-4">
-        <a 
-          href={issue.url}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link 
+          to={`/dossier/${issue.repoName}/${issue.url.split('/').pop()}`}
           className="bg-zinc-900 text-white font-bold py-2 px-6 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
         >
           View Issue <ExternalLink size={14} className="ml-2" />
-        </a>
+        </Link>
         
         {onSave && (
           <button 
