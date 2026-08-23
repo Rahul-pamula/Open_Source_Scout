@@ -6,6 +6,7 @@ import { Operations } from './pages/Operations';
 import { Identity } from './pages/Identity';
 import { Uplink } from './pages/Uplink';
 import { Login } from './pages/Login';
+import { Onboarding } from './pages/Onboarding';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Radar />} />
             <Route path="dossier/:owner/:repo/:number" element={<Dossier />} />

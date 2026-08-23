@@ -5,7 +5,7 @@ export function Login() {
   const { user, signInWithGithub } = useAuth();
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/onboarding" replace />;
   }
 
   return (

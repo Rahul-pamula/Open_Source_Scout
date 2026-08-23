@@ -5,7 +5,7 @@ import type { NormalizedIssue, NormalizedComment, ClaimResult, EvaluationResult 
 import { useAuth } from '../contexts/AuthContext';
 
 import { supabase } from '../services/supabase';
-const USER_PROFILE = "I am a full-stack developer with experience in React, TypeScript, Node.js, and Tailwind CSS. I'm looking for frontend or fullstack issues where I can help build UI components or fix bugs.";
+// User profile will be fetched dynamically
 
 export function Dossier() {
   const { owner, repo, number } = useParams();
@@ -19,6 +19,17 @@ export function Dossier() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState('Initializing dossier...');
   const [error, setError] = useState<string | null>(null);
+  
+  const [userProfile, setUserProfile] = useState<{ bio: string, skills: string[] } | null>(null);
+
+  // Fetch user profile on load
+  useEffect(() => {
+    if (user) {
+      supabase.from('users').select('bio, skills').eq('id', user.id).single().then(({ data }) => {
+        if (data) setUserProfile(data);
+      });
+    }
+  }, [user]);
 
   // Engagement State
   const [intent, setIntent] = useState<string>('REQUEST_ASSIGNMENT');
@@ -60,8 +71,9 @@ export function Dossier() {
     setIsGeneratingDraft(true);
     setEngagementError(null);
     try {
+      const profileStr = userProfile ? userProfile.bio : "I am a developer looking for issues.";
       const { data: resData, error: draftError } = await supabase.functions.invoke('dossier', {
-        body: { action: 'generate_draft', issue, comments, profile: USER_PROFILE, intent }
+        body: { action: 'generate_draft', issue, comments, profile: profileStr, intent }
       });
       if (draftError) {
         throw new Error(draftError.message || 'Failed to generate draft');
@@ -142,9 +154,10 @@ export function Dossier() {
         // 3. Parallel AI Analysis: Evaluation + Claim Status
         setLoadingStep('Running Scout AI analysis...');
         
+        const profileStr = userProfile ? userProfile.bio : "I am a developer looking for issues.";
         const [evalResData, claimResData] = await Promise.all([
           supabase.functions.invoke('evaluate', {
-            body: { issue: fetchedIssue, profile: USER_PROFILE }
+            body: { issue: fetchedIssue, profile: profileStr }
           }),
           supabase.functions.invoke('dossier', {
             body: { action: 'claim_status', issue: fetchedIssue, comments: fetchedComments }
