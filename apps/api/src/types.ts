@@ -114,3 +114,24 @@ export interface ReconciliationEvent {
   metadata?: any;
   created_at: string;
 }
+
+export type MilestoneType = 
+  | 'STARTED' 
+  | 'FORKED' 
+  | 'COMMENTED' 
+  | 'ASSIGNED' 
+  | 'PR_OPENED' 
+  | 'PR_REVIEWED' 
+  | 'PR_MERGED' 
+  | 'COMPLETED';
+
+export type MilestoneSource = 'github' | 'user';
+
+export interface ContributionMilestone {
+  id: string;
+  tracked_issue_id: string;
+  milestone_type: MilestoneType;
+  source: MilestoneSource;
+  metadata?: any;
+  completed_at: string;
+}

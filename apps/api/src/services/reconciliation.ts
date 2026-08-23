@@ -119,6 +119,45 @@ export class ReconciliationService {
         console.error(`[Reconciliation] Failed to insert event ${event.type} for ${issue.id}:`, insertError);
       }
     }
+
+    // 6. Contribution Milestones Tracking (Automatically Detected)
+    const milestonesToInsert = [];
+
+    // ASSIGNED
+    if (snapshot.assignees.some(a => a.toLowerCase() === githubUsername.toLowerCase())) {
+      milestonesToInsert.push({ tracked_issue_id: issue.id, milestone_type: 'ASSIGNED', source: 'github' });
+    }
+
+    // COMMENTED
+    if (snapshot.comments.some(c => c.author.toLowerCase() === githubUsername.toLowerCase())) {
+      milestonesToInsert.push({ tracked_issue_id: issue.id, milestone_type: 'COMMENTED', source: 'github' });
+    }
+
+    // PR_OPENED
+    if (snapshot.relatedPullRequests.some(pr => pr.author.toLowerCase() === githubUsername.toLowerCase())) {
+      milestonesToInsert.push({ tracked_issue_id: issue.id, milestone_type: 'PR_OPENED', source: 'github' });
+    }
+
+    // PR_MERGED
+    if (snapshot.relatedPullRequests.some(pr => pr.state === 'merged' && pr.author.toLowerCase() === githubUsername.toLowerCase())) {
+      milestonesToInsert.push({ tracked_issue_id: issue.id, milestone_type: 'PR_MERGED', source: 'github' });
+    }
+
+    // COMPLETED
+    if (newState === 'COMPLETED') {
+      milestonesToInsert.push({ tracked_issue_id: issue.id, milestone_type: 'COMPLETED', source: 'github' });
+    }
+
+    for (const ms of milestonesToInsert) {
+      // Idempotency: ON CONFLICT DO NOTHING ensures manual milestones or existing milestones aren't overwritten
+      const { error: msError } = await supabase
+        .from('contribution_milestones')
+        .upsert(ms, { onConflict: 'tracked_issue_id, milestone_type', ignoreDuplicates: true });
+      
+      if (msError) {
+        console.error(`[Reconciliation] Failed to insert milestone ${ms.milestone_type} for ${issue.id}:`, msError);
+      }
+    }
   }
 }
 
