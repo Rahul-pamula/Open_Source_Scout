@@ -1,29 +1,59 @@
 <div align="center">
-  <img src="https://img.icons8.com/?size=100&id=D7Jc0g0f5N1O&format=png&color=10b981" alt="Open Source Scout Logo" />
-  <h1>Open Source Scout</h1>
-  <p><strong>An AI-powered local agent for discovering, evaluating, and tracking open-source contribution opportunities.</strong></p>
+  <h1 align="center">Open Source Scout 🦅</h1>
+  <p align="center">
+    <strong>Stop scrolling. Start coding. Your AI-powered agent for crushing open source.</strong>
+  </p>
+  <p align="center">
+    <a href="https://github.com/Rahul-pamula/Open_Source_Scout/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">
+      <img src="https://img.shields.io/github/issues/Rahul-pamula/Open_Source_Scout/good%20first%20issue?style=flat-square&color=10b981&label=Good%20First%20Issues" alt="Good First Issues" />
+    </a>
+    <a href="https://github.com/Rahul-pamula/Open_Source_Scout/pulls">
+      <img src="https://img.shields.io/github/issues-pr/Rahul-pamula/Open_Source_Scout?style=flat-square&color=blue" alt="Pull Requests" />
+    </a>
+  </p>
 </div>
 
+<br />
+
+## 😩 The Open Source Struggle is Real
+
+We've all been there:
+- 🔍 **The Scroll of Despair:** Spending 3 hours searching for a "good first issue" only to find it requires deep knowledge of a codebase you've never seen.
+- 😭 **The Silent Claim:** Finding the *perfect* issue, reading the entire thread, only to realize at the very bottom that someone claimed it 3 weeks ago and the maintainer forgot to assign them.
+- 🧠 **Context Overload:** Trying to figure out if you actually have the skills to solve a bug based on a 2-sentence description.
+
+## ⚡ Meet Scout
+
+**Open Source Scout** is a local-first AI agent that fixes this broken workflow. It acts as your personal open-source manager, aggressively filtering GitHub to find issues that *actually* match your skills, evaluating their difficulty using Groq's lightning-fast LLMs, and tracking your workflow.
+
+### 🌟 What it does:
+1. **The Radar:** Scout scans GitHub based on your custom developer profile and filters out the noise.
+2. **The AI Dossier:** For every issue, Scout generates a "Match Score", detects if the issue is secretly claimed, and estimates the true difficulty of the ticket.
+3. **The Operations Board:** A highly technical, automated Kanban board that tracks your pipeline (Discovered → Engaged → Completed) via a strict state machine.
+4. **[WIP] Auto-Engagement:** (Coming in Phase 4!) Scout will draft professional, context-aware comments requesting assignment or asking clarifying questions—all requiring your explicit 1-click approval before posting.
+
 ---
 
-## 🎯 The Problem
+## 🤝 We Need Your Help! (Yes, YOU!)
 
-Navigating open source can be overwhelming. As a developer, finding issues that actually match your skills, evaluating their true difficulty, and tracking your active contributions across dozens of repositories is a fragmented, manual, and exhausting process. 
+Scout is built **by** open source contributors, **for** open source contributors. 
 
-## ✨ The Solution
+We are currently building out **Phase 4 (Draft Engagement)** and polishing the UI. Whether you are a beginner looking for your first PR or a seasoned architect, there is a place for you here.
 
-**Open Source Scout** is your personal, local-first agent. It cuts through the noise by:
-1. **Discovering** issues matching your specific developer profile.
-2. **Evaluating** them using Groq's blazing-fast LLMs to generate a "Match Score", extract alignment intent, and estimate effort.
-3. **Tracking** your open-source pipeline (from *Discovered* to *Engaged* to *Completed*) using a strict state machine.
+### Where to start?
+1. Check out our [Good First Issues](https://github.com/Rahul-pamula/Open_Source_Scout/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+2. We need help with:
+   - 🎨 **Frontend:** Refining the Tailwind UI, adding subtle animations, and improving empty states.
+   - 🧠 **AI/Prompting:** Tweaking Groq prompts to better detect issue difficulty.
+   - 🛠️ **Backend:** Strengthening the Express/Supabase state machine.
 
-Scout is designed as a **serious developer tool**. No noisy dashboards, no AI "sparkles" — just a light, precise, technical interface that helps you answer one question: *"Should I contribute to this issue?"*
+*Our Design Philosophy:* **Light. Precise. Technical. Quiet.** We build serious developer tools, not noisy, flashing dashboards. Keep it clean!
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ How It Works (Architecture)
 
-Scout is built with a local-first philosophy. The frontend never talks directly to the AI models or external databases; all state transitions and API calls are strictly validated by the backend.
+Scout is strictly local-first. The frontend never talks directly to external APIs, ensuring your secrets stay safe on the server.
 
 \`\`\`mermaid
 graph TD
@@ -41,45 +71,34 @@ graph TD
 
 ---
 
-## 🚀 Features
+## 🚀 Quickstart (Run it locally)
 
-- **Radar:** Discover issues tailored to your profile.
-- **Dossier:** A deep-dive workspace for a single issue, pulling in the comment thread, GitHub facts, claimant detection, and AI evaluation.
-- **Operations Board:** A dense technical list tracking your contribution pipeline, backed by a strict state machine to prevent illegal tracking states.
+You need to provide your own API keys. **Secrets are never exposed to the Vite frontend.**
 
----
-
-## ⚙️ Environment Variables
-
-To run Scout locally, you must provide secrets to the backend. **Secrets are never exposed to the Vite frontend.**
-
-Create a \`.env\` file in the root of the repository:
-
-\`\`\`env
-# Supabase (Canonical Tracking State)
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# Groq (AI Evaluation)
-GROQ_API_KEY=your_groq_api_key
-
-# GitHub (API Access)
-GITHUB_TOKEN=your_github_personal_access_token
-
-# Backend Port (Optional, defaults to 3001)
-API_PORT=3001
-\`\`\`
-
----
-
-## 🛠️ Local Development
-
-1. **Install Dependencies:**
+1. **Clone & Install:**
    \`\`\`bash
+   git clone https://github.com/Rahul-pamula/Open_Source_Scout.git
+   cd Open_Source_Scout
    npm install
    \`\`\`
 
-2. **Run the Development Server:**
+2. **Configure Environment:**
+   Create a \`.env\` file in the root of the repository:
+   \`\`\`env
+   # Supabase (Canonical Tracking State)
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+   # Groq (AI Evaluation)
+   GROQ_API_KEY=your_groq_api_key
+
+   # GitHub (API Access)
+   GITHUB_TOKEN=your_github_personal_access_token
+   
+   API_PORT=3001
+   \`\`\`
+
+3. **Ignition:**
    \`\`\`bash
    npm run dev
    \`\`\`
@@ -88,14 +107,6 @@ API_PORT=3001
 
 ---
 
-## 🤝 Contributing
-
-We welcome contributions! Scout itself is an open-source project designed to help people contribute to open source. 
-
-**Want to help build Scout?**
-Look for issues labeled \`good first issue\` on our tracker. We are currently building out **Phase 4 (Draft Engagement)** and welcome help with:
-- Frontend UI/UX refinements
-- Markdown parsing in the Dossier
-- Expanding AI evaluation criteria
-
-*Note: All PRs must maintain the "Light. Precise. Technical." design philosophy. Please review our architecture constraints before opening large structural PRs.*
+<div align="center">
+  <p><i>Built with ☕️ to make open source less intimidating. Join us!</i></p>
+</div>
