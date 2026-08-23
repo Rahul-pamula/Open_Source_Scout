@@ -101,6 +101,23 @@ app.post('/api/evaluate', async (req: Request, res: Response) => {
   }
 });
 
+// Groq Draft Generation
+app.post('/api/draft/generate', async (req: Request, res: Response) => {
+  try {
+    const { issue, comments, profile, intent } = req.body;
+    
+    if (!issue || !comments || !profile || !intent) {
+      return res.status(400).json({ error: 'issue, comments, profile, and intent are required in the request body' });
+    }
+
+    const result = await groqEvaluator.generateCommentDraft(issue, comments, profile, intent);
+    res.json({ data: result });
+  } catch (error: any) {
+    console.error('[scout-api] Groq Draft Generation Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 import { claimDetector } from './services/claimDetector.js';
 
 // Claim Status Proxy
