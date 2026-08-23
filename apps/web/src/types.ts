@@ -42,3 +42,17 @@ export interface ClaimResult {
   confidence: number;
   evidence?: string;
 }
+
+export type IssueState = 'DISCOVERED' | 'EVALUATED' | 'DRAFTED' | 'ENGAGED' | 'ASSIGNED' | 'COMPLETED' | 'REJECTED';
+
+export interface TrackedIssue {
+  id: string;
+  user_id: string;
+  github_issue_url: string;
+  title: string;
+  repo_name: string;
+  state: IssueState;
+  match_score?: number;
+  created_at: string;
+  updated_at: string;
+}
