@@ -164,6 +164,18 @@ app.patch('/api/tracking/:id/state', async (req: Request, res: Response) => {
   }
 });
 
+app.post('/api/tracking/sync', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    await trackingService.syncTrackingState(authHeader);
+    res.json({ message: 'Tracking state synced successfully to local data directory' });
+  } catch (error: any) {
+    console.error('[scout-api] POST Tracking Sync Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[scout-api] Server running on http://localhost:${PORT}`);
 });
