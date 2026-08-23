@@ -19,6 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 import { githubAdapter } from './services/github.js';
+import { filterEngine } from './services/filter.js';
 
 // Basic health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
@@ -35,8 +36,17 @@ app.get('/api/github/search', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Query parameter "q" is required' });
     }
 
-    const issues = await githubAdapter.searchIssues(query, limit);
-    res.json({ data: issues });
+    const rawIssues = await githubAdapter.searchIssues(query, limit);
+    const eligibleIssues = filterEngine.filterEligibleIssues(rawIssues);
+
+    res.json({ 
+      meta: {
+        total_fetched: rawIssues.length,
+        total_eligible: eligibleIssues.length,
+        filtered_out: rawIssues.length - eligibleIssues.length
+      },
+      data: eligibleIssues 
+    });
   } catch (error: any) {
     console.error('[scout-api] GitHub Search Error:', error);
     res.status(500).json({ error: error.message || 'Internal Server Error' });

@@ -64,6 +64,7 @@ export class GitHubAdapter {
       repoName: repoName,
       repoUrl: repoUrl,
       state: raw.state,
+      isAssigned: raw.assignee !== null,
       labels: (raw.labels || []).map((l: any) => l.name),
       createdAt: raw.created_at,
     };

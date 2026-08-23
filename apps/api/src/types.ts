@@ -6,6 +6,7 @@ export interface NormalizedIssue {
   repoName: string;
   repoUrl: string;
   state: string;
+  isAssigned: boolean;
   labels: string[];
   createdAt: string;
 }
