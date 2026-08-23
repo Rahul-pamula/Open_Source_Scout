@@ -1,7 +1,7 @@
 <div align="center">
   <h1 align="center">Open Source Scout 🦅</h1>
   <p align="center">
-    <strong>I just deleted my entire backend API. Here's why.</strong>
+    <strong>Your AI-powered agent for crushing open source.</strong>
   </p>
   <p align="center">
     <a href="https://github.com/Rahul-pamula/Open_Source_Scout/issues">
@@ -14,32 +14,15 @@
 </div>
 
 <br />
+## 🗑️ The BYOB (Bring Your Own Backend) Architecture
 
-## 🗑️ The BYOB (Bring Your Own Backend) Revolution
+Instead of building another SaaS that stores your data and GitHub tokens centrally, Open Source Scout uses a **100% decentralized, data-sovereign architecture**.
 
-Instead of building another SaaS that hoards your data and GitHub tokens, Open Source Scout uses a **100% decentralized, data-sovereign architecture**.
+The architecture is split into two parts:
+- **1 Universal Static Frontend:** Hosted centrally on GitHub Pages, acting purely as a UI layer.
+- **Your Self-Hosted Backend:** You deploy your own Supabase Edge Functions, PostgreSQL database, and Vault. 
 
-The setup:
-- **1 Static Frontend** (Hosted centrally on GitHub Pages for everyone)
-- **10,000 Users**
-- **10,000 Self-Hosted Backends** (Supabase Edge Functions, AWS Lambdas, personal databases)
-
-The frontend just acts as a glass window into *your* personal infrastructure. **Your data. Your compute. Your API keys.**
-
-## 🧩 The Massive UX Paradox (We Need Your Help!)
-
-If there is **zero central server**, how does the universal frontend "remember" which personal Edge environment or database to connect to when you clear your browser history? (Without forcing you to re-paste your connection keys every single time).
-
-*Note: Building a central "phonebook" database defeats the whole purpose of being 100% decentralized.*
-
-We have spent intense research and 150+ commits trying to crack this UX puzzle. We haven't fully solved it yet. 
-
-If you are:
-👉 **Interested in serverless computing**
-👉 **New to open-source and eager to learn**
-👉 **A senior developer willing to offer guidance**
-
-Come check out what we're building and help us solve this decentralized UX paradox!
+The frontend acts as a glass window into *your* personal infrastructure. **Your data. Your compute. Your API keys.**
 
 ---
 
