@@ -14,17 +14,13 @@
 </div>
 
 <br />
-## 🗑️ The BYOB (Bring Your Own Backend) Architecture
 
-Instead of building another SaaS that stores your data and GitHub tokens centrally, Open Source Scout uses a **100% decentralized, data-sovereign architecture**.
+## 😩 The Open Source Struggle is Real
 
-The architecture is split into two parts:
-- **1 Universal Static Frontend:** Hosted centrally on GitHub Pages, acting purely as a UI layer.
-- **Your Self-Hosted Backend:** You deploy your own Supabase Edge Functions, PostgreSQL database, and Vault. 
-
-The frontend acts as a glass window into *your* personal infrastructure. **Your data. Your compute. Your API keys.**
-
----
+We've all been there:
+- 🔍 **The Scroll of Despair:** Spending 3 hours searching for a "good first issue" only to find it requires deep knowledge of a codebase you've never seen.
+- 😭 **The Silent Claim:** Finding the *perfect* issue, reading the entire thread, only to realize at the very bottom that someone claimed it 3 weeks ago and the maintainer forgot to assign them.
+- 🧠 **Context Overload:** Trying to figure out if you actually have the skills to solve a bug based on a 2-sentence description.
 
 ## ⚡ What is Open Source Scout?
 
@@ -34,6 +30,18 @@ Open Source Scout acts as your personal open-source manager, aggressively filter
 1. **The Radar:** Scout scans GitHub based on your dynamic developer profile and filters out the noise.
 2. **The AI Dossier:** For every issue, Scout generates a "Match Score", detects if the issue is secretly claimed, and estimates the true difficulty of the ticket.
 3. **The Operations Board:** A highly technical, automated Kanban board that tracks your pipeline via a strict state machine.
+
+---
+
+## 🗑️ The BYOB (Bring Your Own Backend) Architecture
+
+Instead of building another SaaS that stores your data and GitHub tokens centrally, Open Source Scout uses a **100% decentralized, data-sovereign architecture**.
+
+The architecture is split into two parts:
+- **1 Universal Static Frontend:** Hosted centrally on GitHub Pages, acting purely as a UI layer.
+- **Your Self-Hosted Backend:** You deploy your own Supabase Edge Functions, PostgreSQL database, and Vault. 
+
+The frontend acts as a glass window into *your* personal infrastructure. **Your data. Your compute. Your API keys.**
 
 ---
 
