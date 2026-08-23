@@ -28,9 +28,11 @@ export class SafetyGateService {
     draftResult: DraftResult
   ): SafetyGateResult {
     
+    const GLOBAL_KILL_SWITCH = process.env.AUTONOMOUS_ENGAGEMENT_ENABLED === 'false';
+
     const checks = {
       // Is L3 fully enabled? (Kill switch check)
-      autonomyEnabled: policy.enabled && policy.level === 'L3',
+      autonomyEnabled: !GLOBAL_KILL_SWITCH && policy.enabled && policy.level === 'L3',
       
       // Is the repository explicitly whitelisted?
       repositoryAllowed: policy.allowedRepositories.includes(issue.repoName),

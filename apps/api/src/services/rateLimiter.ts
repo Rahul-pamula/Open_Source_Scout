@@ -8,6 +8,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const GLOBAL_DAILY_LIMIT = parseInt(process.env.SCOUT_GLOBAL_DAILY_LIMIT || '5', 10);
 const REPO_DAILY_LIMIT = parseInt(process.env.SCOUT_REPO_DAILY_LIMIT || '2', 10);
 const REPO_COOLDOWN_MINUTES = parseInt(process.env.SCOUT_REPO_COOLDOWN_MINUTES || '30', 10);
+const HARD_GLOBAL_DAILY_BUDGET = parseInt(process.env.SCOUT_HARD_GLOBAL_DAILY_BUDGET || '50', 10);
 
 export class RateLimiterService {
   
@@ -48,9 +49,23 @@ export class RateLimiterService {
       throw new Error(`Rate Limiter DB Error: ${error.message}`);
     }
 
+    // 1. Hard Global Budget (across ALL users)
+    const { count: systemCount, error: systemError } = await supabase
+      .from('engagement_log')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', oneDayAgo);
+
+    if (systemError) {
+      throw new Error(`Rate Limiter System DB Error: ${systemError.message}`);
+    }
+
+    if ((systemCount || 0) >= HARD_GLOBAL_DAILY_BUDGET) {
+      throw new Error(`DAILY_AUTONOMOUS_BUDGET_EXHAUSTED: System global daily budget of ${HARD_GLOBAL_DAILY_BUDGET} reached.`);
+    }
+
     const engagements = recentEngagements || [];
 
-    // 1. Global Daily Limit
+    // 2. User Global Daily Limit
     if (engagements.length >= GLOBAL_DAILY_LIMIT) {
       throw new Error(`AUTONOMOUS_RATE_LIMIT_REACHED: Global daily limit of ${GLOBAL_DAILY_LIMIT} engagements reached.`);
     }
