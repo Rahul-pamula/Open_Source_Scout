@@ -11,13 +11,34 @@ export interface NormalizedIssue {
   createdAt: string;
 }
 
+export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD';
+
 export interface EvaluationResult {
   matchScore: number;
   intent: string;
   explanation: string;
+  difficulty: DifficultyLevel;
+  estimatedEffort: string;
 }
 
 // A combined type for the UI to consume
 export interface ScoutedIssue extends NormalizedIssue {
   evaluation?: EvaluationResult;
+}
+
+export interface NormalizedComment {
+  id: string;
+  author: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ClaimStatusType = 'NONE' | 'INTEREST_EXPRESSED' | 'MAINTAINER_ASSIGNED' | 'UNCERTAIN';
+
+export interface ClaimResult {
+  claimStatus: ClaimStatusType;
+  claimant?: string;
+  confidence: number;
+  evidence?: string;
 }

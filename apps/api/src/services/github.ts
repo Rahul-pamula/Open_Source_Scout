@@ -68,6 +68,25 @@ export class GitHubAdapter {
   }
 
   /**
+   * Fetch a specific issue by owner, repo, and number
+   */
+  async fetchIssue(owner: string, repo: string, issueNumber: number): Promise<NormalizedIssue> {
+    const url = new URL(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`);
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`GitHub API Error: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+
+    const data = await response.json();
+    return this.normalizeIssue(data);
+  }
+
+  /**
    * Map the raw GitHub issue payload into our normalized format.
    * This ensures the rest of the backend (Filters, Groq) doesn't care about GitHub's specific schema.
    */

@@ -25,7 +25,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Radar />} />
-            <Route path="dossier/:id" element={<Dossier />} />
+            <Route path="dossier/:owner/:repo/:number" element={<Dossier />} />
             {/* Protected Routes */}
             <Route path="operations" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
             <Route path="identity" element={<ProtectedRoute><Identity /></ProtectedRoute>} />

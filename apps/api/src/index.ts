@@ -53,6 +53,20 @@ app.get('/api/github/search', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/api/github/issues/:owner/:repo/:number', async (req: Request, res: Response) => {
+  try {
+    const owner = req.params.owner as string;
+    const repo = req.params.repo as string;
+    const number = req.params.number as string;
+    
+    const issue = await githubAdapter.fetchIssue(owner, repo, parseInt(number));
+    res.json({ data: issue });
+  } catch (error: any) {
+    console.error('[scout-api] GitHub Issue Fetch Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 app.get('/api/github/issues/:owner/:repo/:number/comments', async (req: Request, res: Response) => {
   try {
     const owner = req.params.owner as string;
