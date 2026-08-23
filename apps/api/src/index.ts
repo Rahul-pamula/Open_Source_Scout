@@ -251,6 +251,7 @@ app.post('/api/tracking/sync', async (req: Request, res: Response) => {
 });
 
 import { autonomousWorker } from './services/worker.js';
+import { syncService } from './services/sync.js';
 
 // Trigger Autonomous Worker
 app.post('/api/worker/run', async (req: Request, res: Response) => {
@@ -270,6 +271,29 @@ app.post('/api/worker/run', async (req: Request, res: Response) => {
     res.json({ message: 'Worker triggered successfully' });
   } catch (error: any) {
     console.error('[scout-api] Worker Trigger Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// Trigger Monitoring Sync
+app.post('/api/monitor/sync', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    // Security check: Must have an auth header (either user token or service secret in a real app)
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Unauthorized: Missing Authentication Header' });
+    }
+
+    // In Chunk 1, we just fetch snapshots and log health. Reconciliation happens in Chunk 2.
+    const { snapshots, health } = await syncService.startSync();
+
+    res.json({
+      message: 'Monitoring sync completed',
+      health,
+      snapshotsFetched: snapshots.length
+    });
+  } catch (error: any) {
+    console.error('[scout-api] Monitor Sync Error:', error);
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
