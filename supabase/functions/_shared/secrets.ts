@@ -1,3 +1,4 @@
+import { getSecret } from './secrets.ts';
 export function getSecret(name: string): string {
   const value = Deno.env.get(name);
   if (!value) {
