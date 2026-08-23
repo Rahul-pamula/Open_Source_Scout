@@ -53,6 +53,25 @@ app.get('/api/github/search', async (req: Request, res: Response) => {
   }
 });
 
+import { groqEvaluator } from './services/groq.js';
+
+// Groq Evaluation Proxy
+app.post('/api/evaluate', async (req: Request, res: Response) => {
+  try {
+    const { issue, profile } = req.body;
+    
+    if (!issue || !profile) {
+      return res.status(400).json({ error: 'Both "issue" and "profile" are required in the request body' });
+    }
+
+    const result = await groqEvaluator.evaluateIssue(issue, profile);
+    res.json({ data: result });
+  } catch (error: any) {
+    console.error('[scout-api] Groq Evaluation Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[scout-api] Server running on http://localhost:${PORT}`);
 });

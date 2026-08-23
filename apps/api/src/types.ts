@@ -10,3 +10,9 @@ export interface NormalizedIssue {
   labels: string[];
   createdAt: string;
 }
+
+export interface EvaluationResult {
+  matchScore: number;
+  intent: string;
+  explanation: string;
+}
