@@ -170,6 +170,7 @@ app.post('/api/engagement/post', async (req: Request, res: Response) => {
     let status = 500;
     if (error.message.includes('IDEMPOTENCY_ERROR')) status = 409;
     if (error.message.includes('AUTONOMOUS_RATE_LIMIT_REACHED')) status = 429;
+    if (error.message.includes('DAILY_AUTONOMOUS_BUDGET_EXHAUSTED')) status = 429;
     res.status(status).json({ error: error.message || 'Internal Server Error' });
   }
 });
