@@ -120,6 +120,50 @@ app.post('/api/claim-status', async (req: Request, res: Response) => {
   }
 });
 
+import { trackingService } from './services/tracking.js';
+
+// Tracking API
+app.get('/api/tracking', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    const issues = await trackingService.getTrackedIssues(authHeader);
+    res.json({ data: issues });
+  } catch (error: any) {
+    console.error('[scout-api] GET Tracking Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/tracking/save', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    const { userId, issueData } = req.body;
+    if (!userId || !issueData) return res.status(400).json({ error: 'Missing userId or issueData' });
+    const result = await trackingService.saveIssue(authHeader, userId, issueData);
+    res.json({ data: result });
+  } catch (error: any) {
+    console.error('[scout-api] POST Tracking Save Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/tracking/:id/state', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    const id = req.params.id as string;
+    const { newState } = req.body;
+    if (!newState) return res.status(400).json({ error: 'Missing newState' });
+    const result = await trackingService.updateIssueState(authHeader, id, newState);
+    res.json({ data: result });
+  } catch (error: any) {
+    console.error('[scout-api] PATCH Tracking State Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[scout-api] Server running on http://localhost:${PORT}`);
 });
