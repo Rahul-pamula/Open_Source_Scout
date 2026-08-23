@@ -18,9 +18,29 @@ const PORT = process.env.API_PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+import { githubAdapter } from './services/github.js';
+
 // Basic health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'scout-api' });
+});
+
+// GitHub API Proxy
+app.get('/api/github/search', async (req: Request, res: Response) => {
+  try {
+    const query = req.query.q as string;
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Query parameter "q" is required' });
+    }
+
+    const issues = await githubAdapter.searchIssues(query, limit);
+    res.json({ data: issues });
+  } catch (error: any) {
+    console.error('[scout-api] GitHub Search Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
 });
 
 app.listen(PORT, () => {
