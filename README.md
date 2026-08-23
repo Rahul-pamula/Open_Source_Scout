@@ -1,10 +1,10 @@
 <div align="center">
   <h1 align="center">Open Source Scout 🦅</h1>
   <p align="center">
-    <strong>Stop scrolling. Start coding. Your AI-powered agent for crushing open source.</strong>
+    <strong>I just deleted my entire backend API. Here's why.</strong>
   </p>
   <p align="center">
-    <a href="https://github.com/Rahul-pamula/Open_Source_Scout/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22">
+    <a href="https://github.com/Rahul-pamula/Open_Source_Scout/issues">
       <img src="https://img.shields.io/github/issues/Rahul-pamula/Open_Source_Scout/good%20first%20issue?style=flat-square&color=10b981&label=Good%20First%20Issues" alt="Good First Issues" />
     </a>
     <a href="https://github.com/Rahul-pamula/Open_Source_Scout/pulls">
@@ -15,98 +15,72 @@
 
 <br />
 
-## 😩 The Open Source Struggle is Real
+## 🗑️ The BYOB (Bring Your Own Backend) Revolution
 
-We've all been there:
-- 🔍 **The Scroll of Despair:** Spending 3 hours searching for a "good first issue" only to find it requires deep knowledge of a codebase you've never seen.
-- 😭 **The Silent Claim:** Finding the *perfect* issue, reading the entire thread, only to realize at the very bottom that someone claimed it 3 weeks ago and the maintainer forgot to assign them.
-- 🧠 **Context Overload:** Trying to figure out if you actually have the skills to solve a bug based on a 2-sentence description.
+Instead of building another SaaS that hoards your data and GitHub tokens, Open Source Scout uses a **100% decentralized, data-sovereign architecture**.
 
-## ⚡ Meet Scout
+The setup:
+- **1 Static Frontend** (Hosted centrally on GitHub Pages for everyone)
+- **10,000 Users**
+- **10,000 Self-Hosted Backends** (Supabase Edge Functions, AWS Lambdas, personal databases)
 
-**Open Source Scout** is a local-first AI agent that fixes this broken workflow. It acts as your personal open-source manager, aggressively filtering GitHub to find issues that *actually* match your skills, evaluating their difficulty using Groq's lightning-fast LLMs, and tracking your workflow.
+The frontend just acts as a glass window into *your* personal infrastructure. **Your data. Your compute. Your API keys.**
 
-### 🌟 What it does:
-1. **The Radar:** Scout scans GitHub based on your custom developer profile and filters out the noise.
+## 🧩 The Massive UX Paradox (We Need Your Help!)
+
+If there is **zero central server**, how does the universal frontend "remember" which personal Edge environment or database to connect to when you clear your browser history? (Without forcing you to re-paste your connection keys every single time).
+
+*Note: Building a central "phonebook" database defeats the whole purpose of being 100% decentralized.*
+
+We have spent intense research and 150+ commits trying to crack this UX puzzle. We haven't fully solved it yet. 
+
+If you are:
+👉 **Interested in serverless computing**
+👉 **New to open-source and eager to learn**
+👉 **A senior developer willing to offer guidance**
+
+Come check out what we're building and help us solve this decentralized UX paradox!
+
+---
+
+## ⚡ What is Open Source Scout?
+
+Open Source Scout acts as your personal open-source manager, aggressively filtering GitHub to find issues that *actually* match your skills, evaluating their difficulty using Groq's lightning-fast LLMs, and tracking your workflow.
+
+### 🌟 Features:
+1. **The Radar:** Scout scans GitHub based on your dynamic developer profile and filters out the noise.
 2. **The AI Dossier:** For every issue, Scout generates a "Match Score", detects if the issue is secretly claimed, and estimates the true difficulty of the ticket.
-3. **The Operations Board:** A highly technical, automated Kanban board that tracks your pipeline (Discovered → Engaged → Completed) via a strict state machine.
-4. **[WIP] Auto-Engagement:** (Coming in Phase 4!) Scout will draft professional, context-aware comments requesting assignment or asking clarifying questions—all requiring your explicit 1-click approval before posting.
+3. **The Operations Board:** A highly technical, automated Kanban board that tracks your pipeline via a strict state machine.
 
 ---
 
-## 🤝 We Need Your Help! (Yes, YOU!)
+## 🚀 Quickstart (Deploy your own Backend)
 
-Scout is built **by** open source contributors, **for** open source contributors. 
+You don't need to deploy the frontend. Just run the deployment CLI to spin up your personal backend infrastructure!
 
-We are currently building out **Phase 4 (Draft Engagement)** and polishing the UI. Whether you are a beginner looking for your first PR or a seasoned architect, there is a place for you here.
+1. **Prerequisites:**
+   - Install the [Supabase CLI](https://supabase.com/docs/guides/cli)
+   - Create a free project at [supabase.com](https://supabase.com)
+   - Grab a GitHub Personal Access Token and a Groq API Key
 
-### Where to start?
-1. Check out our [Good First Issues](https://github.com/Rahul-pamula/Open_Source_Scout/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
-2. We need help with:
-   - 🎨 **Frontend:** Refining the Tailwind UI, adding subtle animations, and improving empty states.
-   - 🧠 **AI/Prompting:** Tweaking Groq prompts to better detect issue difficulty.
-   - 🛠️ **Backend:** Strengthening the Express/Supabase state machine.
+2. **Deploy your Infrastructure:**
+   ```bash
+   npx open-source-scout setup
+   ```
+   *(Or run `node packages/cli/bin/setup.js` if cloning locally)*
 
-*Our Design Philosophy:* **Light. Precise. Technical. Quiet.** We build serious developer tools, not noisy, flashing dashboards. Keep it clean!
+3. **Follow the Wizard:**
+   The CLI will automatically push the database schema, securely inject your API keys into the Vault, and deploy your Edge Functions.
 
----
-
-## 🏗️ How It Works (Architecture)
-
-Scout is strictly local-first. The frontend never talks directly to external APIs, ensuring your secrets stay safe on the server.
-
-\`\`\`mermaid
-graph TD
-    UI[Frontend: React + Vite + Tailwind]
-    API[Backend: Express API]
-    DB[(Supabase: Tracking State)]
-    GH[GitHub API: Issues & Comments]
-    Groq[Groq API: Llama 3 Evaluation]
-
-    UI -- "HTTP (Auth Token)" --> API
-    API -- "Validate State Transition" --> DB
-    API -- "Fetch Context" --> GH
-    API -- "Evaluate/Draft" --> Groq
-\`\`\`
+4. **Connect:**
+   Go to our hosted frontend, paste your newly generated Supabase URL and Anon Key, and boom—you're connected to your own personal backend.
 
 ---
 
-## 🚀 Quickstart (Run it locally)
+## 🏗️ Architecture
 
-You need to provide your own API keys. **Secrets are never exposed to the Vite frontend.**
-
-1. **Clone & Install:**
-   \`\`\`bash
-   git clone https://github.com/Rahul-pamula/Open_Source_Scout.git
-   cd Open_Source_Scout
-   npm install
-   \`\`\`
-
-2. **Configure Environment:**
-   Create a \`.env\` file in the root of the repository:
-   \`\`\`env
-   # Supabase (Canonical Tracking State)
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-   # Groq (AI Evaluation)
-   GROQ_API_KEY=your_groq_api_key
-
-   # GitHub (API Access)
-   GITHUB_TOKEN=your_github_personal_access_token
-   
-   API_PORT=3001
-   \`\`\`
-
-3. **Ignition:**
-   \`\`\`bash
-   npm run dev
-   \`\`\`
-   - Frontend starts on \`http://localhost:5173\`
-   - Backend API starts on \`http://localhost:3001\`
-
----
+Check out the [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand how the frontend seamlessly orchestrates Edge Functions without an API server.
 
 <div align="center">
-  <p><i>Built with ☕️ to make open source less intimidating. Join us!</i></p>
+  <p><i>Built with ☕️ to make open source decentralized, secure, and less intimidating.</i></p>
 </div>

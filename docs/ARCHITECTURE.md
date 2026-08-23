@@ -1,49 +1,52 @@
-# Architecture: Open Source Scout
+# Architecture: Open Source Scout (BYOB)
 
 ## Vision
-Open Source Scout is an autonomous open-source contribution discovery and engagement agent that transforms the user's intent into suitable GitHub contribution opportunities.
+Open Source Scout is an autonomous open-source contribution discovery and engagement agent. 
 
 The fundamental product philosophy is: **Scout, don't code.**
 The Scout Agent discovers and manages the contribution workflow, but the user performs the actual software implementation.
 
-## Hybrid Architecture
-The system combines a traditional robust web application with agentic workflows.
+Crucially, Open Source Scout operates on a **Bring Your Own Backend (BYOB)** model. There are zero central servers. Every user owns their own backend infrastructure, ensuring 100% data sovereignty.
+
+## BYOB Architecture
+The system eliminates traditional backend APIs in favor of a universal static frontend connecting dynamically to self-hosted serverless environments.
 
 ```text
                 OPEN SOURCE SCOUT
                        │
          ┌─────────────┴─────────────┐
          │                           │
-    PRODUCT LAYER                AGENT LAYER
+    STATIC FRONTEND          USER'S PERSONAL BACKEND
          │                           │
-    React PWA                   Scout Persona
-    Supabase                    Scout Skill
-    PostgreSQL                  GitHub MCP
-    Edge Functions              Agent Toolkit
-    Vault                       Skill Matching
-    GitHub Actions              Progressive Autonomy
+    React PWA (Universal)       Supabase PostgreSQL
+    Deployed on GitHub Pages    Supabase Edge Functions
+    localStorage Keys           Secure Vault (Secrets)
          │                           │
          └─────────────┬─────────────┘
                        │
-                  GitHub API
+                  External APIs
                        │
-                    GitHub
+              GitHub & Groq (LLMs)
 ```
 
 ## Core Components
-1. **Frontend**: React + Vite PWA hosted on GitHub Pages. Handles UI, auth state, Radar interface, and user approvals.
-2. **Backend**: Supabase Edge Functions. The primary security boundary. Handles GitHub API calls, Groq evaluation, deterministic filtering, and database updates.
-3. **Database**: Supabase PostgreSQL is the canonical source of truth for Scout's application state (profiles, evaluations, engagement history).
-4. **Agent State**: `state.json` (machine-readable) and `TRACKING_BOARD.md` (human-readable) serve as portable agent state that can be operated on locally or via GitHub Actions.
+1. **Frontend**: React + Vite PWA. This is a single, static web app hosted centrally. It acts purely as a UI layer.
+2. **Edge Functions**: The primary security boundary and backend logic. Written in Deno, they handle GitHub API calls, Groq evaluation, deterministic filtering, and database updates.
+3. **Database**: The user's personal Supabase PostgreSQL instance is the canonical source of truth for their application state (profiles, evaluations, engagement history).
+4. **Deployment CLI**: A Node.js CLI (`packages/cli`) that orchestrates the IaC (Infrastructure as Code) deployment of the database schema and edge functions to the user's personal Supabase project.
 
-## Discovery Pipeline
-1. Natural Language Request
-2. Intent Extraction (Groq)
-3. GitHub Search / MCP (Raw Candidates)
-4. Deterministic Filtering (reject closed, assigned, archived, duplicates, competing claims)
-5. Skill Matching (Profile vs. Repository)
-6. Groq Evaluation (skill fit, difficulty, relevance)
-7. Ranked Candidates
+## Discovery Pipeline (Edge Execution)
+When the user clicks "Search" on the frontend, it invokes the `search` Edge Function:
+1. Natural Language Request & Intent Extraction
+2. GitHub Search (Raw Candidates)
+3. Deterministic Filtering (reject closed, assigned, archived, duplicates)
+4. Groq Evaluation (skill fit, difficulty, relevance)
+5. Ranked Candidates returned to the static UI
 
-## Reusable GitHub Skills
-The architecture utilizes Agent Toolkit-compatible skills (e.g., `os-scout`) for local and remote execution, leveraging GitHub MCP for discovery and the GitHub API for mutations.
+## Security & Secrets
+- **Public Keys:** The `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are stored in the browser's `localStorage`. They are public by design.
+- **Row Level Security (RLS):** The database enforces strict RLS. The Anon Key is useless without a valid GitHub OAuth session.
+- **Private Secrets:** `GITHUB_TOKEN` and `GROQ_API_KEY` are never exposed to the frontend. The Deployment CLI pushes them directly into the Supabase Vault.
+
+## The Open UX Challenge
+Currently, if a user clears their browser cache or uses Incognito mode, `localStorage` is wiped, and they must re-enter their Supabase URL and Anon Key. Solving this decentralized connection paradigm—without resorting to a central registry—is our primary architectural challenge.
