@@ -521,10 +521,16 @@ export function Dossier() {
                   )}
 
                   {engagementState === 'POSTED' && (
-                    <div className="bg-emerald-50 border border-emerald-200 p-4 text-center">
-                      <CheckCircle size={24} className="text-emerald-500 mx-auto mb-2" />
+                    <div className="bg-emerald-50 border border-emerald-200 p-4 text-center flex flex-col items-center">
+                      <CheckCircle size={24} className="text-emerald-500 mb-2" />
                       <p className="font-bold text-sm text-emerald-900">Comment Posted!</p>
-                      <p className="font-mono text-xs text-emerald-700 mt-1">This issue is now ENGAGED.</p>
+                      <p className="font-mono text-xs text-emerald-700 mt-1 mb-4">This issue is now ENGAGED.</p>
+                      <Link 
+                        to="/operations"
+                        className="bg-emerald-600 text-white font-bold px-4 py-2 border border-emerald-700 shadow-[2px_2px_0px_#065f46] hover:-translate-y-px hover:shadow-[3px_3px_0px_#065f46] active:translate-x-px active:translate-y-px active:shadow-none transition-all text-xs"
+                      >
+                        Return to Operations
+                      </Link>
                     </div>
                   )}
                 </div>

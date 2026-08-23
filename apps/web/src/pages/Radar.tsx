@@ -64,9 +64,9 @@ export function Radar() {
       
       const profileStr = userProfile ? userProfile.bio : "I am a developer looking for issues.";
       const skillsQuery = userProfile && userProfile.skills.length > 0 
-        ? userProfile.skills.map(s => \`language:\${s}\`).join(' ') 
+        ? userProfile.skills.map(s => `language:${s}`).join(' ') 
         : 'language:typescript';
-      const dynamicSearchQuery = \`is:open is:issue label:"good first issue" \${skillsQuery}\`;
+      const dynamicSearchQuery = `is:open is:issue label:"good first issue" ${skillsQuery}`;
       
       // Step 1: Fetch and Filter
       setStatusText('Scouting GitHub for eligible issues...');
