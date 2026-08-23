@@ -6,6 +6,8 @@ import type { GitHubSnapshot, SyncHealth, TrackedIssue } from '../types.js';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
+import { reconciliationService } from './reconciliation.js';
+
 export class SyncService {
   private getClient() {
     if (!SUPABASE_SERVICE_ROLE_KEY) {
@@ -16,9 +18,9 @@ export class SyncService {
 
   /**
    * Generates GitHubSnapshots for all actively monitored issues.
-   * Does NOT mutate the Scout state machine.
+   * Hands them off to the Reconciliation Engine.
    */
-  async startSync(): Promise<{ snapshots: GitHubSnapshot[], health: SyncHealth }> {
+  async startSync(userId: string, githubUsername: string): Promise<{ snapshots: GitHubSnapshot[], health: SyncHealth }> {
     const supabase = this.getClient();
     const startTime = new Date().toISOString();
     let issuesChecked = 0;
@@ -33,17 +35,18 @@ export class SyncService {
     }).eq('id', '00000000-0000-0000-0000-000000000001');
 
     try {
-      // 1. Fetch monitored issues using Service Role (bypassing RLS for background job)
+      // 1. Fetch monitored issues for the user
       const { data: monitoredIssues, error: fetchError } = await supabase
         .from('tracked_issues')
         .select('*')
+        .eq('user_id', userId)
         .in('state', ['ENGAGED', 'ASSIGNED']);
 
       if (fetchError) throw fetchError;
       
       const issues = (monitoredIssues || []) as TrackedIssue[];
 
-      // 2. Query GitHub for each (sequentially to respect rate limits, or batched carefully)
+      // 2. Query GitHub and Reconcile
       for (const issue of issues) {
         try {
           issuesChecked++;
@@ -57,6 +60,9 @@ export class SyncService {
           const snapshot = await githubAdapter.fetchSnapshot(owner, repo, issueNumber, issue.id);
           apiRequests += 2; // fetchSnapshot makes 1 issue API call and 1 comments API call
           snapshots.push(snapshot);
+          
+          // Chunk 2: Reconcile!
+          await reconciliationService.reconcile(issue, snapshot, githubUsername);
 
         } catch (err: any) {
           console.error(`[SyncService] Failed to snapshot issue ${issue.id}:`, err);

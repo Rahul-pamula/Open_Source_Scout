@@ -48,6 +48,7 @@ export interface TrackedIssue {
   repo_name: string;
   state: IssueState;
   match_score?: number;
+  needs_attention: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -94,4 +95,22 @@ export interface SyncHealth {
   issues_checked: number;
   errors: string | null;
   api_requests_made: number;
+}
+
+export type ReconciliationEventType = 
+  | 'ISSUE_ASSIGNED' 
+  | 'MAINTAINER_RESPONDED' 
+  | 'PR_OPENED' 
+  | 'PR_MERGED' 
+  | 'ISSUE_COMPLETED' 
+  | 'ISSUE_REJECTED';
+
+export interface ReconciliationEvent {
+  id: string;
+  tracked_issue_id: string;
+  event_type: ReconciliationEventType;
+  previous_state: string;
+  new_state: string;
+  metadata?: any;
+  created_at: string;
 }
