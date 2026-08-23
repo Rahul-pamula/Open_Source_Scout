@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Loader2, ExternalLink, ChevronDown, ChevronRight, Activity, XCircle } from 'lucide-react';
 import type { TrackedIssue, IssueState } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { supabase } from '../services/supabase';
 
 const STATE_FLOW: IssueState[] = ['DISCOVERED', 'EVALUATED', 'DRAFTED', 'ENGAGED', 'ASSIGNED', 'COMPLETED'];
 
@@ -22,11 +22,11 @@ export function Operations() {
     if (!session?.access_token) return;
     try {
       setIsLoading(true);
-      const res = await fetch(`${API_BASE}/api/tracking`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      const { data: resData, error: trackError } = await supabase.functions.invoke('tracking', {
+        body: { action: 'list' }
       });
-      if (!res.ok) throw new Error('Failed to fetch tracking data');
-      const data = await res.json();
+      if (trackError) throw new Error('Failed to fetch tracking data: ' + trackError.message);
+      const data = resData;
       setIssues(data.data);
     } catch (err: any) {
       setError(err.message);
@@ -38,17 +38,11 @@ export function Operations() {
   const handleStateUpdate = async (id: string, newState: IssueState) => {
     if (!session?.access_token) return;
     try {
-      const res = await fetch(`${API_BASE}/api/tracking/${id}/state`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ newState })
+      const { error: updateError, data: errData } = await supabase.functions.invoke('tracking', {
+        body: { action: 'update_state', id, state: newState }
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to update state');
+      if (updateError) {
+        throw new Error(errData?.error || updateError.message || 'Failed to update state');
       }
       await fetchIssues(); // Refresh list
     } catch (err: any) {

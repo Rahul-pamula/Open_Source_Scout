@@ -4,7 +4,7 @@ import { ExternalLink, Loader2, AlertTriangle, CheckCircle, ShieldAlert, Info } 
 import type { NormalizedIssue, NormalizedComment, ClaimResult, EvaluationResult } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { supabase } from '../services/supabase';
 const USER_PROFILE = "I am a full-stack developer with experience in React, TypeScript, Node.js, and Tailwind CSS. I'm looking for frontend or fullstack issues where I can help build UI components or fix bugs.";
 
 export function Dossier() {
@@ -35,24 +35,19 @@ export function Dossier() {
     if (!issue) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/tracking/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          userId: user.id,
+      const { error: trackError } = await supabase.functions.invoke('tracking', {
+        body: {
+          action: 'save',
           issueData: {
             github_issue_url: issue.url,
             title: issue.title,
             repo_name: issue.repoName,
             match_score: evaluation?.matchScore
           }
-        })
+        }
       });
       
-      if (!res.ok) throw new Error('Failed to save issue');
+      if (trackError) throw new Error('Failed to save issue: ' + trackError.message);
       alert('Issue tracked successfully! Check the Operations board.');
     } catch (err) {
       console.error(err);
@@ -65,16 +60,13 @@ export function Dossier() {
     setIsGeneratingDraft(true);
     setEngagementError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/draft/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ issue, comments, profile: USER_PROFILE, intent })
+      const { data: resData, error: draftError } = await supabase.functions.invoke('dossier', {
+        body: { action: 'generate_draft', issue, comments, profile: USER_PROFILE, intent }
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to generate draft');
+      if (draftError) {
+        throw new Error(draftError.message || 'Failed to generate draft');
       }
-      const data = await res.json();
+      const data = resData;
       setDraft(data.data.draft);
       setEngagementState('NEEDS_REVIEW');
     } catch (err: any) {
@@ -91,34 +83,23 @@ export function Dossier() {
     setEngagementError(null);
     try {
       // 1. Post to GitHub
-      const res = await fetch(`${API_BASE}/api/engagement/post`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ userId: user?.id, owner, repo, number, draft, intent })
+      const { error: postError, data: resData } = await supabase.functions.invoke('engage', {
+        body: { owner, repo, number, draft, intent }
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to post comment to GitHub');
+      if (postError) {
+        throw new Error(resData?.error || postError.message || 'Failed to post comment to GitHub');
       }
       
       // 2. Update tracking state if it's tracked
-      const trackingRes = await fetch(`${API_BASE}/api/tracking`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      const { data: trackingData, error: trackingError } = await supabase.functions.invoke('tracking', {
+        body: { action: 'list' }
       });
-      if (trackingRes.ok) {
-        const trackingData = await trackingRes.json();
+      
+      if (!trackingError && trackingData?.data) {
         const trackedIssue = trackingData.data.find((i: any) => i.github_issue_url === issue.url);
         if (trackedIssue) {
-          await fetch(`${API_BASE}/api/tracking/${trackedIssue.id}/state`, {
-            method: 'PATCH',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ newState: 'ENGAGED' })
+          await supabase.functions.invoke('tracking', {
+            body: { action: 'update_state', id: trackedIssue.id, state: 'ENGAGED' }
           });
         }
       }
@@ -140,46 +121,42 @@ export function Dossier() {
         
         // 1. Fetch Issue
         setLoadingStep('Fetching GitHub facts...');
-        const issueRes = await fetch(`${API_BASE}/api/github/issues/${owner}/${repo}/${number}`);
-        if (!issueRes.ok) throw new Error('Failed to fetch issue from GitHub');
-        const issueData = await issueRes.json();
-        const fetchedIssue = issueData.data;
+        const { data: issueResData, error: issueError } = await supabase.functions.invoke('dossier', {
+          body: { action: 'get_issue', owner, repo, number }
+        });
+        if (issueError) throw new Error('Failed to fetch issue from GitHub: ' + issueError.message);
+        const fetchedIssue = issueResData.data;
         if (mounted) setIssue(fetchedIssue);
 
         // 2. Fetch Comments
         setLoadingStep('Retrieving comment thread...');
-        const commentsRes = await fetch(`${API_BASE}/api/github/issues/${owner}/${repo}/${number}/comments`);
+        const { data: commentsResData, error: commentsError } = await supabase.functions.invoke('dossier', {
+          body: { action: 'get_comments', owner, repo, number }
+        });
         let fetchedComments: NormalizedComment[] = [];
-        if (commentsRes.ok) {
-          const commentsData = await commentsRes.json();
-          fetchedComments = commentsData.data;
+        if (!commentsError && commentsResData?.data) {
+          fetchedComments = commentsResData.data;
           if (mounted) setComments(fetchedComments);
         }
 
         // 3. Parallel AI Analysis: Evaluation + Claim Status
         setLoadingStep('Running Scout AI analysis...');
         
-        const [evalRes, claimRes] = await Promise.all([
-          fetch(`${API_BASE}/api/evaluate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ issue: fetchedIssue, profile: USER_PROFILE })
+        const [evalResData, claimResData] = await Promise.all([
+          supabase.functions.invoke('evaluate', {
+            body: { issue: fetchedIssue, profile: USER_PROFILE }
           }),
-          fetch(`${API_BASE}/api/claim-status`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ issue: fetchedIssue, comments: fetchedComments })
+          supabase.functions.invoke('dossier', {
+            body: { action: 'claim_status', issue: fetchedIssue, comments: fetchedComments }
           })
         ]);
 
-        if (evalRes.ok) {
-          const evalData = await evalRes.json();
-          if (mounted) setEvaluation(evalData.data);
+        if (!evalResData.error && evalResData.data?.data) {
+          if (mounted) setEvaluation(evalResData.data.data);
         }
         
-        if (claimRes.ok) {
-          const claimData = await claimRes.json();
-          if (mounted) setClaimResult(claimData.data);
+        if (!claimResData.error && claimResData.data?.data) {
+          if (mounted) setClaimResult(claimResData.data.data);
         }
 
       } catch (err: any) {
