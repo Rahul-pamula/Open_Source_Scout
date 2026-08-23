@@ -118,16 +118,18 @@ app.post('/api/draft/generate', async (req: Request, res: Response) => {
   }
 });
 
+import { idempotencyService } from './services/idempotency.js';
+
 // GitHub Write Service
 app.post('/api/engagement/post', async (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { owner, repo, number, draft, intent } = req.body;
+    const { userId, owner, repo, number, draft, intent } = req.body;
     
-    if (!owner || !repo || !number || !draft || !intent) {
-      return res.status(400).json({ error: 'owner, repo, number, draft, and intent are required' });
+    if (!userId || !owner || !repo || !number || !draft || !intent) {
+      return res.status(400).json({ error: 'userId, owner, repo, number, draft, and intent are required' });
     }
 
     // Validate intent
@@ -142,13 +144,26 @@ app.post('/api/engagement/post', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Issue is not open' });
     }
 
-    // Safely post comment
+    // 1. Generate Key and Acquire Lock (Idempotency)
+    const idempotencyKey = await idempotencyService.checkAndLockEngagement(
+      authHeader,
+      userId,
+      `${owner}/${repo}`,
+      parseInt(number),
+      intent,
+      draft
+    );
+
+    // 2. Safely post comment
     const result = await githubAdapter.postComment(owner, repo, parseInt(number), draft);
     
+    // 3. Record success
+    await idempotencyService.recordSuccessfulEngagement(authHeader, idempotencyKey, result.commentId);
+
     res.json({ data: result });
   } catch (error: any) {
     console.error('[scout-api] GitHub Post Comment Error:', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    res.status(error.message.includes('IDEMPOTENCY_ERROR') ? 409 : 500).json({ error: error.message || 'Internal Server Error' });
   }
 });
 

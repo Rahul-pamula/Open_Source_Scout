@@ -97,7 +97,7 @@ export function Dossier() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ owner, repo, number, draft, intent })
+        body: JSON.stringify({ userId: user?.id, owner, repo, number, draft, intent })
       });
       if (!res.ok) {
         const errorData = await res.json();
