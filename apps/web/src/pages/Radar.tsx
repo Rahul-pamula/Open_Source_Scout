@@ -6,9 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 import { supabase } from '../services/supabase';
 
-// Hardcoded profile and query for Phase 1 (we'll make this dynamic later)
-const USER_PROFILE = "I am a full-stack developer with experience in React, TypeScript, Node.js, and Tailwind CSS. I'm looking for frontend or fullstack issues where I can help build UI components or fix bugs.";
-const SEARCH_QUERY = 'is:open is:issue label:"good first issue" language:typescript';
+// These will be generated from user profile dynamically
 
 export function Radar() {
   const { session, user } = useAuth();
@@ -16,6 +14,17 @@ export function Radar() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  
+  const [userProfile, setUserProfile] = useState<{ bio: string, skills: string[] } | null>(null);
+  
+  // Fetch user profile on load
+  useState(() => {
+    if (user) {
+      supabase.from('users').select('bio, skills').eq('id', user.id).single().then(({ data }) => {
+        if (data) setUserProfile(data);
+      });
+    }
+  });
 
   const handleSave = async (issueId: string) => {
     if (!session?.access_token || !user) {
@@ -53,10 +62,16 @@ export function Radar() {
       setError(null);
       setIssues([]);
       
+      const profileStr = userProfile ? userProfile.bio : "I am a developer looking for issues.";
+      const skillsQuery = userProfile && userProfile.skills.length > 0 
+        ? userProfile.skills.map(s => \`language:\${s}\`).join(' ') 
+        : 'language:typescript';
+      const dynamicSearchQuery = \`is:open is:issue label:"good first issue" \${skillsQuery}\`;
+      
       // Step 1: Fetch and Filter
       setStatusText('Scouting GitHub for eligible issues...');
       const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
-        body: { query: SEARCH_QUERY, limit: 5 }
+        body: { query: dynamicSearchQuery, limit: 5 }
       });
       
       if (searchError) throw new Error('Failed to fetch from backend API: ' + searchError.message);
@@ -76,7 +91,7 @@ export function Radar() {
       for (const issue of eligibleIssues) {
         try {
           const { data: evalData, error: evalError } = await supabase.functions.invoke('evaluate', {
-            body: { issue, profile: USER_PROFILE }
+            body: { issue, profile: profileStr }
           });
           
           if (!evalError && evalData?.data) {
