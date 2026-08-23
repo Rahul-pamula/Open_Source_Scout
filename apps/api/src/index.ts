@@ -87,6 +87,25 @@ app.post('/api/evaluate', async (req: Request, res: Response) => {
   }
 });
 
+import { claimDetector } from './services/claimDetector.js';
+
+// Claim Status Proxy
+app.post('/api/claim-status', async (req: Request, res: Response) => {
+  try {
+    const { issue, comments } = req.body;
+    
+    if (!issue || !comments) {
+      return res.status(400).json({ error: 'Both "issue" and "comments" are required in the request body' });
+    }
+
+    const result = await claimDetector.detectClaimStatus(issue, comments);
+    res.json({ data: result });
+  } catch (error: any) {
+    console.error('[scout-api] Claim Status Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[scout-api] Server running on http://localhost:${PORT}`);
 });

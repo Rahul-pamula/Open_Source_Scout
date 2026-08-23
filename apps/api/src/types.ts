@@ -24,3 +24,12 @@ export interface NormalizedComment {
   createdAt: string;
   updatedAt: string;
 }
+
+export type ClaimStatusType = 'NONE' | 'INTEREST_EXPRESSED' | 'MAINTAINER_ASSIGNED' | 'UNCERTAIN';
+
+export interface ClaimResult {
+  claimStatus: ClaimStatusType;
+  claimant?: string;
+  confidence: number;
+  evidence?: string;
+}
