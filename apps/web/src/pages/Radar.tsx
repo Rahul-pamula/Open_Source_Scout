@@ -4,7 +4,7 @@ import type { ScoutedIssue, NormalizedIssue } from '../types';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { supabase } from '../services/supabase';
 
 // Hardcoded profile and query for Phase 1 (we'll make this dynamic later)
 const USER_PROFILE = "I am a full-stack developer with experience in React, TypeScript, Node.js, and Tailwind CSS. I'm looking for frontend or fullstack issues where I can help build UI components or fix bugs.";
@@ -26,24 +26,19 @@ export function Radar() {
     if (!issueToSave) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/tracking/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          userId: user.id,
+      const { error: trackError } = await supabase.functions.invoke('tracking', {
+        body: {
+          action: 'save',
           issueData: {
             github_issue_url: issueToSave.url,
             title: issueToSave.title,
             repo_name: issueToSave.repoName,
             match_score: issueToSave.evaluation?.matchScore
           }
-        })
+        }
       });
       
-      if (!res.ok) throw new Error('Failed to save issue');
+      if (trackError) throw new Error('Failed to save issue: ' + trackError.message);
       // Minimal visual feedback for now
       alert('Issue tracked successfully!');
     } catch (err) {
@@ -60,10 +55,12 @@ export function Radar() {
       
       // Step 1: Fetch and Filter
       setStatusText('Scouting GitHub for eligible issues...');
-      const searchRes = await fetch(`${API_BASE}/api/github/search?q=${encodeURIComponent(SEARCH_QUERY)}&limit=5`);
-      if (!searchRes.ok) throw new Error('Failed to fetch from backend API');
+      const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
+        body: { query: SEARCH_QUERY, limit: 5 }
+      });
       
-      const searchData = await searchRes.json();
+      if (searchError) throw new Error('Failed to fetch from backend API: ' + searchError.message);
+      
       const eligibleIssues: NormalizedIssue[] = searchData.data;
 
       if (eligibleIssues.length === 0) {
@@ -78,14 +75,11 @@ export function Radar() {
       const scoutedIssues: ScoutedIssue[] = [];
       for (const issue of eligibleIssues) {
         try {
-          const evalRes = await fetch(`${API_BASE}/api/evaluate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ issue, profile: USER_PROFILE })
+          const { data: evalData, error: evalError } = await supabase.functions.invoke('evaluate', {
+            body: { issue, profile: USER_PROFILE }
           });
           
-          if (evalRes.ok) {
-            const evalData = await evalRes.json();
+          if (!evalError && evalData?.data) {
             scoutedIssues.push({ ...issue, evaluation: evalData.data });
           } else {
              scoutedIssues.push(issue); // Push without eval if it fails
