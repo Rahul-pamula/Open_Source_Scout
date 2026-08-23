@@ -250,6 +250,30 @@ app.post('/api/tracking/sync', async (req: Request, res: Response) => {
   }
 });
 
+import { autonomousWorker } from './services/worker.js';
+
+// Trigger Autonomous Worker
+app.post('/api/worker/run', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const { userId, profile } = req.body;
+    
+    if (!userId || !profile) {
+      return res.status(400).json({ error: 'userId and profile are required' });
+    }
+
+    // Run asynchronously
+    autonomousWorker.runWorker(authHeader, userId, profile).catch(err => {
+      console.error('[scout-api] Autonomous Worker Unhandled Error:', err);
+    });
+
+    res.json({ message: 'Worker triggered successfully' });
+  } catch (error: any) {
+    console.error('[scout-api] Worker Trigger Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[scout-api] Server running on http://localhost:${PORT}`);
 });
