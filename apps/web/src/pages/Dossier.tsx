@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ExternalLink, Loader2, AlertTriangle, CheckCircle, ShieldAlert, Info } from 'lucide-react';
 import type { NormalizedIssue, NormalizedComment, ClaimResult, EvaluationResult } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const USER_PROFILE = "I am a full-stack developer with experience in React, TypeScript, Node.js, and Tailwind CSS. I'm looking for frontend or fullstack issues where I can help build UI components or fix bugs.";
 
 export function Dossier() {
   const { owner, repo, number } = useParams();
+  const { session, user } = useAuth();
   
   const [issue, setIssue] = useState<NormalizedIssue | null>(null);
   const [comments, setComments] = useState<NormalizedComment[]>([]);
@@ -17,6 +19,39 @@ export function Dossier() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState('Initializing dossier...');
   const [error, setError] = useState<string | null>(null);
+
+  const handleTrack = async () => {
+    if (!session?.access_token || !user) {
+      alert('Please log in to track issues.');
+      return;
+    }
+    if (!issue) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/tracking/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          issueData: {
+            github_issue_url: issue.url,
+            title: issue.title,
+            repo_name: issue.repoName,
+            match_score: evaluation?.matchScore
+          }
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to save issue');
+      alert('Issue tracked successfully! Check the Operations board.');
+    } catch (err) {
+      console.error(err);
+      alert('Error saving issue. It may already be tracked.');
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -158,14 +193,22 @@ export function Dossier() {
           </h1>
         </div>
         
-        <a 
-          href={issue.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-zinc-900 text-white font-bold py-3 px-8 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center whitespace-nowrap shrink-0"
-        >
-          Open on GitHub <ExternalLink size={16} className="ml-2" />
-        </a>
+        <div className="flex gap-4 items-center shrink-0">
+          <button 
+            onClick={handleTrack}
+            className="bg-white text-zinc-900 font-bold py-3 px-6 shadow-[4px_4px_0px_#d4d4d8] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#d4d4d8] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center whitespace-nowrap"
+          >
+            Track Issue
+          </button>
+          <a 
+            href={issue.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-zinc-900 text-white font-bold py-3 px-6 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center whitespace-nowrap"
+          >
+            Open on GitHub <ExternalLink size={16} className="ml-2" />
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
