@@ -51,3 +51,11 @@ export interface TrackedIssue {
   created_at: string;
   updated_at: string;
 }
+
+export type EngagementIntent = 'REQUEST_ASSIGNMENT' | 'PROPOSE_SOLUTION' | 'ASK_CLARIFICATION' | 'EXPRESS_INTEREST';
+
+export interface DraftResult {
+  intent: EngagementIntent;
+  draft: string;
+  reasoning: string;
+}
