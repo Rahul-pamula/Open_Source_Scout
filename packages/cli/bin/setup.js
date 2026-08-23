@@ -2,7 +2,6 @@
 
 import { execa } from 'execa';
 import enquirer from 'enquirer';
-import ora from 'ora';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
@@ -39,24 +38,22 @@ async function run() {
     required: true
   });
 
-  const spinner = ora('Linking Supabase project...').start();
+  console.log(chalk.bold('\n🔗 Linking Supabase Project'));
   try {
-    await execa('supabase', ['link', '--project-ref', projectId], { stdio: 'ignore' });
-    spinner.succeed('Linked Supabase project.');
+    await execa('supabase', ['link', '--project-ref', projectId], { stdio: 'inherit' });
+    console.log(chalk.green('✅ Linked Supabase project.'));
   } catch (e) {
-    spinner.fail('Failed to link Supabase project. Ensure you are logged in (supabase login).');
-    console.error(e);
+    console.log(chalk.red('✖ Failed to link Supabase project. Ensure you are logged in (supabase login) and you own the project ID provided.'));
     process.exit(1);
   }
 
   // 2. Setup Database
-  spinner.start('Pushing database schema...');
+  console.log(chalk.bold('\n📦 Pushing Database Schema'));
   try {
-    await execa('supabase', ['db', 'push'], { stdio: 'ignore' });
-    spinner.succeed('Database schema deployed.');
+    await execa('supabase', ['db', 'push'], { stdio: 'inherit' });
+    console.log(chalk.green('✅ Database schema deployed.'));
   } catch (e) {
-    spinner.fail('Failed to push database schema.');
-    console.error(e);
+    console.log(chalk.red('✖ Failed to push database schema.'));
   }
 
   // 3. Setup Secrets
@@ -76,31 +73,30 @@ async function run() {
     }
   ]);
 
-  spinner.start('Setting secrets in Supabase...');
+  console.log(chalk.bold('\n🔐 Setting Secrets in Supabase'));
   try {
     // We write to a temporary .env file to push secrets
     const tempEnvPath = path.join(process.cwd(), '.env.temp');
     fs.writeFileSync(tempEnvPath, `GITHUB_TOKEN=${secrets.githubToken}\nGROQ_API_KEY=${secrets.groqApiKey}\n`);
     
-    await execa('supabase', ['secrets', 'set', '--env-file', '.env.temp'], { stdio: 'ignore' });
+    await execa('supabase', ['secrets', 'set', '--env-file', '.env.temp'], { stdio: 'inherit' });
     fs.unlinkSync(tempEnvPath);
-    spinner.succeed('Secrets configured.');
+    console.log(chalk.green('✅ Secrets configured.'));
   } catch (e) {
-    spinner.fail('Failed to set secrets.');
-    console.error(e);
+    console.log(chalk.red('✖ Failed to set secrets.'));
   }
 
   // 4. Deploy Edge Functions
-  spinner.start('Deploying Edge Functions...');
+  console.log(chalk.bold('\n⚡ Deploying Edge Functions'));
   try {
     const functions = ['search', 'evaluate', 'engage', 'worker', 'sync', 'dossier', 'tracking'];
     for (const fn of functions) {
-      await execa('supabase', ['functions', 'deploy', fn], { stdio: 'ignore' });
+      console.log(chalk.gray(`Deploying ${fn}...`));
+      await execa('supabase', ['functions', 'deploy', fn], { stdio: 'inherit' });
     }
-    spinner.succeed('Edge Functions deployed.');
+    console.log(chalk.green('✅ Edge Functions deployed.'));
   } catch (e) {
-    spinner.fail('Failed to deploy Edge Functions.');
-    console.error(e);
+    console.log(chalk.red('✖ Failed to deploy Edge Functions.'));
   }
 
   // 5. Deploy Frontend (Optional / Instructions)
