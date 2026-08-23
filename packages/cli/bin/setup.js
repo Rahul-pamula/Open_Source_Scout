@@ -10,8 +10,8 @@ import { fileURLToPath } from 'url';
 
 const { prompt } = enquirer;
 
-console.log(chalk.bold.emerald('\n🚀 Open Source Scout Setup\n'));
-console.log(chalk.zinc('This wizard will deploy your own self-hosted, data-sovereign instance of Scout.\n'));
+console.log(chalk.bold.green('\n🚀 Open Source Scout Setup\n'));
+console.log(chalk.gray('This wizard will deploy your own self-hosted, data-sovereign instance of Scout.\n'));
 
 async function checkSupabaseCLI() {
   try {
@@ -104,11 +104,11 @@ async function run() {
   }
 
   // 5. Deploy Frontend (Optional / Instructions)
-  console.log(chalk.bold.emerald('\n✅ Deployment Complete!'));
-  console.log(chalk.zinc('\nYour backend is now fully operational on Supabase.'));
-  console.log(chalk.zinc('To deploy the frontend to Vercel/Netlify, run:'));
+  console.log(chalk.bold.green('\n✅ Deployment Complete!'));
+  console.log(chalk.gray('\nYour backend is now fully operational on Supabase.'));
+  console.log(chalk.gray('To deploy the frontend to Vercel/Netlify, run:'));
   console.log(chalk.cyan('  npm run build --prefix apps/web'));
-  console.log(chalk.zinc('\nMake sure to set these environment variables in your frontend deployment:'));
+  console.log(chalk.gray('\nMake sure to set these environment variables in your frontend deployment:'));
   console.log(chalk.cyan(`  VITE_SUPABASE_URL=https://${projectId}.supabase.co`));
   console.log(chalk.cyan('  VITE_SUPABASE_ANON_KEY=<your-anon-key>'));
   console.log(chalk.cyan(`  VITE_GITHUB_CLIENT_ID=<your-github-oauth-client-id>`));
