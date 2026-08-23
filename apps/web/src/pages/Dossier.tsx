@@ -20,6 +20,13 @@ export function Dossier() {
   const [loadingStep, setLoadingStep] = useState('Initializing dossier...');
   const [error, setError] = useState<string | null>(null);
 
+  // Engagement State
+  const [intent, setIntent] = useState<string>('REQUEST_ASSIGNMENT');
+  const [draft, setDraft] = useState<string>('');
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [engagementState, setEngagementState] = useState<'IDLE' | 'NEEDS_REVIEW' | 'REVIEWED' | 'READY' | 'POSTING' | 'POSTED' | 'FAILED'>('IDLE');
+  const [engagementError, setEngagementError] = useState<string | null>(null);
+
   const handleTrack = async () => {
     if (!session?.access_token || !user) {
       alert('Please log in to track issues.');
@@ -50,6 +57,76 @@ export function Dossier() {
     } catch (err) {
       console.error(err);
       alert('Error saving issue. It may already be tracked.');
+    }
+  };
+
+  const handleGenerateDraft = async () => {
+    if (!issue) return;
+    setIsGeneratingDraft(true);
+    setEngagementError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/draft/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ issue, comments, profile: USER_PROFILE, intent })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to generate draft');
+      }
+      const data = await res.json();
+      setDraft(data.data.draft);
+      setEngagementState('NEEDS_REVIEW');
+    } catch (err: any) {
+      setEngagementError(err.message);
+      setEngagementState('FAILED');
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  };
+
+  const handleApprovePost = async () => {
+    if (!issue || !session?.access_token || !draft) return;
+    setEngagementState('POSTING');
+    setEngagementError(null);
+    try {
+      // 1. Post to GitHub
+      const res = await fetch(`${API_BASE}/api/engagement/post`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ owner, repo, number, draft, intent })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to post comment to GitHub');
+      }
+      
+      // 2. Update tracking state if it's tracked
+      const trackingRes = await fetch(`${API_BASE}/api/tracking`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      if (trackingRes.ok) {
+        const trackingData = await trackingRes.json();
+        const trackedIssue = trackingData.data.find((i: any) => i.github_issue_url === issue.url);
+        if (trackedIssue) {
+          await fetch(`${API_BASE}/api/tracking/${trackedIssue.id}/state`, {
+            method: 'PATCH',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ newState: 'ENGAGED' })
+          });
+        }
+      }
+
+      setEngagementState('POSTED');
+    } catch (err: any) {
+      setEngagementError(err.message);
+      setEngagementState('FAILED');
     }
   };
 
@@ -347,6 +424,123 @@ export function Dossier() {
               </div>
             </section>
           )}
+
+          {/* Engage */}
+          <section>
+            <h2 className="text-xs font-bold text-zinc-400 tracking-widest uppercase mb-4">Engage</h2>
+            <div className="bg-white border border-zinc-200 p-6 shadow-sm flex flex-col gap-4">
+              
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-zinc-500 uppercase">Intent</label>
+                <select 
+                  className="border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none bg-white"
+                  value={intent}
+                  onChange={(e) => setIntent(e.target.value)}
+                  disabled={isGeneratingDraft || engagementState === 'POSTING'}
+                >
+                  <option value="REQUEST_ASSIGNMENT">Request Assignment</option>
+                  <option value="PROPOSE_SOLUTION">Propose Solution</option>
+                  <option value="ASK_CLARIFICATION">Ask Clarification</option>
+                  <option value="EXPRESS_INTEREST">Express Interest</option>
+                </select>
+              </div>
+
+              {engagementError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-xs">
+                  [ERROR] {engagementError}
+                </div>
+              )}
+
+              {engagementState === 'IDLE' || engagementState === 'FAILED' ? (
+                <button 
+                  onClick={handleGenerateDraft}
+                  disabled={isGeneratingDraft}
+                  className="bg-zinc-900 text-white font-bold py-3 px-4 shadow-[4px_4px_0px_#d4d4d8] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#d4d4d8] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center justify-center whitespace-nowrap mt-2 disabled:opacity-50"
+                >
+                  {isGeneratingDraft ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
+                  {isGeneratingDraft ? 'Generating Draft...' : 'Generate Draft'}
+                </button>
+              ) : null}
+
+              {(engagementState === 'NEEDS_REVIEW' || engagementState === 'READY' || engagementState === 'POSTING' || engagementState === 'POSTED') && (
+                <div className="flex flex-col gap-4 mt-2 border-t border-zinc-100 pt-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-zinc-500 uppercase flex justify-between">
+                      <span>Draft</span>
+                      <span className="font-mono text-zinc-400">{draft.length} chars</span>
+                    </label>
+                    <textarea 
+                      className="border border-zinc-300 p-3 text-sm font-mono min-h-[160px] focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none resize-y text-zinc-700"
+                      value={draft}
+                      onChange={(e) => {
+                        setDraft(e.target.value);
+                        setEngagementState('NEEDS_REVIEW');
+                      }}
+                      disabled={engagementState === 'POSTING' || engagementState === 'POSTED'}
+                    />
+                  </div>
+
+                  {engagementState === 'NEEDS_REVIEW' && (
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={handleGenerateDraft}
+                        className="flex-1 bg-white text-zinc-900 font-bold py-3 px-2 md:px-4 shadow-[4px_4px_0px_#d4d4d8] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#d4d4d8] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-xs md:text-sm"
+                      >
+                        Regenerate
+                      </button>
+                      <button 
+                        onClick={() => setEngagementState('READY')}
+                        className="flex-1 bg-zinc-900 text-white font-bold py-3 px-2 md:px-4 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-xs md:text-sm"
+                      >
+                        Approve Draft
+                      </button>
+                    </div>
+                  )}
+
+                  {engagementState === 'READY' && (
+                    <div className="bg-emerald-50 border border-emerald-200 p-4 flex flex-col gap-4">
+                      <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
+                        <ShieldAlert size={18} />
+                        Ready to post
+                      </div>
+                      <p className="font-mono text-xs text-emerald-700">
+                        This will post publicly to @{owner}/{repo} #{number}
+                      </p>
+                      <div className="flex gap-3">
+                        <button 
+                          onClick={() => setEngagementState('NEEDS_REVIEW')}
+                          className="flex-1 bg-white text-zinc-700 font-bold py-2 border border-zinc-300 hover:bg-zinc-50 text-xs"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={handleApprovePost}
+                          className="flex-1 bg-emerald-600 text-white font-bold py-2 border border-emerald-700 shadow-[2px_2px_0px_#065f46] hover:-translate-y-px hover:shadow-[3px_3px_0px_#065f46] active:translate-x-px active:translate-y-px active:shadow-none transition-all text-xs"
+                        >
+                          Post Comment
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {engagementState === 'POSTING' && (
+                    <div className="bg-zinc-50 border border-zinc-200 p-4 text-center">
+                      <Loader2 size={24} className="animate-spin text-zinc-400 mx-auto mb-2" />
+                      <p className="font-mono text-xs text-zinc-500">Posting to GitHub...</p>
+                    </div>
+                  )}
+
+                  {engagementState === 'POSTED' && (
+                    <div className="bg-emerald-50 border border-emerald-200 p-4 text-center">
+                      <CheckCircle size={24} className="text-emerald-500 mx-auto mb-2" />
+                      <p className="font-bold text-sm text-emerald-900">Comment Posted!</p>
+                      <p className="font-mono text-xs text-emerald-700 mt-1">This issue is now ENGAGED.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
           
         </div>
       </div>
