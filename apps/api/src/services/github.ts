@@ -1,4 +1,4 @@
-import type { NormalizedIssue, NormalizedComment } from '../types.js';
+import type { NormalizedIssue, NormalizedComment, GitHubSnapshot } from '../types.js';
 
 export class GitHubAdapter {
   private token: string | undefined;
@@ -146,6 +146,36 @@ export class GitHubAdapter {
     return {
       commentId: data.id.toString(),
       url: data.html_url
+    };
+  }
+  /**
+   * Fetch a complete snapshot of an issue for Phase 6 Monitoring & Reconciliation.
+   */
+  async fetchSnapshot(owner: string, repo: string, issueNumber: number, trackedIssueId: string): Promise<GitHubSnapshot> {
+    const url = new URL(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`);
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: this.headers,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`GitHub API Error: ${response.status} ${response.statusText} - ${errorBody}`);
+    }
+
+    const raw = await response.json();
+    
+    // Fetch comments (just the latest page for now)
+    const comments = await this.fetchIssueComments(owner, repo, issueNumber, 1);
+
+    return {
+      trackedIssueId,
+      githubIssueUrl: raw.html_url,
+      state: raw.state as 'open' | 'closed',
+      stateReason: raw.state_reason || null,
+      assignees: (raw.assignees || []).map((a: any) => a.login),
+      comments: comments,
+      relatedPullRequests: [] // To be implemented via Timeline/Search API in Chunk 3
     };
   }
 }

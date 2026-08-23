@@ -72,3 +72,26 @@ export interface AutonomyPolicy {
   cooldownMinutes: number;
   requireNoClaimant: boolean;
 }
+
+export interface GitHubSnapshot {
+  trackedIssueId: string;
+  githubIssueUrl: string;
+  state: 'open' | 'closed';
+  stateReason: string | null;
+  assignees: string[];
+  comments: NormalizedComment[];
+  relatedPullRequests: {
+    url: string;
+    state: 'open' | 'closed' | 'merged';
+    author: string;
+  }[];
+}
+
+export interface SyncHealth {
+  last_sync_started: string | null;
+  last_sync_completed: string | null;
+  last_sync_failed: string | null;
+  issues_checked: number;
+  errors: string | null;
+  api_requests_made: number;
+}
