@@ -59,3 +59,16 @@ export interface DraftResult {
   draft: string;
   reasoning: string;
 }
+
+export type AutonomyLevel = 'L1' | 'L2' | 'L3';
+
+export interface AutonomyPolicy {
+  level: AutonomyLevel;
+  enabled: boolean; // kill switch
+  allowedRepositories: string[];
+  allowedIntents: EngagementIntent[];
+  minimumMatchScore: number;
+  maximumDailyEngagements: number;
+  cooldownMinutes: number;
+  requireNoClaimant: boolean;
+}
