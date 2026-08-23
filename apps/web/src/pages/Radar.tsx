@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { IssueCard } from '../components/IssueCard';
 import type { ScoutedIssue, NormalizedIssue } from '../types';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -10,10 +11,46 @@ const USER_PROFILE = "I am a full-stack developer with experience in React, Type
 const SEARCH_QUERY = 'is:open is:issue label:"good first issue" language:typescript';
 
 export function Radar() {
+  const { session, user } = useAuth();
   const [issues, setIssues] = useState<ScoutedIssue[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async (issueId: string) => {
+    if (!session?.access_token || !user) {
+      alert('Please log in to save issues.');
+      return;
+    }
+    const issueToSave = issues.find(i => i.id === issueId);
+    if (!issueToSave) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/tracking/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          issueData: {
+            github_issue_url: issueToSave.url,
+            title: issueToSave.title,
+            repo_name: issueToSave.repoName,
+            match_score: issueToSave.evaluation?.matchScore
+          }
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to save issue');
+      // Minimal visual feedback for now
+      alert('Issue tracked successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error saving issue. It may already be tracked.');
+    }
+  };
 
   const handleDiscover = async () => {
     try {
@@ -115,7 +152,7 @@ export function Radar() {
             <IssueCard 
               key={issue.id} 
               issue={issue} 
-              onSave={(id) => console.log('Saved', id)} 
+              onSave={handleSave} 
             />
           ))}
         </div>
