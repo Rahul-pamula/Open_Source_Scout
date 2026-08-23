@@ -16,3 +16,11 @@ export interface EvaluationResult {
   intent: string;
   explanation: string;
 }
+
+export interface NormalizedComment {
+  id: string;
+  author: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
