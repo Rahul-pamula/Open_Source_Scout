@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { NotificationPreferences } from '../components/NotificationPreferences';
 
 export function Identity() {
   const { user } = useAuth();
@@ -86,6 +87,7 @@ export function Identity() {
           </div>
         )}
       </div>
+      <NotificationPreferences />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import Groq from 'groq-sdk';
+import Groq from 'https://esm.sh/groq-sdk@0.9.1';
 import type { NormalizedIssue, NormalizedComment, ClaimResult, ClaimStatusType } from './types.ts';
 
 export class ClaimDetector {
@@ -8,7 +8,7 @@ export class ClaimDetector {
   private claimRegex = /assign|take this|work on this|can i have|d like to do|grab this/i;
 
   constructor() {
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = Deno.env.get('GROQ_API_KEY');
     if (apiKey) {
       this.client = new Groq({ apiKey });
     }
