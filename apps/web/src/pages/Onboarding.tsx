@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
-import { Loader2, ArrowRight, UserCircle, Code2, Rocket } from 'lucide-react';
+import { ArrowRight, UserCircle, Code2, Rocket } from 'lucide-react';
+import { Skills } from './onboarding/Skills';
 
 export function Onboarding() {
   const { session, user } = useAuth();
@@ -10,15 +11,12 @@ export function Onboarding() {
   
   const [step, setStep] = useState(1);
   const [bio, setBio] = useState('');
-  const [skillsText, setSkillsText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     if (!session) {
       navigate('/');
     } else {
-      // Check if user already has a profile
       checkExistingProfile();
     }
   }, [session, navigate]);
@@ -33,8 +31,7 @@ export function Onboarding() {
         .single();
         
       if (!error && data && data.bio) {
-        // If they already have a bio, skip onboarding
-        navigate('/radar');
+        navigate('/');
       }
     } catch (e) {
       console.error(e);
@@ -43,42 +40,16 @@ export function Onboarding() {
 
   const handleNextStep = () => {
     if (step === 1 && !bio.trim()) {
-      setError("Please tell us a bit about yourself.");
+      setError('Please tell us a bit about yourself.');
       return;
     }
     setError(null);
     setStep(step + 1);
   };
 
-  const handleFinish = async () => {
-    if (!skillsText.trim()) {
-      setError("Please enter some skills.");
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const skills = skillsText.split(',').map(s => s.trim()).filter(Boolean);
-      
-      const { error: upsertError } = await supabase
-        .from('users')
-        .upsert({
-          id: user?.id,
-          bio: bio,
-          skills: skills,
-          updated_at: new Date().toISOString()
-        });
-        
-      if (upsertError) throw new Error(upsertError.message);
-      
-      // Successfully saved profile
-      navigate('/radar');
-    } catch (err: any) {
-      setError(err.message || 'Failed to save profile');
-      setIsLoading(false);
-    }
+  const handleComplete = () => {
+    setStep(3);
+    setTimeout(() => navigate('/'), 1200);
   };
 
   if (!session) return null;
@@ -115,31 +86,32 @@ export function Onboarding() {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 p-4 mb-6 font-mono text-sm">
-            [ERROR] {error}
-          </div>
-        )}
-
         {/* Step 1: Bio */}
         {step === 1 && (
-          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex flex-col gap-6">
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">Who are you?</h1>
               <p className="text-zinc-500 font-mono text-sm">
-                Write a short bio. The Scout AI uses this to find issues that match your background and generate context-aware comments.
+                Write a short bio. Scout uses this to generate context-aware comments and find relevant issues.
               </p>
             </div>
+
+            {error && (
+              <div id="bio-error" role="alert" className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-sm">
+                [ERROR] {error}
+              </div>
+            )}
             
             <textarea
+              id="bio-input"
               className="w-full border-2 border-zinc-200 p-4 min-h-[160px] font-mono text-sm focus:border-zinc-900 focus:ring-0 outline-none transition-colors resize-y"
-              placeholder="E.g., I'm a full-stack developer with 3 years of experience. I love working with React, TypeScript, and Node.js. I'm looking to contribute to developer tools and frontend libraries..."
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               autoFocus
             />
             
-            <button 
+            <button
+              id="bio-continue"
               onClick={handleNextStep}
               className="self-end bg-zinc-900 text-white font-bold py-3 px-8 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center"
             >
@@ -148,42 +120,21 @@ export function Onboarding() {
           </div>
         )}
 
-        {/* Step 2: Skills */}
+        {/* Step 2: Skills (new component) */}
         {step === 2 && (
-          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-2">What are your skills?</h1>
-              <p className="text-zinc-500 font-mono text-sm">
-                Enter your top skills, separated by commas. This helps strictly filter issues based on the languages and frameworks you know.
-              </p>
-            </div>
-            
-            <input
-              type="text"
-              className="w-full border-2 border-zinc-200 p-4 font-mono text-sm focus:border-zinc-900 focus:ring-0 outline-none transition-colors"
-              placeholder="e.g., TypeScript, React, Python, Docker"
-              value={skillsText}
-              onChange={(e) => setSkillsText(e.target.value)}
-              autoFocus
-            />
-            
-            <div className="flex justify-between items-center mt-4">
-              <button 
-                onClick={() => setStep(1)}
-                className="text-zinc-500 hover:text-zinc-900 font-bold font-mono text-sm"
-              >
-                ← Back
-              </button>
-              
-              <button 
-                onClick={handleFinish}
-                disabled={isLoading}
-                className="bg-emerald-500 text-white font-bold py-3 px-8 shadow-[4px_4px_0px_#18181b] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center disabled:opacity-50"
-              >
-                {isLoading ? <Loader2 size={18} className="animate-spin mr-2" /> : null}
-                {isLoading ? 'Saving...' : 'Finish Setup'}
-              </button>
-            </div>
+          <Skills
+            bio={bio}
+            onBack={() => setStep(1)}
+            onComplete={handleComplete}
+          />
+        )}
+
+        {/* Step 3: Done */}
+        {step === 3 && (
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <Rocket size={40} className="text-emerald-500" />
+            <h1 className="text-3xl font-bold tracking-tight">You are ready.</h1>
+            <p className="text-zinc-500 font-mono text-sm">Redirecting to Radar...</p>
           </div>
         )}
       </div>
