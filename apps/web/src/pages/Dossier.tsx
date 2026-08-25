@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ExternalLink, Loader2, AlertTriangle, CheckCircle, ShieldAlert, Info } from 'lucide-react';
+import { ExternalLink, Loader2, AlertTriangle, CheckCircle, ShieldAlert, Info, Copy, Check } from 'lucide-react';
 import type { NormalizedIssue, NormalizedComment, ClaimResult, EvaluationResult } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -37,6 +37,17 @@ export function Dossier() {
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [engagementState, setEngagementState] = useState<'IDLE' | 'NEEDS_REVIEW' | 'REVIEWED' | 'READY' | 'POSTING' | 'POSTED' | 'FAILED'>('IDLE');
   const [engagementError, setEngagementError] = useState<string | null>(null);
+  const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
+
+  const handleCopy = async (text: string, blockId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedBlock(blockId);
+      window.setTimeout(() => setCopiedBlock(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
 
   const handleTrack = async () => {
     if (!session?.access_token || !user) {
@@ -297,12 +308,28 @@ export function Dossier() {
             )}
             
             {/* Description */}
-            <div className="bg-white border border-zinc-200 p-6 shadow-sm prose prose-zinc max-w-none prose-pre:bg-zinc-900 prose-pre:text-zinc-100">
-              {issue.body ? (
-                <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-zinc-700">{issue.body}</div>
-              ) : (
-                <p className="text-zinc-500 italic">No description provided.</p>
-              )}
+            <div className="bg-white border border-zinc-200 shadow-sm prose prose-zinc max-w-none prose-pre:bg-zinc-900 prose-pre:text-zinc-100">
+              <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-100 not-prose">
+                <span className="font-mono text-xs font-bold tracking-widest text-zinc-400 uppercase">Raw Markdown</span>
+                {issue.body && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(issue.body, 'issue-description')}
+                    aria-label={copiedBlock === 'issue-description' ? 'Copied issue description' : 'Copy issue description'}
+                    title={copiedBlock === 'issue-description' ? 'Copied' : 'Copy raw markdown'}
+                    className="inline-flex items-center justify-center p-1 text-zinc-400 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 transition-colors"
+                  >
+                    {copiedBlock === 'issue-description' ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                )}
+              </div>
+              <div className="p-6">
+                {issue.body ? (
+                  <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-zinc-700">{issue.body}</div>
+                ) : (
+                  <p className="text-zinc-500 italic">No description provided.</p>
+                )}
+              </div>
             </div>
           </section>
 
@@ -321,11 +348,22 @@ export function Dossier() {
               ) : (
                 comments.map(comment => (
                   <div key={comment.id} className="bg-white border border-zinc-200 p-4 shadow-sm flex flex-col">
-                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-zinc-50">
-                      <span className="font-bold text-sm text-zinc-900">@{comment.author}</span>
-                      <span className="font-mono text-xs text-zinc-400">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-zinc-50">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-zinc-900">@{comment.author}</span>
+                        <span className="font-mono text-xs text-zinc-400">
+                          {new Date(comment.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(comment.body, `comment-${comment.id}`)}
+                        aria-label={copiedBlock === `comment-${comment.id}` ? 'Copied comment' : 'Copy comment'}
+                        title={copiedBlock === `comment-${comment.id}` ? 'Copied' : 'Copy raw markdown'}
+                        className="inline-flex items-center justify-center p-1 text-zinc-400 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 transition-colors"
+                      >
+                        {copiedBlock === `comment-${comment.id}` ? <Check size={14} /> : <Copy size={14} />}
+                      </button>
                     </div>
                     <div className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-zinc-600">
                       {comment.body}
