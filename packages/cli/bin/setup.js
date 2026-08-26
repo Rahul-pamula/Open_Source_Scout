@@ -24,12 +24,7 @@ async function checkSupabaseCLI() {
 async function run() {
   const hasSupabase = await checkSupabaseCLI();
   
-  if (!fs.existsSync(path.join(process.cwd(), 'supabase', 'functions'))) {
-    console.log(chalk.red('✖ Error: Missing supabase directory.'));
-    console.log(chalk.yellow('You must run this command from the root of the Open_Source_Scout repository.'));
-    console.log(chalk.cyan('Please clone the repository, cd into it, and try again.'));
-    process.exit(1);
-  }
+
 
   if (!hasSupabase) {
     console.log(chalk.red('Supabase CLI not found. Please install it first:'));
@@ -51,6 +46,22 @@ async function run() {
     message: 'Enter your Supabase Project ID (e.g., abcdefghijklmnopqrst):',
     required: true
   });
+
+  const tempDir = '.scout-tmp';
+  const originalCwd = process.cwd();
+
+  console.log(chalk.bold('\n📥 Cloning Repository (Invisible Clone)'));
+  try {
+    if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
+    await execa('git', ['clone', '--depth', '1', 'https://github.com/Rahul-pamula/Open_Source_Scout.git', tempDir], { stdio: 'ignore' });
+    process.chdir(tempDir);
+    console.log(chalk.green('✅ Repository cloned.'));
+  } catch (e) {
+    console.log(chalk.red('✖ Failed to clone the repository. Make sure git is installed.'));
+    process.exit(1);
+  }
+
+  try {
 
   console.log(chalk.bold('\n🔗 Linking Supabase Project'));
   try {
@@ -138,6 +149,13 @@ async function run() {
   console.log(chalk.cyan(`  VITE_GITHUB_CLIENT_ID=<your-github-oauth-client-id>`));
   
   console.log(chalk.bold('\nHappy Open Sourcing! 🚀\n'));
+  } finally {
+    // Clean up invisible clone
+    process.chdir(originalCwd);
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  }
 }
 
 run().catch(err => {
