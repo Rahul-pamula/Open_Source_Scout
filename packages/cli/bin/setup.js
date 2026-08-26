@@ -24,6 +24,13 @@ async function checkSupabaseCLI() {
 async function run() {
   const hasSupabase = await checkSupabaseCLI();
   
+  if (!fs.existsSync(path.join(process.cwd(), 'supabase', 'functions'))) {
+    console.log(chalk.red('✖ Error: Missing supabase directory.'));
+    console.log(chalk.yellow('You must run this command from the root of the Open_Source_Scout repository.'));
+    console.log(chalk.cyan('Please clone the repository, cd into it, and try again.'));
+    process.exit(1);
+  }
+
   if (!hasSupabase) {
     console.log(chalk.red('Supabase CLI not found. Please install it first:'));
     console.log(chalk.cyan('npm i -g supabase-cli'));

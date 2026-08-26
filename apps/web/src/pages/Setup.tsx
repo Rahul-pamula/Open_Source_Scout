@@ -70,10 +70,12 @@ export function Setup() {
             </div>
             <div className="w-full">
               <h3 className="text-lg font-bold">3. Run the CLI Setup</h3>
-              <p className="text-sm text-zinc-400 mt-1 mb-4">Run this command in your terminal. It will prompt you for your keys, securely inject them into your Supabase Vault, and deploy the Edge Functions.</p>
+              <p className="text-sm text-zinc-400 mt-1 mb-4">First, clone the repository. Then run the setup wizard. It will prompt you for your keys, securely inject them into your Supabase Vault, and deploy the Edge Functions.</p>
               
-              <div className="bg-black p-4 rounded text-sm font-mono text-emerald-400 flex items-center justify-between border border-zinc-800">
-                <code>npx open-source-scout setup</code>
+              <div className="bg-black p-4 rounded text-sm font-mono text-emerald-400 border border-zinc-800 whitespace-pre overflow-x-auto">
+                git clone https://github.com/Rahul-pamula/Open_Source_Scout.git{'\n'}
+                cd Open_Source_Scout{'\n'}
+                npx open-source-scout setup
               </div>
             </div>
           </div>
