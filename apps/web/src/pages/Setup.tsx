@@ -1,30 +1,67 @@
 import { Link } from 'react-router-dom';
-import { Terminal, Key, Database, ShieldCheck, ArrowRight, ClipboardList } from 'lucide-react';
+import { Terminal, Key, Database, ShieldCheck, ArrowRight, ClipboardList, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 
 export function Setup() {
-  const [notepadText, setNotepadText] = useState('');
-  const [notepadCopied, setNotepadCopied] = useState(false);
+  const [keys, setKeys] = useState({
+    projectId: '',
+    accessToken: '',
+    groqKey: '',
+    githubPat: '',
+    supabaseUrl: '',
+    anonKey: ''
+  });
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const handleCopyNotepad = () => {
-    navigator.clipboard.writeText(notepadText);
-    setNotepadCopied(true);
-    setTimeout(() => setNotepadCopied(false), 2000);
+  const handleCopy = (key: keyof typeof keys, value: string) => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    setCopiedField(key);
+    setTimeout(() => setCopiedField(null), 2000);
   };
-  return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-16 px-4 font-sans">
-      <div className="max-w-3xl w-full">
-        
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-black text-zinc-900 tracking-tight mb-4">Deploy Your Scout</h1>
-          <p className="text-zinc-600 text-lg">
-            Open Source Scout has zero central servers. Follow these steps to deploy your personal backend. Your keys never leave your machine.
-          </p>
-        </div>
 
-        <div className="space-y-6">
+  const updateKey = (key: keyof typeof keys, value: string) => {
+    setKeys(prev => ({ ...prev, [key]: value }));
+  };
+
+  const renderKeyInput = (id: keyof typeof keys, label: string, placeholder: string) => (
+    <div className="flex flex-col mb-3">
+      <label className="text-xs font-bold text-zinc-700 mb-1">{label}</label>
+      <div className="flex bg-white border border-zinc-300 rounded overflow-hidden shadow-sm focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
+        <input 
+          type="text" 
+          value={keys[id]}
+          onChange={(e) => updateKey(id, e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 px-3 py-2 text-sm font-mono text-zinc-900 outline-none"
+        />
+        <button 
+          onClick={() => handleCopy(id, keys[id])}
+          disabled={!keys[id]}
+          className="px-3 bg-zinc-50 border-l border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center w-12"
+          title="Copy to clipboard"
+        >
+          {copiedField === id ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-12 px-4 font-sans">
+      <div className="mb-10 text-center max-w-3xl">
+        <h1 className="text-4xl font-black text-zinc-900 tracking-tight mb-4">Deploy Your Scout</h1>
+        <p className="text-zinc-600 text-lg">
+          Open Source Scout has zero central servers. Follow these steps to deploy your personal backend. Your keys never leave your machine.
+        </p>
+      </div>
+
+      <div className="max-w-6xl w-full flex flex-col lg:flex-row gap-8 items-start">
+        
+        {/* Left Side: Setup Steps */}
+        <div className="flex-1 space-y-6 w-full lg:max-w-3xl">
           {/* Step 1 */}
-          <div className="bg-white border border-zinc-200 p-6 flex gap-4">
+          <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg">
             <div className="bg-zinc-100 p-3 h-fit rounded-full text-zinc-900">
               <Key size={24} />
             </div>
@@ -57,7 +94,7 @@ export function Setup() {
           </div>
 
           {/* Step 2 */}
-          <div className="bg-white border border-zinc-200 p-6 flex gap-4">
+          <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg">
             <div className="bg-emerald-100 p-3 h-fit rounded-full text-emerald-700">
               <Database size={24} />
             </div>
@@ -67,13 +104,13 @@ export function Setup() {
               <ol className="list-decimal pl-5 text-sm text-zinc-700 space-y-1">
                 <li>Go to <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">supabase.com</a> and create a new project.</li>
                 <li>Go to <strong>Project Settings -&gt; API</strong>.</li>
-                <li>Copy your <code>Project URL</code> and <code>anon</code> public key. Keep them handy.</li>
+                <li>Copy your <code>Project ID</code> (from the URL), <code>Project URL</code>, and <code>anon</code> public key.</li>
               </ol>
             </div>
           </div>
 
           {/* Step 3 */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white shadow-sm rounded-lg">
             <div className="bg-zinc-800 p-3 h-fit rounded-full text-emerald-400">
               <Terminal size={24} />
             </div>
@@ -88,7 +125,7 @@ export function Setup() {
           </div>
 
           {/* Step 4 */}
-          <div className="bg-white border border-zinc-200 p-6 flex gap-4">
+          <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg">
             <div className="bg-purple-100 p-3 h-fit rounded-full text-purple-700">
               <ShieldCheck size={24} />
             </div>
@@ -99,40 +136,39 @@ export function Setup() {
               </div>
               <Link 
                 to="/connect" 
-                className="whitespace-nowrap bg-zinc-900 text-white font-bold py-2 px-6 border border-zinc-900 shadow-[3px_3px_0px_#27272a] hover:-translate-y-px hover:shadow-[4px_4px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center"
+                className="whitespace-nowrap bg-zinc-900 text-white font-bold py-2 px-6 border border-zinc-900 shadow-[3px_3px_0px_#27272a] hover:-translate-y-px hover:shadow-[4px_4px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center rounded"
               >
                 Go to Sign In
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </div>
           </div>
-
         </div>
+
+        {/* Right Side: Key Scratchpad */}
+        <div className="w-full lg:w-96 flex-shrink-0 sticky top-12">
+          <div className="bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden">
+            <div className="bg-zinc-900 p-4 border-b border-zinc-800 text-white flex items-center">
+              <ClipboardList size={18} className="mr-2 text-emerald-400" />
+              <h2 className="font-bold">Key Scratchpad</h2>
+            </div>
+            <div className="p-4 bg-amber-50/50 border-b border-amber-100">
+              <p className="text-xs text-amber-800 leading-relaxed">
+                <strong>Warning:</strong> Keys are NOT saved to any database. They will be permanently lost if you refresh this page. Use this to easily copy/paste keys into your terminal.
+              </p>
+            </div>
+            <div className="p-4 bg-zinc-50">
+              {renderKeyInput('projectId', 'Supabase Project ID', 'e.g. abcdefghijklmnopqrst')}
+              {renderKeyInput('accessToken', 'Supabase Access Token', 'sbp_...')}
+              {renderKeyInput('groqKey', 'Groq API Key', 'gsk_...')}
+              {renderKeyInput('githubPat', 'GitHub PAT', 'github_pat_...')}
+              {renderKeyInput('supabaseUrl', 'Supabase Project URL', 'https://...supabase.co')}
+              {renderKeyInput('anonKey', 'Supabase Anon Key', 'eyJ...')}
+            </div>
+          </div>
+        </div>
+
       </div>
-
-      {/* Temporary Notepad */}
-      <div className="fixed bottom-4 right-4 w-80 bg-white border border-zinc-200 shadow-xl flex flex-col z-50">
-        <div className="bg-zinc-100 p-2 border-b border-zinc-200 flex justify-between items-center">
-          <span className="text-xs font-bold text-zinc-700 flex items-center">
-            <ClipboardList size={14} className="mr-1" /> Temp Notepad
-          </span>
-          <button onClick={handleCopyNotepad} className="text-xs font-bold text-emerald-600 hover:text-emerald-700">
-            {notepadCopied ? 'Copied!' : 'Copy All'}
-          </button>
-        </div>
-        <div className="p-2 bg-amber-50 border-b border-amber-200">
-          <p className="text-[10px] text-amber-800 leading-tight">
-            <strong>Warning:</strong> Keys are NOT saved. They will be permanently lost if you refresh this page. Paste your keys here while you collect them.
-          </p>
-        </div>
-        <textarea 
-          className="w-full h-32 text-[10px] font-mono p-2 focus:outline-none resize-none"
-          placeholder="Supabase URL:&#10;Anon Key:&#10;Access Token:&#10;Groq Key:&#10;GitHub PAT:"
-          value={notepadText}
-          onChange={(e) => setNotepadText(e.target.value)}
-        />
-      </div>
-
     </div>
   );
 }
