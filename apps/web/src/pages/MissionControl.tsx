@@ -1,0 +1,489 @@
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
+import { IssueCard } from '../components/IssueCard';
+import type { ScoutedIssue, NormalizedIssue, TrackedIssue, IssueState } from '../types';
+import { Loader2, Activity, ExternalLink, ChevronRight, ChevronDown, XCircle, Search } from 'lucide-react';
+
+const STATE_FLOW: IssueState[] = ['DISCOVERED', 'EVALUATED', 'DRAFTED', 'ENGAGED', 'ASSIGNED', 'COMPLETED'];
+
+export function MissionControl() {
+  const { session, user } = useAuth();
+  
+  // -- Profile Data --
+  const [userProfile, setUserProfile] = useState<{ bio: string, skills: string[] } | null>(null);
+
+  // -- Discovery State (Opportunities) --
+  // We use sessionStorage to cache discovered issues so they survive unmounts
+  const [scoutedIssues, setScoutedIssues] = useState<ScoutedIssue[]>(() => {
+    const cached = sessionStorage.getItem('scout_discovered_issues');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoveryStatus, setDiscoveryStatus] = useState<string | null>(null);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [lastScanTime, setLastScanTime] = useState<number | null>(() => {
+    const cached = sessionStorage.getItem('scout_last_scan_time');
+    return cached ? parseInt(cached, 10) : null;
+  });
+  
+  // -- Tracking State (Active Pipeline) --
+  const [trackedIssues, setTrackedIssues] = useState<TrackedIssue[]>([]);
+  const [isTrackingLoading, setIsTrackingLoading] = useState(true);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [expandedPipelineId, setExpandedPipelineId] = useState<string | null>(null);
+
+  // Initialization & Profile Fetch
+  useEffect(() => {
+    let mounted = true;
+    if (user) {
+      supabase.from('users').select('bio, skills').eq('id', user.id).maybeSingle().then(({ data }) => {
+        if (mounted && data) setUserProfile(data);
+      });
+      fetchPipeline();
+    }
+    return () => { mounted = false; };
+  }, [user, session]);
+
+  // Save discovered issues to session storage when they update
+  useEffect(() => {
+    sessionStorage.setItem('scout_discovered_issues', JSON.stringify(scoutedIssues));
+    if (lastScanTime) {
+      sessionStorage.setItem('scout_last_scan_time', lastScanTime.toString());
+    }
+  }, [scoutedIssues, lastScanTime]);
+
+  // Auto-trigger discovery if we have a profile, no cached issues, and haven't scanned recently
+  const hasAutoScanned = useRef(false);
+  useEffect(() => {
+    if (userProfile && scoutedIssues.length === 0 && !isDiscovering && !hasAutoScanned.current) {
+      hasAutoScanned.current = true;
+      handleDiscover();
+    }
+  }, [userProfile, scoutedIssues.length]);
+
+  // --- Discovery Logic (From Radar) ---
+  const handleDiscover = async () => {
+    try {
+      setIsDiscovering(true);
+      setDiscoveryError(null);
+      setDiscoveryStatus('Searching GitHub...');
+      
+      const profileStr = userProfile ? userProfile.bio : "I am a developer looking for issues.";
+      const skillsQuery = userProfile && userProfile.skills.length > 0 
+        ? userProfile.skills.map(s => `language:${s}`).join(' ') 
+        : 'language:typescript';
+      const dynamicSearchQuery = `is:open is:issue label:"good first issue" ${skillsQuery}`;
+      
+      // Step 1: Fetch and Filter
+      const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
+        body: { query: dynamicSearchQuery, limit: 10 } // Fetch slightly more to filter out tracked
+      });
+      
+      if (searchError) throw new Error('Failed to fetch from GitHub: ' + searchError.message);
+      
+      const rawEligibleIssues: NormalizedIssue[] = searchData.data || [];
+
+      if (rawEligibleIssues.length === 0) {
+        setDiscoveryStatus(null);
+        setDiscoveryError('Scout couldn\'t find a strong match yet. Try updating your Agent Directives.');
+        setIsDiscovering(false);
+        setLastScanTime(Date.now());
+        return;
+      }
+
+      setDiscoveryStatus('Filtering candidates...');
+      
+      // Filter out issues that are already tracked in the active pipeline
+      const currentTrackedUrls = new Set(trackedIssues.map(t => t.github_issue_url));
+      const newEligibleIssues = rawEligibleIssues.filter(issue => !currentTrackedUrls.has(issue.url));
+
+      // Limit to 5 for AI evaluation (Cost Control)
+      const issuesToEvaluate = newEligibleIssues.slice(0, 5);
+
+      if (issuesToEvaluate.length === 0) {
+         setDiscoveryStatus(null);
+         setDiscoveryError('Found issues, but they are already in your Active Pipeline.');
+         setIsDiscovering(false);
+         setLastScanTime(Date.now());
+         return;
+      }
+
+      setDiscoveryStatus('Analyzing promising issues...');
+
+      // Step 2: Evaluate limited candidates
+      const newlyScouted: ScoutedIssue[] = [];
+      for (const issue of issuesToEvaluate) {
+        try {
+          const { data: evalData, error: evalError } = await supabase.functions.invoke('evaluate', {
+            body: { issue, profile: profileStr }
+          });
+          
+          if (!evalError && evalData?.data) {
+            newlyScouted.push({ ...issue, evaluation: evalData.data });
+          } else {
+             newlyScouted.push(issue); // Push without eval if it fails
+          }
+        } catch (e) {
+          newlyScouted.push(issue);
+        }
+      }
+
+      // Sort by match score descending
+      newlyScouted.sort((a, b) => (b.evaluation?.matchScore || 0) - (a.evaluation?.matchScore || 0));
+
+      setScoutedIssues(newlyScouted);
+      setDiscoveryStatus(null);
+      setLastScanTime(Date.now());
+    } catch (err: any) {
+      setDiscoveryError(err.message || 'Scout couldn\'t analyze these issues right now.');
+      setDiscoveryStatus(null);
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
+
+  // --- Tracking Logic (From Operations) ---
+  const fetchPipeline = async () => {
+    if (!session?.access_token) return;
+    try {
+      setIsTrackingLoading(true);
+      const { data: resData, error: trackError } = await supabase.functions.invoke('tracking', {
+        body: { action: 'list' }
+      });
+      if (trackError) throw new Error('Failed to fetch tracking data: ' + trackError.message);
+      setTrackedIssues(resData.data);
+    } catch (err: any) {
+      setTrackingError(err.message);
+    } finally {
+      setIsTrackingLoading(false);
+    }
+  };
+
+  const handleSaveToPipeline = async (issueId: string) => {
+    if (!session?.access_token || !user) return;
+    const issueToSave = scoutedIssues.find(i => i.id === issueId);
+    if (!issueToSave) return;
+
+    try {
+      const { error: trackError } = await supabase.functions.invoke('tracking', {
+        body: {
+          action: 'save',
+          issueData: {
+            github_issue_url: issueToSave.url,
+            title: issueToSave.title,
+            repo_name: issueToSave.repoName,
+            match_score: issueToSave.evaluation?.matchScore
+          }
+        }
+      });
+      
+      if (trackError) throw new Error('Failed to save issue: ' + trackError.message);
+      
+      // Remove from scouted list and refresh pipeline
+      setScoutedIssues(prev => prev.filter(i => i.id !== issueId));
+      fetchPipeline();
+    } catch (err: any) {
+      console.error(err);
+      alert('Error saving issue. It may already be tracked.');
+    }
+  };
+
+  const handleStateUpdate = async (id: string, newState: IssueState) => {
+    if (!session?.access_token) return;
+    try {
+      const { error: updateError, data: errData } = await supabase.functions.invoke('tracking', {
+        body: { action: 'update_state', id, state: newState }
+      });
+      if (updateError) {
+        throw new Error(errData?.error || updateError.message || 'Failed to update state');
+      }
+      await fetchPipeline(); // Refresh list
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const getAvailableTransitions = (currentState: IssueState): IssueState[] => {
+    const transitions: Record<IssueState, IssueState[]> = {
+      'DISCOVERED': ['EVALUATED', 'REJECTED'],
+      'EVALUATED': ['DRAFTED', 'ENGAGED', 'REJECTED'],
+      'DRAFTED': ['ENGAGED', 'REJECTED'],
+      'ENGAGED': ['ASSIGNED', 'REJECTED'],
+      'ASSIGNED': ['COMPLETED'],
+      'COMPLETED': [],
+      'REJECTED': []
+    };
+    return transitions[currentState] || [];
+  };
+
+  // --- Render ---
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <p className="text-zinc-500 font-mono">Authentication required.</p>
+      </div>
+    );
+  }
+
+  // Time formatting helper
+  const getTimeAgo = (timestamp: number) => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+    return `${Math.floor(seconds / 3600)} hours ago`;
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto pb-12">
+      {/* Header */}
+      <div className="flex justify-between items-end mb-8 border-b border-zinc-200 pb-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Mission Control</h1>
+          <p className="text-zinc-600 font-mono text-sm">
+            Central dashboard for discovery and autonomous engagement.
+          </p>
+        </div>
+        
+        {/* Agent Status UI */}
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
+            {isDiscovering ? (
+              <Loader2 size={16} className="text-emerald-500 animate-spin" />
+            ) : (
+              <Search size={16} className="text-zinc-400" />
+            )}
+            <span className={`font-mono text-xs uppercase font-bold ${isDiscovering ? 'text-emerald-600' : 'text-zinc-500'}`}>
+              {isDiscovering ? 'Scout is working' : 'Scout is idle'}
+            </span>
+          </div>
+          {discoveryStatus ? (
+            <span className="font-mono text-[10px] text-zinc-500">{discoveryStatus}</span>
+          ) : lastScanTime ? (
+            <span className="font-mono text-[10px] text-zinc-400">Last scan: {getTimeAgo(lastScanTime)}</span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* LEFT: SCOUTED OPPORTUNITIES */}
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+              <Search size={16} /> Scouted Opportunities
+            </h2>
+            <button 
+              onClick={handleDiscover}
+              disabled={isDiscovering}
+              className="text-xs font-mono border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1 font-medium disabled:opacity-50"
+            >
+              Scan Now
+            </button>
+          </div>
+
+          {discoveryError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-4 font-mono text-sm">
+              [ERROR] {discoveryError}
+            </div>
+          )}
+
+          {scoutedIssues.length === 0 && !isDiscovering && !discoveryError ? (
+            <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center">
+              <p className="text-zinc-500 font-mono text-sm mb-4">No new opportunities in your feed.</p>
+              <button 
+                onClick={handleDiscover}
+                className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[2px_2px_0px_#18181b] border border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#18181b] transition-all text-xs"
+              >
+                Trigger Manual Scan
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {scoutedIssues.map((issue) => (
+                <IssueCard 
+                  key={issue.id} 
+                  issue={issue} 
+                  onSave={handleSaveToPipeline} 
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: ACTIVE PIPELINE */}
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+              <Activity size={16} /> Active Pipeline
+            </h2>
+            <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 font-bold">
+              {trackedIssues.filter(i => i.state !== 'COMPLETED' && i.state !== 'REJECTED').length} ACTIVE
+            </span>
+          </div>
+
+          {trackingError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-4 font-mono text-sm">
+              [ERROR] {trackingError}
+            </div>
+          )}
+
+          {isTrackingLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 border border-zinc-100">
+              <Loader2 className="animate-spin text-zinc-400 mb-4" size={24} />
+              <p className="text-zinc-500 font-mono text-xs">Loading pipeline...</p>
+            </div>
+          ) : trackedIssues.length === 0 ? (
+            <div className="bg-zinc-50 border border-zinc-200 p-8 text-center text-zinc-500 font-mono text-sm">
+              Your pipeline is empty. Save an issue from Scouted Opportunities to start tracking.
+            </div>
+          ) : (
+            <div className="flex flex-col border border-zinc-200 shadow-sm bg-white">
+              {/* List Rows */}
+              {trackedIssues.map(issue => {
+                const isExpanded = expandedPipelineId === issue.id;
+                const transitions = getAvailableTransitions(issue.state);
+                const issueNumber = issue.github_issue_url.split('/').pop() || '';
+
+                return (
+                  <div key={issue.id} className="flex flex-col border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors">
+                    
+                    {/* Main Row */}
+                    <div className="grid grid-cols-12 gap-3 p-4 items-center">
+                      {/* Title & Metadata */}
+                      <div className="col-span-6 flex flex-col gap-1 pr-2">
+                        <span className="font-semibold text-sm text-zinc-900 truncate" title={issue.title}>
+                          {issue.title}
+                        </span>
+                        <div className="flex items-center gap-2 font-mono text-[9px] text-zinc-500">
+                          <span className="truncate">{issue.repo_name} #{issueNumber}</span>
+                          {issue.match_score && (
+                            <>
+                              <span>·</span>
+                              <span className={issue.match_score >= 80 ? 'text-emerald-600 font-bold' : ''}>
+                                {issue.match_score}% MATCH
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* State Badge */}
+                      <div className="col-span-3 flex items-center justify-center">
+                        <span className={`font-mono text-[9px] px-2 py-1 border font-bold uppercase tracking-wider ${
+                          issue.state === 'COMPLETED' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
+                          issue.state === 'REJECTED' ? 'border-red-200 bg-red-50 text-red-700' :
+                          issue.state === 'ASSIGNED' || issue.state === 'ENGAGED' ? 'border-blue-200 bg-blue-50 text-blue-700' :
+                          'border-zinc-200 bg-zinc-50 text-zinc-700'
+                        }`}>
+                          {issue.state}
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="col-span-3 flex items-center justify-end gap-2">
+                        <a 
+                          href={issue.github_issue_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-zinc-400 hover:text-emerald-600 transition-colors"
+                          title="Open on GitHub"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                        
+                        <button 
+                          onClick={() => setExpandedPipelineId(isExpanded ? null : issue.id)}
+                          className="flex items-center gap-1 font-mono text-[9px] uppercase font-bold text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-1.5 py-1 bg-white hover:bg-zinc-100 transition-colors"
+                        >
+                          {isExpanded ? 'Close' : 'View'} 
+                          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expanded State Progression Panel */}
+                    {isExpanded && (
+                      <div className="border-t border-zinc-100 bg-zinc-50/80 p-4 flex flex-col gap-4 inset-shadow-sm">
+                        
+                        {/* Visual State Flow */}
+                        <div className="flex items-center justify-between px-2">
+                          {STATE_FLOW.map((state, index) => {
+                            const isCurrent = issue.state === state;
+                            const isPast = STATE_FLOW.indexOf(issue.state) > index && issue.state !== 'REJECTED';
+
+                            return (
+                              <div key={state} className="flex flex-col items-center flex-1 relative group">
+                                {/* Connecting Line */}
+                                {index < STATE_FLOW.length - 1 && (
+                                  <div className={`absolute top-2.5 left-1/2 w-full h-[2px] -z-10 ${
+                                    isPast ? 'bg-emerald-400' : 'bg-zinc-200'
+                                  }`} />
+                                )}
+                                
+                                {/* Node */}
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 mb-1.5 ${
+                                  isCurrent ? 'border-emerald-500 bg-emerald-50' : 
+                                  isPast ? 'border-emerald-500 bg-emerald-500' :
+                                  'border-zinc-300 bg-white'
+                                }`}>
+                                  {isCurrent && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                                  {isPast && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                                
+                                {/* Label */}
+                                <span className={`font-mono text-[8px] uppercase font-bold text-center tracking-widest ${
+                                  isCurrent ? 'text-emerald-700' :
+                                  isPast ? 'text-zinc-700' :
+                                  'text-zinc-400'
+                                }`}>
+                                  {state}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {issue.state === 'REJECTED' && (
+                          <div className="flex justify-center mt-1">
+                            <span className="font-mono text-[10px] text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 flex items-center gap-1.5">
+                              <XCircle size={12} /> ABORTED: REJECTED
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Transition Controls */}
+                        {transitions.length > 0 && (
+                          <div className="flex flex-col items-center mt-2">
+                            <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">Available Transitions</span>
+                            <div className="flex flex-wrap justify-center gap-2">
+                              {transitions.map(targetState => (
+                                <button
+                                  key={targetState}
+                                  onClick={() => handleStateUpdate(issue.id, targetState)}
+                                  className={`font-mono text-[10px] font-bold px-3 py-1.5 border shadow-sm transition-transform active:scale-95 ${
+                                    targetState === 'REJECTED' 
+                                      ? 'bg-white border-red-200 text-red-600 hover:bg-red-50'
+                                      : 'bg-zinc-900 border-zinc-900 text-white shadow-[2px_2px_0px_#10b981] hover:-translate-y-px'
+                                  }`}
+                                >
+                                  Move to {targetState}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+                    )}
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
