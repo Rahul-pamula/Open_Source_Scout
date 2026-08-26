@@ -107,11 +107,11 @@ You provide your skills (e.g. JavaScript, React, Python).
 ### Step 2 — Scout Finds Issues
 Scout searches GitHub for issues that match your profile.
 
-### Step 3 — Scout Analyzes Them
-The AI helps you understand difficulty, required skills, and issue status.
+### Step 3 — Scout Analyzes & Evaluates
+The AI helps you understand difficulty, required skills, and issue status. It can even **automatically evaluate and choose** the best issues for you based on your unique profile.
 
-### Step 4 — You Choose
-You decide whether the issue is worth working on. Scout does NOT decide for you.
+### Step 4 — Engage & Claim
+Once an issue is chosen, Scout can **automatically draft and post a comment** directly to GitHub on your behalf to claim the issue or ask clarifying questions!
 
 ### Step 5 — Track It
 Keep track of issues you have discovered, claimed, or are working on.
