@@ -77,7 +77,7 @@ async function run() {
     {
       type: 'input',
       name: 'githubToken',
-      message: 'GitHub Fine-grained Personal Access Token (Needs Read/Write for Issues & PRs):',
+      message: 'GitHub Fine-grained Personal Access Token (Needs Read/Write for Issues & PRs. Set expiration to 1 year):',
       required: true
     },
     {

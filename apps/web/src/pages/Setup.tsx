@@ -34,12 +34,13 @@ export function Setup() {
                 <div>
                   <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">GitHub Fine-grained Personal Access Token</a>
                   <div className="text-xs text-zinc-500 mt-1">
-                    <ol className="list-decimal pl-4 space-y-1 mt-1">
-                      <li>Ensure you are on the <strong>Fine-grained tokens</strong> tab.</li>
+                    <ol className="list-decimal pl-4 space-y-1 mt-1 mb-2">
                       <li>Click <strong>Generate new token</strong>.</li>
+                      <li>Change the <strong>Expiration</strong> to <strong>1 year</strong> (or remember to update it when it expires).</li>
                       <li>Under <strong>Repository access</strong>, select <strong>All repositories</strong>.</li>
-                      <li>Under <strong>Permissions -&gt; Repository permissions</strong>, grant <strong>Read and Write</strong> access to both <strong>Issues</strong> and <strong>Pull Requests</strong> <em>(Note: Metadata will automatically be set to Read-only)</em>.</li>
+                      <li>Under <strong>Permissions</strong>, click <strong>+ Add permissions</strong>. Find <strong>Issues</strong> and <strong>Pull Requests</strong> and set them both to <strong>Read and Write</strong> <em>(Note: Metadata will automatically be set to Read-only)</em>.</li>
                     </ol>
+                    <p className="text-xs italic text-zinc-400">If your GitHub token ever expires, simply generate a new one and run the CLI setup again to update your backend secrets.</p>
                   </div>
                 </div>
               </div>
