@@ -1,7 +1,16 @@
 import { Link } from 'react-router-dom';
-import { Terminal, Key, Database, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Terminal, Key, Database, ShieldCheck, ArrowRight, ClipboardList } from 'lucide-react';
+import { useState } from 'react';
 
 export function Setup() {
+  const [notepadText, setNotepadText] = useState('');
+  const [notepadCopied, setNotepadCopied] = useState(false);
+
+  const handleCopyNotepad = () => {
+    navigator.clipboard.writeText(notepadText);
+    setNotepadCopied(true);
+    setTimeout(() => setNotepadCopied(false), 2000);
+  };
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-16 px-4 font-sans">
       <div className="max-w-3xl w-full">
@@ -100,6 +109,30 @@ export function Setup() {
 
         </div>
       </div>
+
+      {/* Temporary Notepad */}
+      <div className="fixed bottom-4 right-4 w-80 bg-white border border-zinc-200 shadow-xl flex flex-col z-50">
+        <div className="bg-zinc-100 p-2 border-b border-zinc-200 flex justify-between items-center">
+          <span className="text-xs font-bold text-zinc-700 flex items-center">
+            <ClipboardList size={14} className="mr-1" /> Temp Notepad
+          </span>
+          <button onClick={handleCopyNotepad} className="text-xs font-bold text-emerald-600 hover:text-emerald-700">
+            {notepadCopied ? 'Copied!' : 'Copy All'}
+          </button>
+        </div>
+        <div className="p-2 bg-amber-50 border-b border-amber-200">
+          <p className="text-[10px] text-amber-800 leading-tight">
+            <strong>Warning:</strong> Keys are NOT saved. They will be permanently lost if you refresh this page. Paste your keys here while you collect them.
+          </p>
+        </div>
+        <textarea 
+          className="w-full h-32 text-[10px] font-mono p-2 focus:outline-none resize-none"
+          placeholder="Supabase URL:&#10;Anon Key:&#10;Access Token:&#10;Groq Key:&#10;GitHub PAT:"
+          value={notepadText}
+          onChange={(e) => setNotepadText(e.target.value)}
+        />
+      </div>
+
     </div>
   );
 }
