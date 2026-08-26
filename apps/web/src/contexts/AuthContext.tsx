@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { type Session, type User } from '@supabase/supabase-js';
-import { supabase } from '../services/supabase';
+import { supabase, hasSupabaseConfig } from '../services/supabase';
 
 interface AuthContextType {
   session: Session | null;
@@ -18,6 +18,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!hasSupabaseConfig()) {
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -36,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGithub = async () => {
+    if (!hasSupabaseConfig()) throw new Error("Supabase is not configured.");
     await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
@@ -45,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!hasSupabaseConfig()) return;
     await supabase.auth.signOut();
   };
 

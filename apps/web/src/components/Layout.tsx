@@ -11,19 +11,19 @@ export function Layout() {
         <div className="font-bold text-lg mb-8 tracking-tight">Open Source Scout</div>
         
         <div className="flex flex-col space-y-2 flex-1">
-          <Link to="/" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+          <Link to="/app" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
             <Target size={20} />
             <span>Radar</span>
           </Link>
-          <Link to="/operations" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+          <Link to="/app/operations" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
             <Activity size={20} />
             <span>Operations</span>
           </Link>
-          <Link to="/identity" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+          <Link to="/app/identity" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
             <UserIcon size={20} />
             <span>Identity</span>
           </Link>
-          <Link to="/uplink" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+          <Link to="/app/uplink" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
             <Settings size={20} />
             <span>Uplink</span>
           </Link>
@@ -44,7 +44,7 @@ export function Layout() {
               </button>
             </div>
           ) : (
-            <Link to="/login" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 text-zinc-900 rounded-md font-medium">
+            <Link to="/connect" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 text-zinc-900 rounded-md font-medium">
               <LogIn size={20} />
               <span>Sign in</span>
             </Link>
