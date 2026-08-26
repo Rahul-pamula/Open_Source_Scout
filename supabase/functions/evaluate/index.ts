@@ -18,20 +18,58 @@ serve(async (req) => {
       })
     }
 
-    const { issue, profile } = await req.json()
+    const { issue, issues, profile } = await req.json()
     
-    if (!issue || !profile) {
-      return new Response(JSON.stringify({ error: 'Both "issue" and "profile" are required in the request body' }), {
+    if (!profile || (!issue && !issues)) {
+      return new Response(JSON.stringify({ error: 'Either "issue" or "issues" array, plus "profile", are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    const result = await groqEvaluator.evaluateIssue(issue, profile)
+    // Backwards compatibility for single issue evaluation
+    if (issue && !issues) {
+      const result = await groqEvaluator.evaluateIssue(issue, profile)
+      return new Response(JSON.stringify({ data: result }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
 
-    return new Response(JSON.stringify({ data: result }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+    // Batch evaluation logic
+    if (issues && Array.isArray(issues)) {
+      // 1. HARD COST BOUNDARY: Enforce maximum 5 evaluations
+      const issuesToEvaluate = issues.slice(0, 5)
+
+      // 2. Sequential evaluation to respect Groq burst limits securely
+      const results = []
+      for (const item of issuesToEvaluate) {
+        try {
+          const evalResult = await groqEvaluator.evaluateIssue(item, profile)
+          results.push({
+            success: true,
+            issueId: item.id || item.url, // Identify which issue this applies to
+            data: evalResult
+          })
+        } catch (err: any) {
+          console.error(`[evaluate-function] Error evaluating issue ${item.id || item.url}:`, err)
+          results.push({
+            success: false,
+            issueId: item.id || item.url,
+            error: err.message || 'Evaluation failed'
+          })
+        }
+      }
+
+      return new Response(JSON.stringify({ data: results }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid payload structure' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (error: any) {
     console.error('[evaluate-function] Error:', error)
