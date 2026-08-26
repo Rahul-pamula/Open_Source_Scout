@@ -80,15 +80,27 @@ async function run() {
   // 2. Setup Database
   console.log(chalk.bold('\n📦 Pushing Database Schema'));
   try {
-    await execa('supabase', ['db', 'push'], { 
-      stdio: 'inherit',
+    const dbPush = execa('supabase', ['db', 'push'], { 
       env: { SUPABASE_ACCESS_TOKEN: accessToken }
     });
+    if (dbPush.stdout) dbPush.stdout.pipe(process.stdout);
+    if (dbPush.stderr) dbPush.stderr.pipe(process.stderr);
+    await dbPush;
     console.log(chalk.green('✅ Database schema deployed.'));
   } catch (e) {
+    const errorOutput = e.stderr || e.message || '';
     console.log(chalk.red('\n✖ Failed to push database schema.'));
-    console.log(chalk.yellow('Your Supabase database might be in a partially deployed state.'));
-    console.log(chalk.cyan('To fix this, go to your Supabase Dashboard -> Project Settings -> Database -> "Reset database", then try again.'));
+    
+    if (errorOutput.includes('42710') || errorOutput.includes('already exists')) {
+      console.log(chalk.yellow('\n⚠️  Partial Deployment Detected!'));
+      console.log(chalk.gray('It looks like a previous setup attempt crashed midway. Some database objects (like types or tables) were created, but the migration history was not saved.'));
+      console.log(chalk.white('\nTo safely recover:'));
+      console.log(chalk.cyan('1. (Recommended for fresh setups): Go to your Supabase Dashboard -> Project Settings -> Database -> "Reset database".'));
+      console.log(chalk.cyan('2. (For existing databases): Manually remove the conflicting object in the SQL Editor to allow the migration to proceed.'));
+    } else {
+      console.log(chalk.yellow('\nYour Supabase database might be in a partially deployed state.'));
+      console.log(chalk.cyan('Check the error output above, or reset your database if this is a fresh setup.'));
+    }
     process.exit(1);
   }
 

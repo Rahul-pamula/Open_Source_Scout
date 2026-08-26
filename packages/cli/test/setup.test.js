@@ -80,6 +80,23 @@ exit 0
   assert.ok(result.stdout.includes('Failed to set secrets'), 'Should print failure message');
 });
 
+test('CLI Setup - Partial deployment detected', async () => {
+  // Fail specifically when 'db push' is called and output "42710" to stderr
+  const mockScript = `#!/bin/bash
+if [ "$1" == "db" ] && [ "$2" == "push" ]; then
+  echo "ERROR: relation already exists" >&2
+  echo "SQLSTATE: 42710" >&2
+  exit 1
+fi
+exit 0
+`;
+  const result = await runCLI(mockScript);
+  
+  assert.strictEqual(result.code, 1, 'CLI should exit with 1 on failure');
+  assert.ok(result.stdout.includes('Partial Deployment Detected!'), 'Should detect partial deployment from stderr');
+  assert.ok(result.stdout.includes('Manually remove the conflicting object'), 'Should provide safe recovery instructions');
+});
+
 test('CLI Setup - Unexpected exception triggers cleanup', async () => {
   // If the supabase CLI randomly crashes with signal 9 (SIGKILL) or exit 255
   const mockScript = `#!/bin/bash
