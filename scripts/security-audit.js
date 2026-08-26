@@ -60,7 +60,7 @@ if (gitGrep.status === 0 && gitGrep.stdout) {
 
 // 3. Scan for frontend accidental exposure
 console.log('Verifying frontend environment variables...');
-const frontendEnvSearch = spawnSync('git', ['grep', '-nE', '(VITE_GITHUB_TOKEN|VITE_GROQ_KEY)'], {
+const frontendEnvSearch = spawnSync('git', ['grep', '-nE', '(VITE_GITHUB_' + 'TOKEN|VITE_GROQ_' + 'KEY)'], {
   cwd: rootDir,
   encoding: 'utf-8'
 });
