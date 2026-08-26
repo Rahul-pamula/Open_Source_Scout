@@ -25,7 +25,7 @@ export function Dossier() {
   // Fetch user profile on load
   useEffect(() => {
     if (user) {
-      supabase.from('users').select('bio, skills').eq('id', user.id).single().then(({ data }) => {
+      supabase.from('users').select('bio, skills').eq('id', user.id).maybeSingle().then(({ data }) => {
         if (data) setUserProfile(data);
       });
     }

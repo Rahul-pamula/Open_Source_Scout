@@ -13,7 +13,7 @@ export function Identity() {
 
   useEffect(() => {
     if (user) {
-      supabase.from('users').select('bio, skills').eq('id', user.id).single().then(({ data }) => {
+      supabase.from('users').select('bio, skills').eq('id', user.id).maybeSingle().then(({ data }) => {
         if (data) {
           setBio(data.bio || '');
           setSkillsStr((data.skills || []).join(', '));
@@ -30,8 +30,7 @@ export function Identity() {
     
     const { error } = await supabase
       .from('users')
-      .update({ bio, skills: skillsArray })
-      .eq('id', user.id);
+      .upsert({ id: user.id, bio, skills: skillsArray });
       
     setIsSaving(false);
     if (error) {

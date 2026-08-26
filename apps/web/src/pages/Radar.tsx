@@ -20,7 +20,7 @@ export function Radar() {
   // Fetch user profile on load
   useState(() => {
     if (user) {
-      supabase.from('users').select('bio, skills').eq('id', user.id).single().then(({ data }) => {
+      supabase.from('users').select('bio, skills').eq('id', user.id).maybeSingle().then(({ data }) => {
         if (data) setUserProfile(data);
       });
     }

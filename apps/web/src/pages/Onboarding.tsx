@@ -28,7 +28,7 @@ export function Onboarding() {
         .from('users')
         .select('bio, skills')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
         
       if (!error && data && data.bio) {
         navigate('/');
