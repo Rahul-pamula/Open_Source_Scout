@@ -9,6 +9,7 @@ import { Operations } from './pages/Operations';
 import { Identity } from './pages/Identity';
 import { Uplink } from './pages/Uplink';
 import { Onboarding } from './pages/Onboarding';
+import { Docs } from './pages/Docs';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasSupabaseConfig } from './services/supabase';
 
@@ -30,6 +31,8 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/setup" element={<Setup />} />
           <Route path="/connect" element={<Connect />} />
+          
+          <Route path="/docs/*" element={<Docs />} />
           
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           
