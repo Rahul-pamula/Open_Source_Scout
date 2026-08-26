@@ -77,7 +77,7 @@ async function run() {
     {
       type: 'input',
       name: 'githubToken',
-      message: 'GitHub Fine-grained Personal Access Token (e.g., github_pat_xxxx...):',
+      message: 'GitHub Fine-grained Personal Access Token (Needs Read/Write for Issues & PRs):',
       required: true
     },
     {

@@ -38,7 +38,7 @@ export function Setup() {
                       <li>Ensure you are on the <strong>Fine-grained tokens</strong> tab.</li>
                       <li>Click <strong>Generate new token</strong>.</li>
                       <li>Under <strong>Repository access</strong>, select <strong>All repositories</strong>.</li>
-                      <li>Under <strong>Permissions -&gt; Repository permissions</strong>, grant <strong>Read and Write</strong> access to <strong>Issues</strong> and <strong>Pull Requests</strong>.</li>
+                      <li>Under <strong>Permissions -&gt; Repository permissions</strong>, grant <strong>Read and Write</strong> access to both <strong>Issues</strong> and <strong>Pull Requests</strong> <em>(Note: Metadata will automatically be set to Read-only)</em>.</li>
                     </ol>
                   </div>
                 </div>
