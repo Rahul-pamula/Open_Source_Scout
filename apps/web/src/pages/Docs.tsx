@@ -3,11 +3,8 @@ import { useLocation, Link } from 'react-router-dom';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { BookOpen, FileText, FolderOpen, ChevronRight, Menu, X } from 'lucide-react';
 
-// Dynamically load all markdown files from the repository root and docs folder
-const rootDocsRaw = import.meta.glob('../../../../*.md', { query: '?raw', import: 'default', eager: true });
-const nestedDocsRaw = import.meta.glob('../../../../docs/**/*.md', { query: '?raw', import: 'default', eager: true });
-
-const allDocsRaw = { ...rootDocsRaw, ...nestedDocsRaw };
+// Dynamically load all user guide markdown files
+const allDocsRaw = import.meta.glob('../content/user-guide/**/*.md', { query: '?raw', import: 'default', eager: true });
 
 // Helper to clean up file paths into readable titles
 const formatTitle = (path: string) => {
@@ -18,32 +15,21 @@ const formatTitle = (path: string) => {
     .join(' ');
 };
 
-// Organize docs into a nested structure for the sidebar
+// Organize docs into a simple flat structure for the sidebar
 const buildSidebar = () => {
-  const structure: Record<string, any> = { Root: [] };
+  const structure: Record<string, any> = { Guide: [] };
 
-  Object.keys(allDocsRaw).forEach(path => {
+  // Sort paths alphabetically so 01_, 02_, etc. are ordered correctly
+  Object.keys(allDocsRaw).sort().forEach(path => {
     // Determine the logical path name for the URL
-    // e.g. ../../../../README.md -> readme
-    // e.g. ../../../../docs/community_solutions/SOLUTION_ISSUE_55.md -> community_solutions/solution_issue_55
-    const cleanPath = path.replace('../../../../', '').replace('.md', '').toLowerCase();
-    const title = formatTitle(path);
+    // e.g. ../content/user-guide/01_Welcome_to_Scout.md -> 01_welcome_to_scout
+    const cleanPath = path.replace('../content/user-guide/', '').replace('.md', '').toLowerCase();
     
-    const parts = cleanPath.split('/');
-    if (parts.length === 1) {
-      structure.Root.push({ title, path: cleanPath, rawPath: path });
-    } else {
-      if (parts[0] === 'docs') {
-        if (parts.length === 2) {
-            if (!structure.Docs) structure.Docs = [];
-          structure.Docs.push({ title, path: cleanPath, rawPath: path });
-        } else {
-          const subfolder = parts[1];
-          if (!structure[subfolder]) structure[subfolder] = [];
-          structure[subfolder].push({ title, path: cleanPath, rawPath: path });
-        }
-      }
-    }
+    // Remove the leading "01_" from the title for a cleaner display
+    let title = formatTitle(path);
+    title = title.replace(/^[0-9]+ /g, '');
+    
+    structure.Guide.push({ title, path: cleanPath, rawPath: path });
   });
 
   return structure;
@@ -57,13 +43,13 @@ export function Docs() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Extract the current doc path from the URL
-  // e.g. /docs/community_solutions/solution_issue_55
-  const currentPath = location.pathname.replace('/docs', '').replace(/^\//, '') || 'readme';
+  // e.g. /docs/01_welcome_to_scout
+  const currentPath = location.pathname.replace('/docs', '').replace(/^\//, '') || '01_welcome_to_scout';
 
   useEffect(() => {
     // Find the raw markdown content for the current path
     const targetDoc = Object.keys(allDocsRaw).find(
-      key => key.replace('../../../../', '').replace('.md', '').toLowerCase() === currentPath
+      key => key.replace('../content/user-guide/', '').replace('.md', '').toLowerCase() === currentPath
     );
 
     if (targetDoc && allDocsRaw[targetDoc]) {
