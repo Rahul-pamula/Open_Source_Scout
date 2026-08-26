@@ -32,9 +32,10 @@ export function Setup() {
                   <p className="text-xs text-zinc-500 mt-1">Used to evaluate issues. Click "Create API Key" in the Groq console.</p>
                 </div>
                 <div>
-                  <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">GitHub Personal Access Token</a>
+                  <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">GitHub Fine-grained Personal Access Token</a>
                   <div className="text-xs text-zinc-500 mt-1">
                     <ol className="list-decimal pl-4 space-y-1 mt-1">
+                      <li>Ensure you are on the <strong>Fine-grained tokens</strong> tab.</li>
                       <li>Click <strong>Generate new token</strong>.</li>
                       <li>Under <strong>Repository access</strong>, select <strong>All repositories</strong>.</li>
                       <li>Under <strong>Permissions -&gt; Repository permissions</strong>, grant <strong>Read and Write</strong> access to <strong>Issues</strong> and <strong>Pull Requests</strong>.</li>
