@@ -1,7 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Target, Server, Shield, ArrowRight, GitBranch, BookOpen } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Landing() {
+  const { user, loading } = useAuth();
+
+  if (!loading && user) {
+    return <Navigate to="/app" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-transparent flex flex-col items-center font-sans overflow-x-hidden">
       {/* Top Navigation */}
