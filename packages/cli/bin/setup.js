@@ -46,7 +46,7 @@ async function run() {
   const { projectId } = await prompt({
     type: 'input',
     name: 'projectId',
-    message: 'Enter your Supabase Project ID (e.g., sskncjaaiuexwsdkmjpf):',
+    message: 'Enter your Supabase Project ID (e.g., abcdefghijklmnopqrst):',
     required: true
   });
 
