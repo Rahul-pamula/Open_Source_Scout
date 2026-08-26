@@ -27,7 +27,16 @@ npx open-source-scout setup
 
 This automated wizard will securely connect to your new Supabase project, set up the database tables, securely store your API keys, and deploy the AI functions.
 
-## Step 3: Connect the Web App
+## Step 3: Enable GitHub Authentication
+
+For security, Supabase needs to know it's allowed to log you in via the Scout Web App.
+1. In your Supabase Dashboard, go to **Authentication** -> **URL Configuration**.
+2. Under **Redirect URLs**, click "Add URL".
+3. Enter the exact URL where you are accessing Scout (e.g., `https://YourName.github.io/Open_Source_Scout/*` or `http://localhost:5173/*`). *Don't forget the `/*` wildcard!*
+4. Go to **Authentication** -> **Providers**.
+5. Enable **GitHub** (you can leave the default settings or provide your own OAuth app details).
+
+## Step 4: Connect the Web App
 
 Once the setup tool finishes successfully:
 1. Open the Open Source Scout web app.
