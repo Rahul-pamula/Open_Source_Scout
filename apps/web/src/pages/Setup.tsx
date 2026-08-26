@@ -62,17 +62,29 @@ export function Setup() {
         <div className="flex-1 space-y-6 w-full lg:max-w-3xl">
           {/* Step 1 */}
           <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg">
+            <div className="bg-emerald-100 p-3 h-fit rounded-full text-emerald-700">
+              <Database size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-zinc-900">1. Create a Supabase Database</h3>
+              <p className="text-sm text-zinc-600 mt-1 mb-3">Create a free PostgreSQL database to store your tracking boards and profiles.</p>
+              <ol className="list-decimal pl-5 text-sm text-zinc-700 space-y-2">
+                <li>Go to <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">supabase.com</a>, create an account, and start a new project.</li>
+                <li>Go to <strong>Project Settings -&gt; API</strong>. Copy your <code>Project ID</code> (from the URL), <code>Project URL</code>, and <code>anon</code> public key into the Scratchpad.</li>
+                <li>Go to <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Access Tokens</a>. Click <strong>Generate new token</strong>, give it a name, and copy the <strong>Supabase Access Token</strong> into the Scratchpad.</li>
+              </ol>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg">
             <div className="bg-zinc-100 p-3 h-fit rounded-full text-zinc-900">
               <Key size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-900">1. Get your API Keys</h3>
-              <p className="text-sm text-zinc-600 mt-1 mb-3">You will need three keys to deploy the backend and power the AI integrations.</p>
+              <h3 className="text-lg font-bold text-zinc-900">2. Get your AI & GitHub Keys</h3>
+              <p className="text-sm text-zinc-600 mt-1 mb-3">You will need two more keys to power the AI integrations and repository fetching.</p>
               <div className="space-y-4">
-                <div>
-                  <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">Supabase Access Token</a>
-                  <p className="text-xs text-zinc-500 mt-1">Used by the CLI to deploy to your database. Click "Generate new token", give it a name, and copy the token.</p>
-                </div>
                 <div>
                   <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">Groq API Key</a>
                   <p className="text-xs text-zinc-500 mt-1">Used to evaluate issues. Click "Create API Key" in the Groq console.</p>
@@ -93,22 +105,6 @@ export function Setup() {
             </div>
           </div>
 
-          {/* Step 2 */}
-          <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg">
-            <div className="bg-emerald-100 p-3 h-fit rounded-full text-emerald-700">
-              <Database size={24} />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-zinc-900">2. Create a Database</h3>
-              <p className="text-sm text-zinc-600 mt-1 mb-3">Create a free PostgreSQL database on Supabase to store your tracking boards and profiles.</p>
-              <ol className="list-decimal pl-5 text-sm text-zinc-700 space-y-1">
-                <li>Go to <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">supabase.com</a> and create a new project.</li>
-                <li>Go to <strong>Project Settings -&gt; API</strong>.</li>
-                <li>Copy your <code>Project ID</code> (from the URL), <code>Project URL</code>, and <code>anon</code> public key.</li>
-              </ol>
-            </div>
-          </div>
-
           {/* Step 3 */}
           <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white shadow-sm rounded-lg">
             <div className="bg-zinc-800 p-3 h-fit rounded-full text-emerald-400">
@@ -116,7 +112,7 @@ export function Setup() {
             </div>
             <div className="w-full">
               <h3 className="text-lg font-bold">3. Run the CLI Setup</h3>
-              <p className="text-sm text-zinc-400 mt-1 mb-4">Run this command in your terminal. It will prompt you for your keys, securely inject them into your Supabase Vault, and deploy the Edge Functions.</p>
+              <p className="text-sm text-zinc-400 mt-1 mb-4">Run this command in your terminal. It will prompt you for the keys you collected, securely inject them into your Supabase Vault, and deploy the Edge Functions.</p>
               
               <div className="bg-black p-4 rounded text-sm font-mono text-emerald-400 border border-zinc-800 whitespace-pre overflow-x-auto">
                 npx open-source-scout setup
@@ -159,11 +155,11 @@ export function Setup() {
             </div>
             <div className="p-4 bg-zinc-50">
               {renderKeyInput('projectId', 'Supabase Project ID', 'e.g. abcdefghijklmnopqrst')}
+              {renderKeyInput('supabaseUrl', 'Supabase Project URL', 'https://...supabase.co')}
+              {renderKeyInput('anonKey', 'Supabase Anon Key', 'eyJ...')}
               {renderKeyInput('accessToken', 'Supabase Access Token', 'sbp_...')}
               {renderKeyInput('groqKey', 'Groq API Key', 'gsk_...')}
               {renderKeyInput('githubPat', 'GitHub PAT', 'github_pat_...')}
-              {renderKeyInput('supabaseUrl', 'Supabase Project URL', 'https://...supabase.co')}
-              {renderKeyInput('anonKey', 'Supabase Anon Key', 'eyJ...')}
             </div>
           </div>
         </div>
