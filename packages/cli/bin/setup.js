@@ -114,13 +114,17 @@ async function run() {
     // We write to a temporary .env file to push secrets
     const tempEnvPath = path.join(process.cwd(), '.env.temp');
     fs.writeFileSync(tempEnvPath, `GITHUB_TOKEN=${secrets.githubToken}\nGROQ_API_KEY=${secrets.groqApiKey}\n`);
-    
-    await execa('supabase', ['secrets', 'set', '--env-file', '.env.temp'], { 
-      stdio: 'inherit',
-      env: { SUPABASE_ACCESS_TOKEN: accessToken }
-    });
-    fs.unlinkSync(tempEnvPath);
-    console.log(chalk.green('✅ Secrets configured.'));
+    try {
+      await execa('supabase', ['secrets', 'set', '--env-file', '.env.temp'], { 
+        stdio: 'inherit',
+        env: { SUPABASE_ACCESS_TOKEN: accessToken }
+      });
+      console.log(chalk.green('✅ Secrets configured.'));
+    } finally {
+      if (fs.existsSync(tempEnvPath)) {
+        fs.unlinkSync(tempEnvPath);
+      }
+    }
   } catch (e) {
     console.log(chalk.red('\n✖ Failed to set secrets.'));
     process.exit(1);
