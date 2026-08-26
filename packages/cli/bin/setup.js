@@ -86,7 +86,10 @@ async function run() {
     });
     console.log(chalk.green('✅ Database schema deployed.'));
   } catch (e) {
-    console.log(chalk.red('✖ Failed to push database schema.'));
+    console.log(chalk.red('\n✖ Failed to push database schema.'));
+    console.log(chalk.yellow('Your Supabase database might be in a partially deployed state.'));
+    console.log(chalk.cyan('To fix this, go to your Supabase Dashboard -> Project Settings -> Database -> "Reset database", then try again.'));
+    process.exit(1);
   }
 
   // 3. Setup Secrets
@@ -119,7 +122,8 @@ async function run() {
     fs.unlinkSync(tempEnvPath);
     console.log(chalk.green('✅ Secrets configured.'));
   } catch (e) {
-    console.log(chalk.red('✖ Failed to set secrets.'));
+    console.log(chalk.red('\n✖ Failed to set secrets.'));
+    process.exit(1);
   }
 
   // 4. Deploy Edge Functions
@@ -135,7 +139,8 @@ async function run() {
     }
     console.log(chalk.green('✅ Edge Functions deployed.'));
   } catch (e) {
-    console.log(chalk.red('✖ Failed to deploy Edge Functions.'));
+    console.log(chalk.red('\n✖ Failed to deploy Edge Functions.'));
+    process.exit(1);
   }
 
   // 5. Deploy Frontend (Optional / Instructions)
