@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Web Dependencies
+        working-directory: ./apps/web
+        run: npm ci
+        
+      - name: Install CLI Dependencies
+        working-directory: ./packages/cli
+        run: npm ci
+        
+      - name: Run Web Lint
+        working-directory: ./apps/web
+        run: npm run lint
+        
+      - name: Run Web Typecheck & Build
+        working-directory: ./apps/web
+        run: npm run build
+        
+      - name: Run CLI Tests
+        working-directory: ./packages/cli
+        run: node --test test/setup.test.js
+        
+      - name: Run Security Audit
+        run: node scripts/security-audit.js
