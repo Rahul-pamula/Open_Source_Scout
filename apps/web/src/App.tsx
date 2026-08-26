@@ -32,7 +32,10 @@ function App() {
           <Route path="/setup" element={<Setup />} />
           <Route path="/connect" element={<Connect />} />
           
-          <Route path="/docs/*" element={<Docs />} />
+          <Route path="/docs" element={<Docs />}>
+            <Route index element={<Navigate to="01_welcome_to_scout" replace />} />
+            <Route path="*" element={<Docs />} />
+          </Route>
           
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           
