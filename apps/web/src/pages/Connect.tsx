@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Server, Github, Database } from 'lucide-react';
+import { Server, GitBranch, Database } from 'lucide-react';
 import { setSupabaseConfig, hasSupabaseConfig } from '../services/supabase';
 
 export function Connect() {
@@ -8,7 +8,7 @@ export function Connect() {
   
   const [url, setUrl] = useState('');
   const [key, setKey] = useState('');
-  const [isConfigured, setIsConfigured] = useState(hasSupabaseConfig());
+  const isConfigured = hasSupabaseConfig();
 
   const handleConnect = () => {
     if (!url || !key) return alert('Please provide both URL and Key.');
@@ -79,7 +79,7 @@ export function Connect() {
               onClick={signInWithGithub}
               className="w-full flex items-center justify-center bg-[#24292F] text-white font-bold py-3 px-4 rounded hover:bg-[#24292F]/90 transition-colors"
             >
-              <Github className="mr-2 h-5 w-5" />
+              <GitBranch className="mr-2 h-5 w-5" />
               Sign in with GitHub
             </button>
             

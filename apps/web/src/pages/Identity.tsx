@@ -13,7 +13,7 @@ export function Identity() {
 
   useEffect(() => {
     if (user) {
-      supabase.from('users').select('bio, skills').eq('id', user.id).single().then(({ data, error }) => {
+      supabase.from('users').select('bio, skills').eq('id', user.id).single().then(({ data }) => {
         if (data) {
           setBio(data.bio || '');
           setSkillsStr((data.skills || []).join(', '));

@@ -1,10 +1,8 @@
 import { supabase } from '../services/supabase';
-import { useAuth } from '../contexts/AuthContext';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function Uplink() {
-  const { session } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Target, Server, Shield, ArrowRight, Github } from 'lucide-react';
+import { Target, Server, Shield, ArrowRight, GitBranch } from 'lucide-react';
 
 export function Landing() {
   return (
@@ -39,7 +39,7 @@ export function Landing() {
           </p>
         </div>
         <div className="bg-white p-6 border border-zinc-200">
-          <Github className="h-8 w-8 text-blue-600 mb-4" />
+          <GitBranch className="h-8 w-8 text-blue-600 mb-4" />
           <h3 className="text-lg font-bold text-zinc-900 mb-2">The AI Dossier</h3>
           <p className="text-sm text-zinc-600 leading-relaxed">
             For every issue, Scout generates a "Match Score", detects if it is secretly claimed, and estimates true difficulty using Groq LLMs.
