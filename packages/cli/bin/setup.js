@@ -33,19 +33,19 @@ async function run() {
   }
 
   // 1. Get Authentication & Project ID
-  const { accessToken } = await prompt({
+  const accessToken = process.env.SCOUT_ACCESS_TOKEN || (await prompt({
     type: 'password',
     name: 'accessToken',
     message: 'Enter your Supabase Access Token (from https://supabase.com/dashboard/account/tokens):',
     required: true
-  });
+  })).accessToken;
 
-  const { projectId } = await prompt({
+  const projectId = process.env.SCOUT_PROJECT_ID || (await prompt({
     type: 'input',
     name: 'projectId',
     message: 'Enter your Supabase Project ID (e.g., abcdefghijklmnopqrst):',
     required: true
-  });
+  })).projectId;
 
   const tempDir = '.scout-tmp';
   const originalCwd = process.cwd();
@@ -94,20 +94,20 @@ async function run() {
 
   // 3. Setup Secrets
   console.log(chalk.bold('\n🔑 Configure Secrets'));
-  const secrets = await prompt([
-    {
+  const secrets = {
+    githubToken: process.env.SCOUT_GITHUB_TOKEN || (await prompt({
       type: 'input',
       name: 'githubToken',
       message: 'GitHub Fine-grained Personal Access Token (Needs Read/Write for Issues & PRs. Set expiration to 1 year):',
       required: true
-    },
-    {
+    })).githubToken,
+    groqApiKey: process.env.SCOUT_GROQ_KEY || (await prompt({
       type: 'input',
       name: 'groqApiKey',
       message: 'Groq API Key (e.g., gsk_xxxx...):',
       required: true
-    }
-  ]);
+    })).groqApiKey
+  };
 
   console.log(chalk.bold('\n🔐 Setting Secrets in Supabase'));
   try {
