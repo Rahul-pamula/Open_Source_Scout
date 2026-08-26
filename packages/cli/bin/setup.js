@@ -92,16 +92,29 @@ async function run() {
     console.log(chalk.red('\n✖ Failed to push database schema.'));
     
     if (errorOutput.includes('42710') || errorOutput.includes('already exists')) {
-      console.log(chalk.yellow('\n⚠️  Partial Deployment Detected!'));
-      console.log(chalk.gray('It looks like a previous setup attempt crashed midway. Some database objects (like types or tables) were created, but the migration history was not saved.'));
-      console.log(chalk.white('\nTo safely recover:'));
-      console.log(chalk.cyan('1. (Recommended for fresh setups): Go to your Supabase Dashboard -> Project Settings -> Database -> "Reset database".'));
-      console.log(chalk.cyan('2. (For existing databases): Manually remove the conflicting object in the SQL Editor to allow the migration to proceed.'));
+      console.log(chalk.yellow('\n⚠️  Database Schema Already Exists!'));
+      console.log(chalk.gray('It looks like your Supabase database is already configured with the Scout schema.'));
+      
+      const { skipMigration } = await prompt({
+        type: 'confirm',
+        name: 'skipMigration',
+        message: 'Do you want to skip the database migration and proceed with updating Secrets & Edge Functions?',
+        initial: true
+      });
+
+      if (skipMigration) {
+        console.log(chalk.green('✅ Skipping database migration.'));
+      } else {
+        console.log(chalk.white('\nTo safely recover and retry:'));
+        console.log(chalk.cyan('1. Go to your Supabase Dashboard -> Project Settings -> Database -> "Reset database".'));
+        console.log(chalk.cyan('2. Run the setup command again.'));
+        process.exit(1);
+      }
     } else {
       console.log(chalk.yellow('\nYour Supabase database might be in a partially deployed state.'));
       console.log(chalk.cyan('Check the error output above, or reset your database if this is a fresh setup.'));
+      process.exit(1);
     }
-    process.exit(1);
   }
 
   // 3. Setup Secrets
