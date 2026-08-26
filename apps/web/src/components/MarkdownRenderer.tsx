@@ -24,7 +24,7 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return (
-    <div className="prose prose-zinc max-w-none dark:prose-invert prose-headings:font-black prose-headings:tracking-tight prose-a:text-emerald-600 hover:prose-a:text-emerald-500 prose-a:transition-colors prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-zinc-800 prose-pre:shadow-xl prose-img:rounded-xl">
+    <div className="prose prose-zinc prose-p:text-zinc-600 prose-li:text-zinc-600 prose-strong:text-zinc-900 max-w-none prose-headings:font-black prose-headings:text-zinc-900 prose-headings:tracking-tight prose-a:text-emerald-600 hover:prose-a:text-emerald-500 prose-a:transition-colors prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-zinc-800 prose-pre:shadow-xl prose-img:rounded-xl">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
