@@ -21,8 +21,9 @@ export function Setup() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-zinc-900">1. Get your API Keys</h3>
-              <p className="text-sm text-zinc-600 mt-1 mb-3">You will need two keys to power the AI and GitHub integrations.</p>
+              <p className="text-sm text-zinc-600 mt-1 mb-3">You will need three keys to deploy the backend and power the AI integrations.</p>
               <ul className="list-disc pl-5 text-sm text-zinc-700 space-y-1 font-mono">
+                <li><a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Supabase Access Token</a> (For CLI deployment)</li>
                 <li><a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Groq API Key</a> (For LLM evaluation)</li>
                 <li><a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">GitHub Personal Access Token</a> (Fine-grained, Read/Write)</li>
               </ul>

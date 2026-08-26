@@ -30,19 +30,14 @@ async function run() {
     process.exit(1);
   }
 
-  const { isLoggedin } = await prompt({
-    type: 'confirm',
-    name: 'isLoggedin',
-    message: 'Have you logged into the Supabase CLI? (You must run `supabase login` first)',
-    initial: true
+  // 1. Get Authentication & Project ID
+  const { accessToken } = await prompt({
+    type: 'password',
+    name: 'accessToken',
+    message: 'Enter your Supabase Access Token (from https://supabase.com/dashboard/account/tokens):',
+    required: true
   });
 
-  if (!isLoggedin) {
-    console.log(chalk.yellow('\n⚠️  Please run `supabase login` first to authenticate your local computer, then run this setup again.'));
-    process.exit(0);
-  }
-
-  // 1. Get Project ID
   const { projectId } = await prompt({
     type: 'input',
     name: 'projectId',
@@ -52,19 +47,25 @@ async function run() {
 
   console.log(chalk.bold('\n🔗 Linking Supabase Project'));
   try {
-    await execa('supabase', ['link', '--project-ref', projectId], { stdio: 'inherit' });
+    await execa('supabase', ['link', '--project-ref', projectId], { 
+      stdio: 'inherit',
+      env: { SUPABASE_ACCESS_TOKEN: accessToken }
+    });
     console.log(chalk.green('✅ Linked Supabase project.'));
   } catch (e) {
     console.log(chalk.red('\n✖ Failed to link Supabase project.'));
-    console.log(chalk.yellow('This almost always happens because your CLI is not authenticated with your Supabase account.'));
-    console.log(chalk.cyan('Please run `supabase login` to grant your terminal the correct privileges, and ensure the Project ID is correct.'));
+    console.log(chalk.yellow('This usually happens because your Access Token is invalid or you do not own the Project ID.'));
+    console.log(chalk.cyan('Please check your token and Project ID and try again.'));
     process.exit(1);
   }
 
   // 2. Setup Database
   console.log(chalk.bold('\n📦 Pushing Database Schema'));
   try {
-    await execa('supabase', ['db', 'push'], { stdio: 'inherit' });
+    await execa('supabase', ['db', 'push'], { 
+      stdio: 'inherit',
+      env: { SUPABASE_ACCESS_TOKEN: accessToken }
+    });
     console.log(chalk.green('✅ Database schema deployed.'));
   } catch (e) {
     console.log(chalk.red('✖ Failed to push database schema.'));
@@ -93,7 +94,10 @@ async function run() {
     const tempEnvPath = path.join(process.cwd(), '.env.temp');
     fs.writeFileSync(tempEnvPath, `GITHUB_TOKEN=${secrets.githubToken}\nGROQ_API_KEY=${secrets.groqApiKey}\n`);
     
-    await execa('supabase', ['secrets', 'set', '--env-file', '.env.temp'], { stdio: 'inherit' });
+    await execa('supabase', ['secrets', 'set', '--env-file', '.env.temp'], { 
+      stdio: 'inherit',
+      env: { SUPABASE_ACCESS_TOKEN: accessToken }
+    });
     fs.unlinkSync(tempEnvPath);
     console.log(chalk.green('✅ Secrets configured.'));
   } catch (e) {
@@ -106,7 +110,10 @@ async function run() {
     const functions = ['search', 'evaluate', 'engage', 'worker', 'sync', 'dossier', 'tracking'];
     for (const fn of functions) {
       console.log(chalk.gray(`Deploying ${fn}...`));
-      await execa('supabase', ['functions', 'deploy', fn], { stdio: 'inherit' });
+      await execa('supabase', ['functions', 'deploy', fn], { 
+        stdio: 'inherit',
+        env: { SUPABASE_ACCESS_TOKEN: accessToken }
+      });
     }
     console.log(chalk.green('✅ Edge Functions deployed.'));
   } catch (e) {
