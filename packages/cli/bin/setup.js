@@ -30,11 +30,23 @@ async function run() {
     process.exit(1);
   }
 
+  const { isLoggedin } = await prompt({
+    type: 'confirm',
+    name: 'isLoggedin',
+    message: 'Have you logged into the Supabase CLI? (You must run `supabase login` first)',
+    initial: true
+  });
+
+  if (!isLoggedin) {
+    console.log(chalk.yellow('\n⚠️  Please run `supabase login` first to authenticate your local computer, then run this setup again.'));
+    process.exit(0);
+  }
+
   // 1. Get Project ID
   const { projectId } = await prompt({
     type: 'input',
     name: 'projectId',
-    message: 'Enter your Supabase Project ID (from your dashboard URL):',
+    message: 'Enter your Supabase Project ID (e.g., sskncjaaiuexwsdkmjpf):',
     required: true
   });
 
@@ -43,7 +55,9 @@ async function run() {
     await execa('supabase', ['link', '--project-ref', projectId], { stdio: 'inherit' });
     console.log(chalk.green('✅ Linked Supabase project.'));
   } catch (e) {
-    console.log(chalk.red('✖ Failed to link Supabase project. Ensure you are logged in (supabase login) and you own the project ID provided.'));
+    console.log(chalk.red('\n✖ Failed to link Supabase project.'));
+    console.log(chalk.yellow('This almost always happens because your CLI is not authenticated with your Supabase account.'));
+    console.log(chalk.cyan('Please run `supabase login` to grant your terminal the correct privileges, and ensure the Project ID is correct.'));
     process.exit(1);
   }
 
@@ -62,13 +76,13 @@ async function run() {
     {
       type: 'input',
       name: 'githubToken',
-      message: 'GitHub Personal Access Token (classic, with repo access):',
+      message: 'GitHub Personal Access Token (e.g., ghp_xxxx...):',
       required: true
     },
     {
       type: 'input',
       name: 'groqApiKey',
-      message: 'Groq API Key:',
+      message: 'Groq API Key (e.g., gsk_xxxx...):',
       required: true
     }
   ]);
