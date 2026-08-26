@@ -22,11 +22,26 @@ export function Setup() {
             <div>
               <h3 className="text-lg font-bold text-zinc-900">1. Get your API Keys</h3>
               <p className="text-sm text-zinc-600 mt-1 mb-3">You will need three keys to deploy the backend and power the AI integrations.</p>
-              <ul className="list-disc pl-5 text-sm text-zinc-700 space-y-1 font-mono">
-                <li><a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Supabase Access Token</a> (For CLI deployment)</li>
-                <li><a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Groq API Key</a> (For LLM evaluation)</li>
-                <li><a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">GitHub Personal Access Token</a> (Fine-grained, Read/Write)</li>
-              </ul>
+              <div className="space-y-4">
+                <div>
+                  <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">Supabase Access Token</a>
+                  <p className="text-xs text-zinc-500 mt-1">Used by the CLI to deploy to your database. Click "Generate new token", give it a name, and copy the token.</p>
+                </div>
+                <div>
+                  <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">Groq API Key</a>
+                  <p className="text-xs text-zinc-500 mt-1">Used to evaluate issues. Click "Create API Key" in the Groq console.</p>
+                </div>
+                <div>
+                  <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-bold text-sm">GitHub Personal Access Token</a>
+                  <div className="text-xs text-zinc-500 mt-1">
+                    <ol className="list-decimal pl-4 space-y-1 mt-1">
+                      <li>Click <strong>Generate new token</strong>.</li>
+                      <li>Under <strong>Repository access</strong>, select <strong>All repositories</strong>.</li>
+                      <li>Under <strong>Permissions -&gt; Repository permissions</strong>, grant <strong>Read and Write</strong> access to <strong>Issues</strong> and <strong>Pull Requests</strong>.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
