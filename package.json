@@ -1,0 +1,23 @@
+{
+  "workspaces": [
+    "apps/*",
+    "supabase/functions/*"
+  ],
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6"
+  },
+  "scripts": {
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "apps/web/src/**/*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "npm run lint --workspace=apps/web"
+    ],
+    "**/*.{json,md,css}": [
+      "prettier --write"
+    ]
+  }
+}
