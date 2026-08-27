@@ -1,4 +1,6 @@
+// @ts-ignore
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { syncService } from '../_shared/sync.ts'
 import { getSecret } from '../_shared/secrets.ts'
@@ -6,7 +8,7 @@ import { getSecret } from '../_shared/secrets.ts'
 const SUPABASE_URL = getSecret('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = getSecret('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Only allow POST
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 })
@@ -35,7 +37,7 @@ serve(async (req) => {
     }
 
     // Get unique user IDs
-    const uniqueUserIds = [...new Set(activeIssues.map(issue => issue.user_id))];
+    const uniqueUserIds = [...new Set(activeIssues.map((issue: any) => issue.user_id))];
 
     // 2. Fetch profiles for these users to get their github_handles
     const { data: profiles, error: profileError } = await supabase
