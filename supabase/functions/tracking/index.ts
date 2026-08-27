@@ -52,6 +52,23 @@ serve(async (req) => {
       )
     }
 
+    if (action === 'update_checklist') {
+      const { id, checklist } = body
+      if (!id || !checklist) throw new Error('Missing tracking ID or checklist')
+      
+      const { error } = await trackingService.supabase
+        .from('tracked_issues')
+        .update({ contribution_checklist: checklist })
+        .eq('id', id)
+      
+      if (error) throw error
+
+      return new Response(
+        JSON.stringify({ message: 'Checklist updated successfully' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -149,6 +149,57 @@ INSTRUCTIONS:
       throw new Error(`Groq Draft Generation Failed: ${err.message}`);
     }
   }
+
+  /**
+   * Analyze maintainer reply to determine if they approved working on the issue.
+   */
+  async analyzeMaintainerReply(commentBody: string): Promise<{ isApproval: boolean; reasoning: string }> {
+    const groq = this.client;
+    if (!groq) {
+      throw new Error('Groq client is not initialized (missing API key).');
+    }
+
+    const prompt = `
+You are an expert open-source maintainer assistant.
+Your goal is to read a comment from a repository maintainer and determine if they are giving the contributor permission/approval to work on the issue.
+
+MAINTAINER COMMENT:
+"""
+${commentBody.substring(0, 1000)}
+"""
+
+Look for phrases like "go ahead", "feel free to open a PR", "assigned to you", or "sure, take it".
+If they say no, ask for clarification, say it's already taken, or say they need to think about it, then it is NOT an approval.
+
+Output ONLY valid JSON in the following strict format:
+{
+  "isApproval": boolean,
+  "reasoning": "<1 sentence explanation of why>"
+}
+`;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama3-8b-8192',
+      response_format: { type: 'json_object' },
+      temperature: 0.1, 
+    });
+
+    const responseContent = chatCompletion.choices[0]?.message?.content;
+    if (!responseContent) {
+      throw new Error('No response from Groq API');
+    }
+
+    try {
+      const result = JSON.parse(responseContent);
+      return {
+        isApproval: !!result.isApproval,
+        reasoning: result.reasoning || ''
+      };
+    } catch (err: any) {
+      throw new Error(\`Groq Reply Analysis Failed: \${err.message}\`);
+    }
+  }
 }
 
 export const groqEvaluator = new GroqEvaluator();
