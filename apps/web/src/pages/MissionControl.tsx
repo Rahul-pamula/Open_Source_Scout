@@ -536,7 +536,7 @@ export function MissionControl() {
 
                     {/* Expanded State Progression Panel */}
                     {isExpanded && (
-                      <div className="border-t border-zinc-100 bg-zinc-50/80 p-4 flex flex-col gap-4 inset-shadow-sm">
+                      <div className="border-t border-zinc-100 bg-zinc-50/80 p-4 flex flex-col gap-4 inset-shadow-sm animate-in slide-in-from-top-2 fade-in duration-200">
                         
                         {/* Visual State Flow */}
                         <div className="flex items-center justify-between px-2">
