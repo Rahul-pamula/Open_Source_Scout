@@ -32,6 +32,9 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
   const [draftState, setDraftState] = useState<DraftState>('IDLE');
   const [draftText, setDraftText] = useState('');
   const [draftError, setDraftError] = useState<string | null>(null);
+
+  // Sync State
+  const [trackedIssue, setTrackedIssue] = useState<any | null>(null);
   
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -61,11 +64,19 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
           body: { action: 'get_issue', owner, repo, number }
         });
         
-        if (issueError) throw new Error('Failed to fetch from GitHub: ' + issueError.message);
-        if (!issueResData?.data) throw new Error('Issue not found on GitHub.');
+        if (issueError) throw new Error('Failed to fetch issue from GitHub');
         
         const fetchedIssue = issueResData.data;
         if (mounted) setIssue(fetchedIssue);
+
+        // Fetch Tracked Issue from database
+        const { data: trackingData } = await supabase.functions.invoke('tracking', { body: { action: 'list' } });
+        if (mounted && trackingData?.data) {
+          const matched = trackingData.data.find((i: any) => i.github_issue_url.endsWith(`${owner}/${repo}/issues/${number}`));
+          if (matched) {
+            setTrackedIssue(matched);
+          }
+        }
 
         // Fetch Comments for AI Drafting context
         const { data: commentsResData } = await supabase.functions.invoke('dossier', {
@@ -403,6 +414,36 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                   </a>
                 </div>
               </section>
+
+              {/* GITHUB ACTIVITY */}
+              {trackedIssue && (trackedIssue.github_assignee_login || (trackedIssue.github_activity && trackedIssue.github_activity.length > 0)) && (
+                <section aria-labelledby="activity-heading" className="pt-6 border-t border-zinc-200">
+                  <h3 id="activity-heading" className="text-xs font-bold tracking-widest uppercase text-zinc-400 mb-4">
+                    GITHUB ACTIVITY
+                  </h3>
+                  <div className="flex flex-col gap-3 font-mono text-xs">
+                    {trackedIssue.github_assignee_login && (
+                      <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-100 p-2">
+                        <span>👤</span> 
+                        <span>
+                          {trackedIssue.github_assignee_login.toLowerCase() === user?.user_metadata?.github_handle?.toLowerCase() 
+                            ? 'Assigned to you' 
+                            : `Assigned to @${trackedIssue.github_assignee_login}`}
+                        </span>
+                      </div>
+                    )}
+                    {trackedIssue.github_activity && trackedIssue.github_activity.map((activity: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2 text-zinc-700 bg-zinc-50 border border-zinc-100 p-2">
+                        <span className="mt-0.5">💬</span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-zinc-900">@{activity.author} commented</span>
+                          <span className="text-zinc-500 line-clamp-2 mt-1">{activity.body}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* HOW DO YOU WANT TO ENGAGE? */}
               <section aria-labelledby="engage-heading" className="pt-6 border-t border-zinc-200">
