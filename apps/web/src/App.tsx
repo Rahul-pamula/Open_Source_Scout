@@ -3,10 +3,7 @@ import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
 import { Setup } from './pages/Setup';
 import { Connect } from './pages/Connect';
-import { Radar } from './pages/Radar';
-import { Dossier } from './pages/Dossier';
 import { MissionControl } from './pages/MissionControl';
-import { Operations } from './pages/Operations';
 import { Identity } from './pages/Identity';
 import { Uplink } from './pages/Uplink';
 import { Onboarding } from './pages/Onboarding';
@@ -41,10 +38,7 @@ function App() {
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           
           <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route index element={<Radar />} />
-            <Route path="mission-control" element={<MissionControl />} />
-            <Route path="dossier/:owner/:repo/:number" element={<Dossier />} />
-            <Route path="operations" element={<Operations />} />
+            <Route index element={<MissionControl />} />
             <Route path="identity" element={<Identity />} />
             <Route path="uplink" element={<Uplink />} />
           </Route>
