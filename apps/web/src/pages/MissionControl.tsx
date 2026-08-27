@@ -57,13 +57,18 @@ export function MissionControl() {
   const hasAutoScanned = useRef(false);
   useEffect(() => {
     if (userProfile && scoutedIssues.length === 0 && !isDiscovering && !hasAutoScanned.current) {
-      hasAutoScanned.current = true;
-      handleDiscover();
+      const now = Date.now();
+      const fifteenMinutes = 15 * 60 * 1000;
+      if (!lastScanTime || (now - lastScanTime) > fifteenMinutes) {
+        hasAutoScanned.current = true;
+        handleDiscover();
+      }
     }
-  }, [userProfile, scoutedIssues.length]);
+  }, [userProfile, scoutedIssues.length, lastScanTime, isDiscovering]);
 
-  // --- Discovery Logic (From Radar) ---
+  // --- Discovery Logic (Stage 3 Batching) ---
   const handleDiscover = async () => {
+    if (isDiscovering) return;
     try {
       setIsDiscovering(true);
       setDiscoveryError(null);
@@ -77,7 +82,7 @@ export function MissionControl() {
       
       // Step 1: Fetch and Filter
       const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
-        body: { query: dynamicSearchQuery, limit: 10 } // Fetch slightly more to filter out tracked
+        body: { query: dynamicSearchQuery, limit: 10 } 
       });
       
       if (searchError) throw new Error('Failed to fetch from GitHub: ' + searchError.message);
@@ -87,56 +92,74 @@ export function MissionControl() {
       if (rawEligibleIssues.length === 0) {
         setDiscoveryStatus(null);
         setDiscoveryError('Scout couldn\'t find a strong match yet. Try updating your Agent Directives.');
-        setIsDiscovering(false);
         setLastScanTime(Date.now());
+        setIsDiscovering(false);
         return;
       }
 
       setDiscoveryStatus('Filtering candidates...');
       
-      // Filter out issues that are already tracked in the active pipeline
       const currentTrackedUrls = new Set(trackedIssues.map(t => t.github_issue_url));
       const newEligibleIssues = rawEligibleIssues.filter(issue => !currentTrackedUrls.has(issue.url));
 
-      // Limit to 5 for AI evaluation (Cost Control)
+      // Limit to 5 for AI evaluation (Frontend guard, backed by hard backend guard)
       const issuesToEvaluate = newEligibleIssues.slice(0, 5);
 
       if (issuesToEvaluate.length === 0) {
          setDiscoveryStatus(null);
          setDiscoveryError('Found issues, but they are already in your Active Pipeline.');
-         setIsDiscovering(false);
          setLastScanTime(Date.now());
+         setIsDiscovering(false);
          return;
       }
 
-      setDiscoveryStatus('Analyzing promising issues...');
+      setDiscoveryStatus(`Analyzing ${issuesToEvaluate.length} promising issues...`);
 
-      // Step 2: Evaluate limited candidates
+      // Step 2: Batch Evaluate (Single API Request)
+      const { data: evalRes, error: evalReqError } = await supabase.functions.invoke('evaluate', {
+        body: { issues: issuesToEvaluate, profile: profileStr }
+      });
+
+      if (evalReqError) {
+        throw new Error('Batch evaluation failed: ' + evalReqError.message);
+      }
+
+      const evalResults = evalRes?.data || [];
       const newlyScouted: ScoutedIssue[] = [];
+      let failureCount = 0;
+
+      // Merge results
       for (const issue of issuesToEvaluate) {
-        try {
-          const { data: evalData, error: evalError } = await supabase.functions.invoke('evaluate', {
-            body: { issue, profile: profileStr }
-          });
-          
-          if (!evalError && evalData?.data) {
-            newlyScouted.push({ ...issue, evaluation: evalData.data });
-          } else {
-             newlyScouted.push(issue); // Push without eval if it fails
-          }
-        } catch (e) {
-          newlyScouted.push(issue);
+        const issueId = issue.id || issue.url;
+        const result = evalResults.find((r: any) => r.issueId === issueId);
+        
+        if (result && result.success && result.data) {
+          newlyScouted.push({ ...issue, evaluation: result.data });
+        } else {
+          // If evaluation failed for this specific issue, we still keep it but track the failure
+          failureCount++;
+          newlyScouted.push({ ...issue }); 
+          console.warn(`Evaluation failed for issue ${issueId}:`, result?.error);
         }
       }
 
       // Sort by match score descending
       newlyScouted.sort((a, b) => (b.evaluation?.matchScore || 0) - (a.evaluation?.matchScore || 0));
 
-      setScoutedIssues(newlyScouted);
+      setScoutedIssues(newlyScouted); // Updates UI without clearing existing if it failed before this step
+      
+      if (failureCount > 0 && failureCount < issuesToEvaluate.length) {
+        setDiscoveryError(`Scout successfully analyzed ${issuesToEvaluate.length - failureCount} issues, but ${failureCount} failed to analyze.`);
+      } else if (failureCount === issuesToEvaluate.length) {
+        setDiscoveryError('Scout found issues, but AI analysis failed for all of them.');
+      } else {
+        setDiscoveryError(null);
+      }
+
       setDiscoveryStatus(null);
       setLastScanTime(Date.now());
     } catch (err: any) {
-      setDiscoveryError(err.message || 'Scout couldn\'t analyze these issues right now.');
+      setDiscoveryError(err.message || 'Scout encountered an error during discovery.');
       setDiscoveryStatus(null);
     } finally {
       setIsDiscovering(false);
