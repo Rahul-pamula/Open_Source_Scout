@@ -1,7 +1,8 @@
 {
   "workspaces": [
     "apps/*",
-    "supabase/functions/*"
+    "supabase/functions/*",
+    "packages/*"
   ],
   "devDependencies": {
     "husky": "^9.1.7",
