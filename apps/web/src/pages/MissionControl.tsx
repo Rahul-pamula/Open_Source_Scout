@@ -4,6 +4,8 @@ import { supabase } from '../services/supabase';
 import { IssueCard } from '../components/IssueCard';
 import type { ScoutedIssue, NormalizedIssue, TrackedIssue, IssueState } from '../types';
 import { Loader2, Activity, ExternalLink, ChevronRight, ChevronDown, XCircle, Search } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { DossierPanel } from '../components/DossierPanel';
 
 const STATE_FLOW: IssueState[] = ['DISCOVERED', 'EVALUATED', 'DRAFTED', 'ENGAGED', 'ASSIGNED', 'COMPLETED'];
 
@@ -240,6 +242,38 @@ export function MissionControl() {
     return transitions[currentState] || [];
   };
 
+  // --- URL State (Dossier Side Panel) ---
+  const [searchParams, setSearchParams] = useSearchParams();
+  const issueParam = searchParams.get('issue'); // expected format: owner/repo/number
+  
+  let dossierProps: { owner: string; repo: string; number: string } | null = null;
+  if (issueParam) {
+    const parts = issueParam.split('/');
+    if (parts.length === 3) {
+      dossierProps = { owner: parts[0], repo: parts[1], number: parts[2] };
+    }
+  }
+
+  const closeDossier = () => {
+    setSearchParams({}, { replace: true });
+  };
+
+  const openDossier = (githubUrl: string) => {
+    // Extract owner/repo/number from https://github.com/owner/repo/issues/number
+    try {
+      const url = new URL(githubUrl);
+      const parts = url.pathname.split('/').filter(Boolean);
+      if (parts.length >= 4 && parts[2] === 'issues') {
+        const [owner, repo, , number] = parts;
+        setSearchParams({ issue: `${owner}/${repo}/${number}` });
+      } else {
+        console.error('Invalid GitHub issue URL format:', githubUrl);
+      }
+    } catch (e) {
+      console.error('Failed to parse GitHub URL:', githubUrl);
+    }
+  };
+
   // --- Render ---
   if (!session) {
     return (
@@ -328,6 +362,7 @@ export function MissionControl() {
                   key={issue.id} 
                   issue={issue} 
                   onSave={handleSaveToPipeline} 
+                  onOpenDossier={openDossier}
                 />
               ))}
             </div>
@@ -405,6 +440,13 @@ export function MissionControl() {
 
                       {/* Actions */}
                       <div className="col-span-3 flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => openDossier(issue.github_issue_url)}
+                          className="text-zinc-400 hover:text-zinc-900 transition-colors"
+                          title="Open Dossier"
+                        >
+                          <Search size={14} />
+                        </button>
                         <a 
                           href={issue.github_issue_url}
                           target="_blank"
@@ -507,6 +549,16 @@ export function MissionControl() {
           )}
         </div>
       </div>
+      
+      {/* Dossier Side Panel Overlay */}
+      {dossierProps && (
+        <DossierPanel 
+          owner={dossierProps.owner} 
+          repo={dossierProps.repo} 
+          number={dossierProps.number} 
+          onClose={closeDossier} 
+        />
+      )}
     </div>
   );
 }
