@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
+import { X, Loader2, ExternalLink, Copy, Check, ShieldAlert, CheckCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { NormalizedIssue, EvaluationResult } from '../types';
@@ -12,7 +12,7 @@ interface DossierPanelProps {
 }
 
 type EngagementIntent = 'REQUEST_ASSIGNMENT' | 'PROPOSE_SOLUTION' | 'ASK_CLARIFICATION' | 'EXPRESS_INTEREST';
-type DraftState = 'IDLE' | 'GENERATING' | 'READY' | 'EDITING' | 'REGENERATING' | 'ERROR';
+type DraftState = 'IDLE' | 'GENERATING' | 'READY' | 'EDITING' | 'REGENERATING' | 'ERROR' | 'REVIEWING_POST' | 'POSTING' | 'POSTED' | 'POST_ERROR';
 
 export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps) {
   const { user } = useAuth();
@@ -160,6 +160,65 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
     } catch (err: any) {
       setDraftError(err.message || 'We couldn\'t reach Scout. Please try again.');
       setDraftState('ERROR');
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!draftText.trim()) {
+      setDraftError('Comment cannot be empty.');
+      setDraftState('POST_ERROR');
+      return;
+    }
+
+    setDraftState('POSTING');
+    setDraftError(null);
+
+    try {
+      const { error: postError } = await supabase.functions.invoke('engage', {
+        body: {
+          owner,
+          repo,
+          number,
+          draft: draftText,
+          intent: selectedIntent
+        }
+      });
+
+      if (postError) {
+        throw new Error(postError.message || 'Failed to post comment.');
+      }
+
+      // If we reach here, GitHub post was successful!
+      // Attempt tracking update
+      let trackingSucceeded = false;
+      try {
+        const { data: trackingData } = await supabase.functions.invoke('tracking', { body: { action: 'list' } });
+        if (trackingData?.data) {
+          const tracked = trackingData.data.find((i: any) => i.github_issue_url === issue?.url);
+          if (tracked) {
+             const { error: trackErr } = await supabase.functions.invoke('tracking', { 
+               body: { action: 'update_state', id: tracked.id, state: 'ENGAGED' } 
+             });
+             if (!trackErr) trackingSucceeded = true;
+          }
+        }
+      } catch (trackError) {
+        console.error('Tracking update failed:', trackError);
+      }
+
+      if (!trackingSucceeded) {
+        setDraftError('Comment posted successfully, but Scout couldn\'t update your tracking status.');
+      }
+
+      setDraftState('POSTED');
+      
+    } catch (err: any) {
+      if (err.message.includes('timeout') || err.message.includes('fetch failed')) {
+        setDraftError('The request timed out. The comment may already have been posted. Check GitHub before retrying.');
+      } else {
+        setDraftError(err.message || 'Failed to post comment.');
+      }
+      setDraftState('POST_ERROR');
     }
   };
 
@@ -406,7 +465,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                         <span className="font-mono text-sm">🦅 Scout is drafting...</span>
                         <span className="font-mono text-xs text-zinc-400 mt-2">Preparing your {selectedIntent?.replace('_', ' ').toLowerCase()} comment</span>
                       </div>
-                    ) : (
+                    ) : draftState === 'READY' || draftState === 'EDITING' ? (
                       <>
                         {draftError && (
                           <div className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-xs">
@@ -441,7 +500,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                               Regenerate
                             </button>
                             <button 
-                              onClick={() => alert('Stage 6/7: GitHub posting has not been implemented yet.')}
+                              onClick={() => setDraftState('REVIEWING_POST')}
                               className="bg-zinc-900 text-white font-bold py-2 px-4 shadow-[2px_2px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-xs tracking-widest uppercase"
                             >
                               Continue to Post →
@@ -449,7 +508,84 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                           </div>
                         </div>
                       </>
-                    )}
+                    ) : draftState === 'REVIEWING_POST' ? (
+                      <div className="bg-emerald-50 border border-emerald-200 p-6 flex flex-col gap-4">
+                        <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
+                          <ShieldAlert size={18} />
+                          Review Comment
+                        </div>
+                        <p className="font-mono text-xs text-emerald-700">
+                          This will post publicly to @{owner}/{repo} #{number}
+                        </p>
+                        
+                        <div className="bg-white border border-emerald-100 p-4 font-mono text-sm whitespace-pre-wrap text-zinc-700">
+                          {draftText}
+                        </div>
+
+                        <div className="flex gap-3 mt-2">
+                          <button 
+                            onClick={() => setDraftState('READY')}
+                            className="flex-1 bg-white text-zinc-700 font-bold py-2 border border-zinc-300 hover:bg-zinc-50 text-xs tracking-widest uppercase"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={handlePostComment}
+                            className="flex-1 bg-emerald-600 text-white font-bold py-2 border border-emerald-700 shadow-[2px_2px_0px_#065f46] hover:-translate-y-px hover:shadow-[3px_3px_0px_#065f46] active:translate-x-px active:translate-y-px active:shadow-none transition-all text-xs tracking-widest uppercase"
+                          >
+                            Post Comment
+                          </button>
+                        </div>
+                      </div>
+                    ) : draftState === 'POSTING' ? (
+                      <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center">
+                        <Loader2 size={24} className="animate-spin text-zinc-400 mb-4" />
+                        <p className="font-mono text-xs text-zinc-500 uppercase tracking-widest">Posting to GitHub...</p>
+                      </div>
+                    ) : draftState === 'POST_ERROR' ? (
+                      <div className="bg-red-50 border border-red-200 p-6 text-center flex flex-col items-center gap-4">
+                        <div className="font-mono text-sm text-red-600">{draftError}</div>
+                        <div className="flex gap-3 w-full">
+                          <button 
+                            onClick={() => setDraftState('READY')}
+                            className="flex-1 bg-white text-zinc-700 font-bold py-2 border border-zinc-300 hover:bg-zinc-50 text-xs tracking-widest uppercase"
+                          >
+                            Edit Draft
+                          </button>
+                          <button 
+                            onClick={handlePostComment}
+                            className="flex-1 bg-red-600 text-white font-bold py-2 border border-red-700 shadow-[2px_2px_0px_#7f1d1d] hover:-translate-y-px hover:shadow-[3px_3px_0px_#7f1d1d] active:translate-x-px active:translate-y-px active:shadow-none transition-all text-xs tracking-widest uppercase"
+                          >
+                            Try Again
+                          </button>
+                        </div>
+                      </div>
+                    ) : draftState === 'POSTED' ? (
+                      <div className="bg-emerald-50 border border-emerald-200 p-8 text-center flex flex-col items-center">
+                        <CheckCircle size={32} className="text-emerald-500 mb-4" />
+                        <h4 className="font-bold text-emerald-900 text-lg mb-2">Comment Posted</h4>
+                        <p className="font-mono text-xs text-emerald-700 mb-6">
+                          Your comment was posted to <br/> {owner}/{repo}#{number}
+                        </p>
+                        
+                        {draftError && (
+                          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 font-mono text-[10px] mb-4 w-full">
+                            {draftError}
+                          </div>
+                        )}
+
+                        <div className="flex gap-3 w-full">
+                          <a 
+                            href={issue?.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 flex justify-center items-center bg-zinc-900 text-white font-bold py-3 px-4 shadow-[2px_2px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-xs tracking-widest uppercase"
+                          >
+                            View on GitHub <ExternalLink size={14} className="ml-2" />
+                          </a>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </section>
