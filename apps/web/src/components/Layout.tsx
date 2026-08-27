@@ -11,6 +11,10 @@ export function Layout() {
         <div className="font-bold text-lg mb-8 tracking-tight">Open Source Scout</div>
         
         <div className="flex flex-col space-y-2 flex-1">
+          <Link to="/app/mission-control" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md text-emerald-600 font-medium">
+            <Target size={20} />
+            <span>Mission Control</span>
+          </Link>
           <Link to="/app" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
             <Target size={20} />
             <span>Radar</span>
