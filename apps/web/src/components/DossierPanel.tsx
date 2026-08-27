@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Loader2, ExternalLink, Copy, Check, ShieldAlert, CheckCircle } from 'lucide-react';
+import { X, Loader2, ExternalLink, Copy, Check, ShieldAlert, CheckCircle, Terminal } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { NormalizedIssue, EvaluationResult } from '../types';
@@ -445,7 +445,58 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                 </section>
               )}
 
+              {/* CONTRIBUTION CHECKLIST */}
+              {trackedIssue && (trackedIssue.state === 'ASSIGNED' || trackedIssue.state === 'ENGAGED') && (
+                <section aria-labelledby="checklist-heading" className="pt-6 border-t border-zinc-200">
+                  <h3 id="checklist-heading" className="text-xs font-bold tracking-widest uppercase text-emerald-600 mb-4 flex items-center gap-2">
+                    <Terminal size={14} /> CONTRIBUTION CHECKLIST
+                  </h3>
+                  <div className="flex flex-col gap-2 font-mono text-xs">
+                    {['work_done', 'pr_sent', 'merged', 'issue_closed'].map((key) => {
+                      const isChecked = trackedIssue.contribution_checklist?.[key];
+                      const labels: any = {
+                        work_done: 'Work Done',
+                        pr_sent: 'PR Sent',
+                        merged: 'Merged',
+                        issue_closed: 'Issue Closed'
+                      };
+                      return (
+                        <label key={key} className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 cursor-pointer hover:bg-emerald-50 hover:border-emerald-200 transition-colors">
+                          <input 
+                            type="checkbox" 
+                            checked={!!isChecked}
+                            onChange={async (e) => {
+                               const updated = { ...trackedIssue.contribution_checklist, [key]: e.target.checked };
+                               setTrackedIssue({ ...trackedIssue, contribution_checklist: updated });
+                               try {
+                                  const { error } = await supabase.functions.invoke('tracking', {
+                                      body: { action: 'update_checklist', id: trackedIssue.id, checklist: updated }
+                                  });
+                                  if (error) throw error;
+                                  if (key === 'merged' && e.target.checked) {
+                                      await supabase.functions.invoke('tracking', {
+                                          body: { action: 'update_state', id: trackedIssue.id, state: 'COMPLETED' }
+                                      });
+                                      setTrackedIssue({ ...trackedIssue, state: 'COMPLETED', contribution_checklist: updated });
+                                  }
+                               } catch (err: any) {
+                                  console.error('Failed to update checklist:', err);
+                               }
+                            }}
+                            className="w-4 h-4 text-emerald-600 border-zinc-300 rounded focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <span className={`${isChecked ? 'line-through text-zinc-400' : 'text-zinc-700 font-bold'}`}>
+                            {labels[key]}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
               {/* HOW DO YOU WANT TO ENGAGE? */}
+              {(!trackedIssue || (trackedIssue.state !== 'ASSIGNED' && trackedIssue.state !== 'COMPLETED')) && (
               <section aria-labelledby="engage-heading" className="pt-6 border-t border-zinc-200">
                 <h3 id="engage-heading" className="text-xs font-bold tracking-widest uppercase text-zinc-400 mb-6">
                   HOW DO YOU WANT TO ENGAGE?
@@ -630,6 +681,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                   </div>
                 )}
               </section>
+              )}
 
             </div>
           ) : null}

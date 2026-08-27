@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import { IssueCard } from '../components/IssueCard';
 import type { ScoutedIssue, NormalizedIssue, TrackedIssue, IssueState } from '../types';
-import { Loader2, Activity, ExternalLink, ChevronRight, ChevronDown, XCircle, Search } from 'lucide-react';
+import { Loader2, Activity, ExternalLink, ChevronRight, ChevronDown, XCircle, Search, Terminal } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
 
@@ -485,6 +485,12 @@ export function MissionControl() {
                             </>
                           )}
                         </div>
+                        {issue.contribution_checklist && (
+                          <div className="flex items-center gap-1 mt-1 text-[9px] font-mono font-bold uppercase text-emerald-600">
+                            <Terminal size={10} />
+                            {Object.values(issue.contribution_checklist).filter(Boolean).length}/4 Checklist
+                          </div>
+                        )}
                       </div>
 
                       {/* State Badge */}

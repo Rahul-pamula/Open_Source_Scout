@@ -1,6 +1,7 @@
 import { getSecret } from './secrets.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import type { TrackedIssue, GitHubSnapshot, ReconciliationEventType, IssueState } from './types.ts';
+import { groqEvaluator } from './groq.ts';
 
 const SUPABASE_URL = getSecret('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = getSecret('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -38,21 +39,36 @@ export class ReconciliationService {
 
     // 2. Maintainer Response Detection
     // Check if there's a new comment from someone other than the user
-    // In a real app we'd verify author association (OWNER, COLLABORATOR), 
-    // but here we just check if it's not the user and they replied after we engaged.
-    // For simplicity, we just look at the latest comment.
     if (snapshot.comments.length > 0) {
       const latestComment = snapshot.comments[snapshot.comments.length - 1];
       if (latestComment.author.toLowerCase() !== githubUsername.toLowerCase()) {
         // Only trigger if we haven't already flagged it
         if (!needsAttention) {
           needsAttention = true;
-          events.push({
-            type: 'MAINTAINER_RESPONDED',
-            previous: newState,
-            next: newState,
-            meta: { author: latestComment.author }
-          });
+          
+          let aiAnalysis: any = null;
+          try {
+             aiAnalysis = await groqEvaluator.analyzeMaintainerReply(latestComment.body);
+          } catch (e) {
+             console.error('[Reconciliation] AI Reply Analysis failed:', e);
+          }
+
+          if (aiAnalysis?.isApproval && newState === 'ENGAGED') {
+             newState = 'ASSIGNED'; // We interpret approval as an assignment
+             events.push({
+               type: 'ISSUE_ASSIGNED',
+               previous: issue.state,
+               next: newState,
+               meta: { reason: 'AI detected maintainer approval', analysis: aiAnalysis }
+             });
+          } else {
+             events.push({
+               type: 'MAINTAINER_RESPONDED',
+               previous: newState,
+               next: newState,
+               meta: { author: latestComment.author, analysis: aiAnalysis }
+             });
+          }
         }
       }
     }

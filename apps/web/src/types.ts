@@ -49,6 +49,7 @@ export interface TrackedIssue {
   id: string;
   user_id: string;
   github_issue_url: string;
+  contribution_checklist?: any;
   title: string;
   repo_name: string;
   state: IssueState;
