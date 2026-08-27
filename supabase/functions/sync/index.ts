@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
+import { requireAuth } from '../_shared/auth.ts'
 import { syncService } from '../_shared/sync.ts'
 
 serve(async (req) => {
@@ -8,6 +9,8 @@ serve(async (req) => {
   }
 
   try {
+    const user = await requireAuth(req)
+
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
@@ -18,12 +21,16 @@ serve(async (req) => {
     // Trigger the sync process
     // We pass req.headers to allow passing a JWT for authenticated syncs, or fall back to service role.
     const authHeader = req.headers.get('Authorization') || undefined
+    const { profile } = await req.json()
     
-    // Similarly to worker, we run it in background for Edge compatibility if needed,
-    // but sync is often cron triggered. We will await it unless it times out.
-    // Given Deno timeout is usually 5-60s depending on plan, awaiting might be okay for small syncs.
-    // For now we await it so the caller knows it succeeded.
-    await syncService.triggerSync(authHeader)
+    if (!profile || !profile.github_handle) {
+      return new Response(JSON.stringify({ error: 'GitHub handle missing in profile' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const { snapshots, health } = await syncService.startSync(user.id, profile.github_handle)
 
     return new Response(JSON.stringify({ message: 'Sync completed successfully' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

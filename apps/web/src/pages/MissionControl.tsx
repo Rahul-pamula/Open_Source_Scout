@@ -30,6 +30,12 @@ export function MissionControl() {
   });
   
   // -- Tracking State (Active Pipeline) --
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{lastSynced: string | null, error: string | null}>({
+    lastSynced: null,
+    error: null
+  });
+
   const [trackedIssues, setTrackedIssues] = useState<TrackedIssue[]>([]);
   const [isTrackingLoading, setIsTrackingLoading] = useState(true);
   const [trackingError, setTrackingError] = useState<string | null>(null);
@@ -179,9 +185,41 @@ export function MissionControl() {
       if (trackError) throw new Error('Failed to fetch tracking data: ' + trackError.message);
       setTrackedIssues(resData.data);
     } catch (err: any) {
-      setTrackingError(err.message);
+      console.error('Failed to load tracking:', err);
+      setTrackingError('Failed to load tracking data');
     } finally {
       setIsTrackingLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    if (isSyncing || !user) return;
+    
+    setIsSyncing(true);
+    setSyncStatus({ ...syncStatus, error: null });
+
+    try {
+      const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).single();
+      if (!profile || !profile.github_handle) {
+        throw new Error('Please configure your GitHub handle in settings first.');
+      }
+
+      const { error } = await supabase.functions.invoke('sync', {
+        body: { profile }
+      });
+
+      if (error) throw new Error(error.message);
+      
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setSyncStatus({ lastSynced: now, error: null });
+      
+      // Refresh UI with latest data
+      await fetchPipeline();
+    } catch (err: any) {
+      console.error('Sync failed:', err);
+      setSyncStatus({ ...syncStatus, error: err.message || 'Sync failed.' });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -319,6 +357,29 @@ export function MissionControl() {
           ) : lastScanTime ? (
             <span className="font-mono text-[10px] text-zinc-400">Last scan: {getTimeAgo(lastScanTime)}</span>
           ) : null}
+          
+          <div className="flex items-center gap-2 mt-2">
+            {isSyncing ? (
+              <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-600 flex items-center gap-1">
+                <Loader2 size={10} className="animate-spin" /> Syncing...
+              </span>
+            ) : syncStatus.error ? (
+              <span className="text-[10px] uppercase font-mono tracking-widest text-red-600" title={syncStatus.error}>
+                ⚠ Sync failed
+              </span>
+            ) : syncStatus.lastSynced ? (
+              <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-600">
+                ✓ Up to date ({syncStatus.lastSynced})
+              </span>
+            ) : null}
+            <button 
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="bg-white text-zinc-700 font-bold py-1 px-3 border-2 border-zinc-200 hover:border-zinc-900 hover:text-zinc-900 transition-colors text-xs tracking-widest uppercase disabled:opacity-50"
+            >
+              Sync GitHub
+            </button>
+          </div>
         </div>
       </div>
 
