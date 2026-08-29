@@ -1,5 +1,3 @@
-import { supabase } from '../services/supabase';
-
 export function Uplink() {
   const supabaseUrl =
     localStorage.getItem('OSS_SUPABASE_URL') || import.meta.env.VITE_SUPABASE_URL || 'Unknown URL';
