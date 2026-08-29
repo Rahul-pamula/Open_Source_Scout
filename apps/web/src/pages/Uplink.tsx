@@ -1,15 +1,6 @@
 import { supabase } from '../services/supabase';
-import { LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export function Uplink() {
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
-
   const supabaseUrl =
     localStorage.getItem('OSS_SUPABASE_URL') || import.meta.env.VITE_SUPABASE_URL || 'Unknown URL';
 
@@ -38,14 +29,6 @@ export function Uplink() {
           </div>
         </div>
       </div>
-
-      <button
-        onClick={handleSignOut}
-        className="text-red-600 hover:text-red-700 font-medium text-sm flex items-center"
-      >
-        <LogOut className="h-4 w-4 mr-2" />
-        Disconnect & Sign Out
-      </button>
     </div>
   );
 }
