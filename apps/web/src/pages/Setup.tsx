@@ -182,12 +182,16 @@ export function Setup() {
                   <strong>Authentication &gt; URL Configuration</strong>.
                 </li>
                 <li>
-                  Set the <strong>Site URL</strong> to your frontend URL (e.g.,{' '}
-                  <code>http://localhost:5173</code> or your GitHub Pages URL).
+                  Set the <strong>Site URL</strong> exactly to:{' '}
+                  <code className="bg-orange-100 text-orange-900 px-1 py-0.5 rounded">
+                    https://Rahul-pamula.github.io/Open_Source_Scout
+                  </code>
                 </li>
                 <li>
-                  Add your frontend URL with a wildcard (<code>/*</code>) to the{' '}
-                  <strong>Redirect URLs</strong> (e.g., <code>http://localhost:5173/*</code>).
+                  Add the exact URL with a wildcard to the <strong>Redirect URLs</strong>:{' '}
+                  <code className="bg-orange-100 text-orange-900 px-1 py-0.5 rounded">
+                    https://Rahul-pamula.github.io/Open_Source_Scout/*
+                  </code>
                 </li>
               </ol>
             </div>

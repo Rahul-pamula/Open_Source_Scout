@@ -45,7 +45,7 @@ Scout operates via a structured, agentic pipeline driven by **LLaMa3-8B** (via G
 
 1. Copy `.env.example` to `.env` and fill in your Supabase and Groq keys.
 2. In your Supabase Dashboard, go to **Authentication > URL Configuration**:
-   - Set the **Site URL** to your frontend URL (e.g., `http://localhost:5173` or your GitHub Pages URL).
-   - Add your frontend URL with a wildcard (`/*`) to the **Redirect URLs** (e.g., `http://localhost:5173/*`).
+   - Set the **Site URL** exactly to: `https://Rahul-pamula.github.io/Open_Source_Scout`
+   - Add the exact URL with a wildcard to the **Redirect URLs**: `https://Rahul-pamula.github.io/Open_Source_Scout/*`
 3. Run `npm install` in both the root and `/apps/web`.
 4. Start the dev server with `npm run dev`.
