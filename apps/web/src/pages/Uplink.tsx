@@ -10,15 +10,14 @@ export function Uplink() {
     navigate('/login');
   };
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'Unknown URL';
+  const supabaseUrl =
+    localStorage.getItem('OSS_SUPABASE_URL') || import.meta.env.VITE_SUPABASE_URL || 'Unknown URL';
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6 tracking-tight">Uplink</h1>
-      <p className="text-zinc-600 mb-8">
-        System configuration, API keys, and connections.
-      </p>
-      
+      <p className="text-zinc-600 mb-8">System configuration, API keys, and connections.</p>
+
       <div className="bg-white border border-zinc-200 p-6 shadow-sm max-w-2xl mb-8">
         <h2 className="text-xl font-semibold mb-4 text-zinc-900">Decentralized BYOB Connection</h2>
         <div className="space-y-4">
@@ -40,7 +39,7 @@ export function Uplink() {
         </div>
       </div>
 
-      <button 
+      <button
         onClick={handleSignOut}
         className="text-red-600 hover:text-red-700 font-medium text-sm flex items-center"
       >
