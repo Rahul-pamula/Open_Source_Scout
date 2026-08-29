@@ -3,17 +3,33 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import { IssueCard } from '../components/IssueCard';
 import type { ScoutedIssue, NormalizedIssue, TrackedIssue, IssueState } from '../types';
-import { Loader2, Activity, ExternalLink, ChevronRight, ChevronDown, XCircle, Search, Terminal } from 'lucide-react';
+import {
+  Loader2,
+  Activity,
+  ExternalLink,
+  ChevronRight,
+  ChevronDown,
+  XCircle,
+  Search,
+  Terminal,
+} from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
 
-const STATE_FLOW: IssueState[] = ['DISCOVERED', 'EVALUATED', 'DRAFTED', 'ENGAGED', 'ASSIGNED', 'COMPLETED'];
+const STATE_FLOW: IssueState[] = [
+  'DISCOVERED',
+  'EVALUATED',
+  'DRAFTED',
+  'ENGAGED',
+  'ASSIGNED',
+  'COMPLETED',
+];
 
 export function MissionControl() {
   const { session, user } = useAuth();
-  
+
   // -- Profile Data --
-  const [userProfile, setUserProfile] = useState<{ bio: string, skills: string[] } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ bio: string; skills: string[] } | null>(null);
 
   // -- Discovery State (Opportunities) --
   // We use sessionStorage to cache discovered issues so they survive unmounts
@@ -28,13 +44,15 @@ export function MissionControl() {
     const cached = sessionStorage.getItem('scout_last_scan_time');
     return cached ? parseInt(cached, 10) : null;
   });
-  
+
   // -- Tracking State (Active Pipeline) --
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<{lastSynced: string | null, error: string | null}>({
-    lastSynced: null,
-    error: null
-  });
+  const [syncStatus, setSyncStatus] = useState<{ lastSynced: string | null; error: string | null }>(
+    {
+      lastSynced: null,
+      error: null,
+    },
+  );
 
   const [trackedIssues, setTrackedIssues] = useState<TrackedIssue[]>([]);
   const [isTrackingLoading, setIsTrackingLoading] = useState(true);
@@ -45,12 +63,19 @@ export function MissionControl() {
   useEffect(() => {
     let mounted = true;
     if (user) {
-      supabase.from('users').select('bio, skills').eq('id', user.id).maybeSingle().then(({ data }) => {
-        if (mounted && data) setUserProfile(data);
-      });
+      supabase
+        .from('users')
+        .select('bio, skills')
+        .eq('id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (mounted && data) setUserProfile(data);
+        });
       fetchPipeline();
     }
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [user, session]);
 
   // Save discovered issues to session storage when they update
@@ -67,7 +92,7 @@ export function MissionControl() {
     if (userProfile && scoutedIssues.length === 0 && !isDiscovering && !hasAutoScanned.current) {
       const now = Date.now();
       const fifteenMinutes = 15 * 60 * 1000;
-      if (!lastScanTime || (now - lastScanTime) > fifteenMinutes) {
+      if (!lastScanTime || now - lastScanTime > fifteenMinutes) {
         hasAutoScanned.current = true;
         handleDiscover();
       }
@@ -81,51 +106,56 @@ export function MissionControl() {
       setIsDiscovering(true);
       setDiscoveryError(null);
       setDiscoveryStatus('Searching GitHub...');
-      
-      const profileStr = userProfile ? userProfile.bio : "I am a developer looking for issues.";
-      const skillsQuery = userProfile && userProfile.skills.length > 0 
-        ? userProfile.skills.map(s => `language:${s}`).join(' ') 
-        : 'language:typescript';
+
+      const profileStr = userProfile?.bio || 'I am a developer looking for issues.';
+      const skillsQuery =
+        userProfile && userProfile.skills.length > 0
+          ? userProfile.skills.map((s) => `language:${s}`).join(' ')
+          : 'language:typescript';
       const dynamicSearchQuery = `is:open is:issue label:"good first issue" ${skillsQuery}`;
-      
+
       // Step 1: Fetch and Filter
       const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
-        body: { query: dynamicSearchQuery, limit: 10 } 
+        body: { query: dynamicSearchQuery, limit: 10 },
       });
-      
+
       if (searchError) throw new Error('Failed to fetch from GitHub: ' + searchError.message);
-      
+
       const rawEligibleIssues: NormalizedIssue[] = searchData.data || [];
 
       if (rawEligibleIssues.length === 0) {
         setDiscoveryStatus(null);
-        setDiscoveryError('Scout couldn\'t find a strong match yet. Try updating your Agent Directives.');
+        setDiscoveryError(
+          "Scout couldn't find a strong match yet. Try updating your Agent Directives.",
+        );
         setLastScanTime(Date.now());
         setIsDiscovering(false);
         return;
       }
 
       setDiscoveryStatus('Filtering candidates...');
-      
-      const currentTrackedUrls = new Set(trackedIssues.map(t => t.github_issue_url));
-      const newEligibleIssues = rawEligibleIssues.filter(issue => !currentTrackedUrls.has(issue.url));
+
+      const currentTrackedUrls = new Set(trackedIssues.map((t) => t.github_issue_url));
+      const newEligibleIssues = rawEligibleIssues.filter(
+        (issue) => !currentTrackedUrls.has(issue.url),
+      );
 
       // Limit to 5 for AI evaluation (Frontend guard, backed by hard backend guard)
       const issuesToEvaluate = newEligibleIssues.slice(0, 5);
 
       if (issuesToEvaluate.length === 0) {
-         setDiscoveryStatus(null);
-         setDiscoveryError('Found issues, but they are already in your Active Pipeline.');
-         setLastScanTime(Date.now());
-         setIsDiscovering(false);
-         return;
+        setDiscoveryStatus(null);
+        setDiscoveryError('Found issues, but they are already in your Active Pipeline.');
+        setLastScanTime(Date.now());
+        setIsDiscovering(false);
+        return;
       }
 
       setDiscoveryStatus(`Analyzing ${issuesToEvaluate.length} promising issues...`);
 
       // Step 2: Batch Evaluate (Single API Request)
       const { data: evalRes, error: evalReqError } = await supabase.functions.invoke('evaluate', {
-        body: { issues: issuesToEvaluate, profile: profileStr }
+        body: { issues: issuesToEvaluate, profile: profileStr },
       });
 
       if (evalReqError) {
@@ -140,24 +170,28 @@ export function MissionControl() {
       for (const issue of issuesToEvaluate) {
         const issueId = issue.id || issue.url;
         const result = evalResults.find((r: any) => r.issueId === issueId);
-        
+
         if (result && result.success && result.data) {
           newlyScouted.push({ ...issue, evaluation: result.data });
         } else {
           // If evaluation failed for this specific issue, we still keep it but track the failure
           failureCount++;
-          newlyScouted.push({ ...issue }); 
+          newlyScouted.push({ ...issue });
           console.warn(`Evaluation failed for issue ${issueId}:`, result?.error);
         }
       }
 
       // Sort by match score descending
-      newlyScouted.sort((a, b) => (b.evaluation?.matchScore || 0) - (a.evaluation?.matchScore || 0));
+      newlyScouted.sort(
+        (a, b) => (b.evaluation?.matchScore || 0) - (a.evaluation?.matchScore || 0),
+      );
 
       setScoutedIssues(newlyScouted); // Updates UI without clearing existing if it failed before this step
-      
+
       if (failureCount > 0 && failureCount < issuesToEvaluate.length) {
-        setDiscoveryError(`Scout successfully analyzed ${issuesToEvaluate.length - failureCount} issues, but ${failureCount} failed to analyze.`);
+        setDiscoveryError(
+          `Scout successfully analyzed ${issuesToEvaluate.length - failureCount} issues, but ${failureCount} failed to analyze.`,
+        );
       } else if (failureCount === issuesToEvaluate.length) {
         setDiscoveryError('Scout found issues, but AI analysis failed for all of them.');
       } else {
@@ -180,7 +214,7 @@ export function MissionControl() {
     try {
       setIsTrackingLoading(true);
       const { data: resData, error: trackError } = await supabase.functions.invoke('tracking', {
-        body: { action: 'list' }
+        body: { action: 'list' },
       });
       if (trackError) throw new Error('Failed to fetch tracking data: ' + trackError.message);
       setTrackedIssues(resData.data);
@@ -194,7 +228,7 @@ export function MissionControl() {
 
   const handleSync = async () => {
     if (isSyncing || !user) return;
-    
+
     setIsSyncing(true);
     setSyncStatus({ ...syncStatus, error: null });
 
@@ -205,14 +239,14 @@ export function MissionControl() {
       }
 
       const { error } = await supabase.functions.invoke('sync', {
-        body: { profile }
+        body: { profile },
       });
 
       if (error) throw new Error(error.message);
-      
+
       const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setSyncStatus({ lastSynced: now, error: null });
-      
+
       // Refresh UI with latest data
       await fetchPipeline();
     } catch (err: any) {
@@ -225,7 +259,7 @@ export function MissionControl() {
 
   const handleSaveToPipeline = async (issueId: string) => {
     if (!session?.access_token || !user) return;
-    const issueToSave = scoutedIssues.find(i => i.id === issueId);
+    const issueToSave = scoutedIssues.find((i) => i.id === issueId);
     if (!issueToSave) return;
 
     try {
@@ -236,15 +270,15 @@ export function MissionControl() {
             github_issue_url: issueToSave.url,
             title: issueToSave.title,
             repo_name: issueToSave.repoName,
-            match_score: issueToSave.evaluation?.matchScore
-          }
-        }
+            match_score: issueToSave.evaluation?.matchScore,
+          },
+        },
       });
-      
+
       if (trackError) throw new Error('Failed to save issue: ' + trackError.message);
-      
+
       // Remove from scouted list and refresh pipeline
-      setScoutedIssues(prev => prev.filter(i => i.id !== issueId));
+      setScoutedIssues((prev) => prev.filter((i) => i.id !== issueId));
       fetchPipeline();
     } catch (err: any) {
       console.error(err);
@@ -256,7 +290,7 @@ export function MissionControl() {
     if (!session?.access_token) return;
     try {
       const { error: updateError, data: errData } = await supabase.functions.invoke('tracking', {
-        body: { action: 'update_state', id, state: newState }
+        body: { action: 'update_state', id, state: newState },
       });
       if (updateError) {
         throw new Error(errData?.error || updateError.message || 'Failed to update state');
@@ -269,13 +303,13 @@ export function MissionControl() {
 
   const getAvailableTransitions = (currentState: IssueState): IssueState[] => {
     const transitions: Record<IssueState, IssueState[]> = {
-      'DISCOVERED': ['EVALUATED', 'REJECTED'],
-      'EVALUATED': ['DRAFTED', 'ENGAGED', 'REJECTED'],
-      'DRAFTED': ['ENGAGED', 'REJECTED'],
-      'ENGAGED': ['ASSIGNED', 'REJECTED'],
-      'ASSIGNED': ['COMPLETED'],
-      'COMPLETED': [],
-      'REJECTED': []
+      DISCOVERED: ['EVALUATED', 'REJECTED'],
+      EVALUATED: ['DRAFTED', 'ENGAGED', 'REJECTED'],
+      DRAFTED: ['ENGAGED', 'REJECTED'],
+      ENGAGED: ['ASSIGNED', 'REJECTED'],
+      ASSIGNED: ['COMPLETED'],
+      COMPLETED: [],
+      REJECTED: [],
     };
     return transitions[currentState] || [];
   };
@@ -283,7 +317,7 @@ export function MissionControl() {
   // --- URL State (Dossier Side Panel) ---
   const [searchParams, setSearchParams] = useSearchParams();
   const issueParam = searchParams.get('issue'); // expected format: owner/repo/number
-  
+
   let dossierProps: { owner: string; repo: string; number: string } | null = null;
   if (issueParam) {
     const parts = issueParam.split('/');
@@ -339,7 +373,7 @@ export function MissionControl() {
             Central dashboard for discovery and autonomous engagement.
           </p>
         </div>
-        
+
         {/* Agent Status UI */}
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-2">
@@ -348,23 +382,30 @@ export function MissionControl() {
             ) : (
               <Search size={16} className="text-zinc-400" />
             )}
-            <span className={`font-mono text-xs uppercase font-bold ${isDiscovering ? 'text-emerald-600' : 'text-zinc-500'}`}>
+            <span
+              className={`font-mono text-xs uppercase font-bold ${isDiscovering ? 'text-emerald-600' : 'text-zinc-500'}`}
+            >
               {isDiscovering ? 'Scout is working' : 'Scout is idle'}
             </span>
           </div>
           {discoveryStatus ? (
             <span className="font-mono text-[10px] text-zinc-500">{discoveryStatus}</span>
           ) : lastScanTime ? (
-            <span className="font-mono text-[10px] text-zinc-400">Last scan: {getTimeAgo(lastScanTime)}</span>
+            <span className="font-mono text-[10px] text-zinc-400">
+              Last scan: {getTimeAgo(lastScanTime)}
+            </span>
           ) : null}
-          
+
           <div className="flex items-center gap-2 mt-2">
             {isSyncing ? (
               <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-600 flex items-center gap-1">
                 <Loader2 size={10} className="animate-spin" /> Syncing...
               </span>
             ) : syncStatus.error ? (
-              <span className="text-[10px] uppercase font-mono tracking-widest text-red-600" title={syncStatus.error}>
+              <span
+                className="text-[10px] uppercase font-mono tracking-widest text-red-600"
+                title={syncStatus.error}
+              >
                 ⚠ Sync failed
               </span>
             ) : syncStatus.lastSynced ? (
@@ -372,7 +413,7 @@ export function MissionControl() {
                 ✓ Up to date ({syncStatus.lastSynced})
               </span>
             ) : null}
-            <button 
+            <button
               onClick={handleSync}
               disabled={isSyncing}
               className="bg-white text-zinc-700 font-bold py-1 px-3 border-2 border-zinc-200 hover:border-zinc-900 hover:text-zinc-900 transition-colors text-xs tracking-widest uppercase disabled:opacity-50"
@@ -384,14 +425,13 @@ export function MissionControl() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
         {/* LEFT: SCOUTED OPPORTUNITIES */}
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
               <Search size={16} /> Scouted Opportunities
             </h2>
-            <button 
+            <button
               onClick={handleDiscover}
               disabled={isDiscovering}
               className="text-xs font-mono border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1 font-medium disabled:opacity-50"
@@ -408,8 +448,10 @@ export function MissionControl() {
 
           {scoutedIssues.length === 0 && !isDiscovering && !discoveryError ? (
             <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center">
-              <p className="text-zinc-500 font-mono text-sm mb-4">No new opportunities in your feed.</p>
-              <button 
+              <p className="text-zinc-500 font-mono text-sm mb-4">
+                No new opportunities in your feed.
+              </p>
+              <button
                 onClick={handleDiscover}
                 className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[2px_2px_0px_#18181b] border border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#18181b] transition-all text-xs"
               >
@@ -419,10 +461,10 @@ export function MissionControl() {
           ) : (
             <div className="flex flex-col gap-4">
               {scoutedIssues.map((issue) => (
-                <IssueCard 
-                  key={issue.id} 
-                  issue={issue} 
-                  onSave={handleSaveToPipeline} 
+                <IssueCard
+                  key={issue.id}
+                  issue={issue}
+                  onSave={handleSaveToPipeline}
                   onOpenDossier={openDossier}
                 />
               ))}
@@ -437,7 +479,11 @@ export function MissionControl() {
               <Activity size={16} /> Active Pipeline
             </h2>
             <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 font-bold">
-              {trackedIssues.filter(i => i.state !== 'COMPLETED' && i.state !== 'REJECTED').length} ACTIVE
+              {
+                trackedIssues.filter((i) => i.state !== 'COMPLETED' && i.state !== 'REJECTED')
+                  .length
+              }{' '}
+              ACTIVE
             </span>
           </div>
 
@@ -459,27 +505,38 @@ export function MissionControl() {
           ) : (
             <div className="flex flex-col border border-zinc-200 shadow-sm bg-white">
               {/* List Rows */}
-              {trackedIssues.map(issue => {
+              {trackedIssues.map((issue) => {
                 const isExpanded = expandedPipelineId === issue.id;
                 const transitions = getAvailableTransitions(issue.state);
                 const issueNumber = issue.github_issue_url.split('/').pop() || '';
 
                 return (
-                  <div key={issue.id} className="flex flex-col border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors">
-                    
+                  <div
+                    key={issue.id}
+                    className="flex flex-col border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors"
+                  >
                     {/* Main Row */}
                     <div className="grid grid-cols-12 gap-3 p-4 items-center">
                       {/* Title & Metadata */}
                       <div className="col-span-6 flex flex-col gap-1 pr-2">
-                        <span className="font-semibold text-sm text-zinc-900 truncate" title={issue.title}>
+                        <span
+                          className="font-semibold text-sm text-zinc-900 truncate"
+                          title={issue.title}
+                        >
                           {issue.title}
                         </span>
                         <div className="flex items-center gap-2 font-mono text-[9px] text-zinc-500">
-                          <span className="truncate">{issue.repo_name} #{issueNumber}</span>
+                          <span className="truncate">
+                            {issue.repo_name} #{issueNumber}
+                          </span>
                           {issue.match_score && (
                             <>
                               <span>·</span>
-                              <span className={issue.match_score >= 80 ? 'text-emerald-600 font-bold' : ''}>
+                              <span
+                                className={
+                                  issue.match_score >= 80 ? 'text-emerald-600 font-bold' : ''
+                                }
+                              >
                                 {issue.match_score}% MATCH
                               </span>
                             </>
@@ -488,33 +545,39 @@ export function MissionControl() {
                         {issue.contribution_checklist && (
                           <div className="flex items-center gap-1 mt-1 text-[9px] font-mono font-bold uppercase text-emerald-600">
                             <Terminal size={10} />
-                            {Object.values(issue.contribution_checklist).filter(Boolean).length}/4 Checklist
+                            {Object.values(issue.contribution_checklist).filter(Boolean).length}/4
+                            Checklist
                           </div>
                         )}
                       </div>
 
                       {/* State Badge */}
                       <div className="col-span-3 flex items-center justify-center">
-                        <span className={`font-mono text-[9px] px-2 py-1 border font-bold uppercase tracking-wider ${
-                          issue.state === 'COMPLETED' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
-                          issue.state === 'REJECTED' ? 'border-red-200 bg-red-50 text-red-700' :
-                          issue.state === 'ASSIGNED' || issue.state === 'ENGAGED' ? 'border-blue-200 bg-blue-50 text-blue-700' :
-                          'border-zinc-200 bg-zinc-50 text-zinc-700'
-                        }`}>
+                        <span
+                          className={`font-mono text-[9px] px-2 py-1 border font-bold uppercase tracking-wider ${
+                            issue.state === 'COMPLETED'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : issue.state === 'REJECTED'
+                                ? 'border-red-200 bg-red-50 text-red-700'
+                                : issue.state === 'ASSIGNED' || issue.state === 'ENGAGED'
+                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                  : 'border-zinc-200 bg-zinc-50 text-zinc-700'
+                          }`}
+                        >
                           {issue.state}
                         </span>
                       </div>
 
                       {/* Actions */}
                       <div className="col-span-3 flex items-center justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => openDossier(issue.github_issue_url)}
                           className="text-zinc-400 hover:text-zinc-900 transition-colors"
                           title="Open Dossier"
                         >
                           <Search size={14} />
                         </button>
-                        <a 
+                        <a
                           href={issue.github_issue_url}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -523,12 +586,12 @@ export function MissionControl() {
                         >
                           <ExternalLink size={14} />
                         </a>
-                        
-                        <button 
+
+                        <button
                           onClick={() => setExpandedPipelineId(isExpanded ? null : issue.id)}
                           className="flex items-center gap-1 font-mono text-[9px] uppercase font-bold text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-1.5 py-1 bg-white hover:bg-zinc-100 transition-colors"
                         >
-                          {isExpanded ? 'Close' : 'View'} 
+                          {isExpanded ? 'Close' : 'View'}
                           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                         </button>
                       </div>
@@ -537,38 +600,53 @@ export function MissionControl() {
                     {/* Expanded State Progression Panel */}
                     {isExpanded && (
                       <div className="border-t border-zinc-100 bg-zinc-50/80 p-4 flex flex-col gap-4 inset-shadow-sm animate-in slide-in-from-top-2 fade-in duration-200">
-                        
                         {/* Visual State Flow */}
                         <div className="flex items-center justify-between px-2">
                           {STATE_FLOW.map((state, index) => {
                             const isCurrent = issue.state === state;
-                            const isPast = STATE_FLOW.indexOf(issue.state) > index && issue.state !== 'REJECTED';
+                            const isPast =
+                              STATE_FLOW.indexOf(issue.state) > index && issue.state !== 'REJECTED';
 
                             return (
-                              <div key={state} className="flex flex-col items-center flex-1 relative group">
+                              <div
+                                key={state}
+                                className="flex flex-col items-center flex-1 relative group"
+                              >
                                 {/* Connecting Line */}
                                 {index < STATE_FLOW.length - 1 && (
-                                  <div className={`absolute top-2.5 left-1/2 w-full h-[2px] -z-10 ${
-                                    isPast ? 'bg-emerald-400' : 'bg-zinc-200'
-                                  }`} />
+                                  <div
+                                    className={`absolute top-2.5 left-1/2 w-full h-[2px] -z-10 ${
+                                      isPast ? 'bg-emerald-400' : 'bg-zinc-200'
+                                    }`}
+                                  />
                                 )}
-                                
+
                                 {/* Node */}
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 mb-1.5 ${
-                                  isCurrent ? 'border-emerald-500 bg-emerald-50' : 
-                                  isPast ? 'border-emerald-500 bg-emerald-500' :
-                                  'border-zinc-300 bg-white'
-                                }`}>
-                                  {isCurrent && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center border-2 mb-1.5 ${
+                                    isCurrent
+                                      ? 'border-emerald-500 bg-emerald-50'
+                                      : isPast
+                                        ? 'border-emerald-500 bg-emerald-500'
+                                        : 'border-zinc-300 bg-white'
+                                  }`}
+                                >
+                                  {isCurrent && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  )}
                                   {isPast && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                                 </div>
-                                
+
                                 {/* Label */}
-                                <span className={`font-mono text-[8px] uppercase font-bold text-center tracking-widest ${
-                                  isCurrent ? 'text-emerald-700' :
-                                  isPast ? 'text-zinc-700' :
-                                  'text-zinc-400'
-                                }`}>
+                                <span
+                                  className={`font-mono text-[8px] uppercase font-bold text-center tracking-widest ${
+                                    isCurrent
+                                      ? 'text-emerald-700'
+                                      : isPast
+                                        ? 'text-zinc-700'
+                                        : 'text-zinc-400'
+                                  }`}
+                                >
                                   {state}
                                 </span>
                               </div>
@@ -587,14 +665,16 @@ export function MissionControl() {
                         {/* Transition Controls */}
                         {transitions.length > 0 && (
                           <div className="flex flex-col items-center mt-2">
-                            <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">Available Transitions</span>
+                            <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">
+                              Available Transitions
+                            </span>
                             <div className="flex flex-wrap justify-center gap-2">
-                              {transitions.map(targetState => (
+                              {transitions.map((targetState) => (
                                 <button
                                   key={targetState}
                                   onClick={() => handleStateUpdate(issue.id, targetState)}
                                   className={`font-mono text-[10px] font-bold px-3 py-1.5 border shadow-sm transition-transform active:scale-95 ${
-                                    targetState === 'REJECTED' 
+                                    targetState === 'REJECTED'
                                       ? 'bg-white border-red-200 text-red-600 hover:bg-red-50'
                                       : 'bg-zinc-900 border-zinc-900 text-white shadow-[2px_2px_0px_#10b981] hover:-translate-y-px'
                                   }`}
@@ -605,10 +685,8 @@ export function MissionControl() {
                             </div>
                           </div>
                         )}
-
                       </div>
                     )}
-
                   </div>
                 );
               })}
@@ -616,14 +694,14 @@ export function MissionControl() {
           )}
         </div>
       </div>
-      
+
       {/* Dossier Side Panel Overlay */}
       {dossierProps && (
-        <DossierPanel 
-          owner={dossierProps.owner} 
-          repo={dossierProps.repo} 
-          number={dossierProps.number} 
-          onClose={closeDossier} 
+        <DossierPanel
+          owner={dossierProps.owner}
+          repo={dossierProps.repo}
+          number={dossierProps.number}
+          onClose={closeDossier}
         />
       )}
     </div>
