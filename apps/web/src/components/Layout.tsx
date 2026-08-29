@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
-import { Target, Settings, User as UserIcon, LogOut, LogIn } from 'lucide-react';
+import { Target, Settings, LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout() {
