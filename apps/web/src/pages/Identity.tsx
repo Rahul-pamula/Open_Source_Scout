@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Loader2, Plus, X, Check } from 'lucide-react';
 import { NotificationPreferences } from '../components/NotificationPreferences';
 
 const PREDEFINED_SKILLS = [
@@ -30,6 +30,7 @@ export function Identity() {
   const [customSkill, setCustomSkill] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -79,6 +80,7 @@ export function Identity() {
   const handleSave = async () => {
     if (!user) return;
     setIsSaving(true);
+    setSaveSuccess(false);
 
     const { error } = await supabase
       .from('users')
@@ -88,7 +90,8 @@ export function Identity() {
     if (error) {
       alert('Failed to save profile: ' + error.message);
     } else {
-      alert('Profile updated successfully!');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     }
   };
 
@@ -183,14 +186,22 @@ export function Identity() {
               </form>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100">
+            <div className="pt-4 border-t border-zinc-100 flex items-center">
               <button
                 onClick={handleSave}
-                disabled={isSaving}
-                className="bg-emerald-600 text-white px-6 py-2 rounded-md text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center"
+                disabled={isSaving || saveSuccess}
+                className={`px-6 py-2 rounded-md text-sm font-bold flex items-center transition-colors ${
+                  saveSuccess
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50'
+                }`}
               >
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Save Profile
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : saveSuccess ? (
+                  <Check className="h-4 w-4 mr-2" />
+                ) : null}
+                {saveSuccess ? 'Saved!' : 'Save Profile'}
               </button>
             </div>
           </div>
