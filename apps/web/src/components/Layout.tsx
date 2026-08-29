@@ -9,29 +9,29 @@ export function Layout() {
     <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col md:flex-row">
       <nav className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-zinc-200 flex flex-col p-4">
         <div className="font-bold text-lg mb-8 tracking-tight">Open Source Scout</div>
-        
+
         <div className="flex flex-col space-y-2 flex-1">
-          <Link to="/app" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md text-emerald-600 font-medium">
+          <Link
+            to="/app"
+            className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md text-emerald-600 font-medium"
+          >
             <Target size={20} />
             <span>Mission Control</span>
           </Link>
-          <Link to="/app/identity" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
-            <UserIcon size={20} />
-            <span>Identity</span>
-          </Link>
-          <Link to="/app/uplink" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md">
+          <Link
+            to="/app/identity"
+            className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md"
+          >
             <Settings size={20} />
-            <span>Uplink</span>
+            <span>Settings</span>
           </Link>
         </div>
 
         <div className="mt-8 pt-4 border-t border-zinc-100">
           {user ? (
             <div className="flex flex-col space-y-2">
-              <div className="text-sm font-medium text-zinc-600 truncate px-2">
-                {user.email}
-              </div>
-              <button 
+              <div className="text-sm font-medium text-zinc-600 truncate px-2">{user.email}</div>
+              <button
                 onClick={signOut}
                 className="flex items-center space-x-2 p-2 hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900 rounded-md text-left w-full transition-colors"
               >
@@ -40,14 +40,17 @@ export function Layout() {
               </button>
             </div>
           ) : (
-            <Link to="/connect" className="flex items-center space-x-2 p-2 hover:bg-zinc-100 text-zinc-900 rounded-md font-medium">
+            <Link
+              to="/connect"
+              className="flex items-center space-x-2 p-2 hover:bg-zinc-100 text-zinc-900 rounded-md font-medium"
+            >
               <LogIn size={20} />
               <span>Sign in</span>
             </Link>
           )}
         </div>
       </nav>
-      
+
       <main className="flex-1 p-8">
         <Outlet />
       </main>
