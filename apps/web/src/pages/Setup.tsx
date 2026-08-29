@@ -1,5 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Terminal, Key, Database, ShieldCheck, ArrowRight, Server, Globe } from 'lucide-react';
+import {
+  Terminal,
+  Key,
+  Database,
+  ShieldCheck,
+  ArrowRight,
+  Server,
+  Globe,
+  Copy,
+} from 'lucide-react';
 import { SetupNotepad } from '../components/SetupNotepad';
 
 export function Setup() {
@@ -183,14 +192,32 @@ export function Setup() {
                 </li>
                 <li>
                   Set the <strong>Site URL</strong> exactly to:{' '}
-                  <code className="bg-orange-100 text-orange-900 px-1 py-0.5 rounded">
+                  <code
+                    onClick={() =>
+                      navigator.clipboard.writeText(
+                        'https://Rahul-pamula.github.io/Open_Source_Scout',
+                      )
+                    }
+                    className="bg-orange-100 text-orange-900 px-2 py-1 rounded cursor-pointer hover:bg-orange-200 transition-colors inline-flex items-center gap-1 group"
+                    title="Click to copy"
+                  >
                     https://Rahul-pamula.github.io/Open_Source_Scout
+                    <Copy className="h-3 w-3 opacity-50 group-hover:opacity-100" />
                   </code>
                 </li>
                 <li>
                   Add the exact URL with a wildcard to the <strong>Redirect URLs</strong>:{' '}
-                  <code className="bg-orange-100 text-orange-900 px-1 py-0.5 rounded">
+                  <code
+                    onClick={() =>
+                      navigator.clipboard.writeText(
+                        'https://Rahul-pamula.github.io/Open_Source_Scout/*',
+                      )
+                    }
+                    className="bg-orange-100 text-orange-900 px-2 py-1 rounded cursor-pointer hover:bg-orange-200 transition-colors inline-flex items-center gap-1 group"
+                    title="Click to copy"
+                  >
                     https://Rahul-pamula.github.io/Open_Source_Scout/*
+                    <Copy className="h-3 w-3 opacity-50 group-hover:opacity-100" />
                   </code>
                 </li>
               </ol>
