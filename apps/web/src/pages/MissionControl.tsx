@@ -100,11 +100,12 @@ export function MissionControl() {
         userProfile && userProfile.skills.length > 0
           ? userProfile.skills.map((s) => `language:${s}`).join(' ')
           : 'language:typescript';
-      const dynamicSearchQuery = `is:open is:issue label:"good first issue" ${skillsQuery}`;
+      // Add sort:updated-desc to get the freshest issues
+      const dynamicSearchQuery = `is:open is:issue label:"good first issue" ${skillsQuery} sort:updated-desc`;
 
-      // Fetch from GitHub search
+      // Fetch 50 issues from GitHub search to give us a pool to shuffle from
       const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
-        body: { query: dynamicSearchQuery, limit: 10 },
+        body: { query: dynamicSearchQuery, limit: 50 },
       });
 
       if (searchError) throw new Error('Failed to fetch from GitHub: ' + searchError.message);
@@ -125,9 +126,13 @@ export function MissionControl() {
 
       // Filter out issues already in the pipeline
       const currentTrackedUrls = new Set(trackedIssues.map((t) => t.github_issue_url));
-      const newIssues = rawEligibleIssues
-        .filter((issue) => !currentTrackedUrls.has(issue.url))
-        .slice(0, 10);
+      const untrackedIssues = rawEligibleIssues.filter(
+        (issue) => !currentTrackedUrls.has(issue.url),
+      );
+
+      // Shuffle the untracked issues to give fresh results on each click
+      const shuffledIssues = untrackedIssues.sort(() => 0.5 - Math.random());
+      const newIssues = shuffledIssues.slice(0, 10);
 
       if (newIssues.length === 0) {
         setDiscoveryStatus(null);
