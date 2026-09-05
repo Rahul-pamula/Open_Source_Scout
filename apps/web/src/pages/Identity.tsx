@@ -42,7 +42,7 @@ export function Identity() {
         .select('bio, skills')
         .eq('id', user.id)
         .maybeSingle()
-        .then(({ data }) => {
+        .then(({ data }: { data: { bio: string; skills: string[] } | null }) => {
           if (data) {
             setBio(data.bio || '');
             setSelectedSkills(data.skills || []);

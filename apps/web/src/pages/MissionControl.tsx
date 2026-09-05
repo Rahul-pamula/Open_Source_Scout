@@ -75,23 +75,35 @@ export function MissionControl() {
       .select('bio, skills, automation_count_today, last_automation_date, github_handle')
       .eq('id', user.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (mounted && data) {
-          setUserProfile(data);
-          // Reset count if it's a new day
-          const today = new Date().toISOString().split('T')[0];
-          const lastDate = data.last_automation_date || '';
-          if (lastDate !== today) {
-            setAutomationCountToday(0);
-            supabase
-              .from('users')
-              .update({ automation_count_today: 0, last_automation_date: today })
-              .eq('id', user.id);
-          } else {
-            setAutomationCountToday(data.automation_count_today || 0);
+      .then(
+        ({
+          data,
+        }: {
+          data: {
+            bio: string;
+            skills: string[];
+            automation_count_today: number;
+            last_automation_date: string;
+            github_handle: string;
+          } | null;
+        }) => {
+          if (mounted && data) {
+            setUserProfile(data);
+            // Reset count if it's a new day
+            const today = new Date().toISOString().split('T')[0];
+            const lastDate = data.last_automation_date || '';
+            if (lastDate !== today) {
+              setAutomationCountToday(0);
+              supabase
+                .from('users')
+                .update({ automation_count_today: 0, last_automation_date: today })
+                .eq('id', user.id);
+            } else {
+              setAutomationCountToday(data.automation_count_today || 0);
+            }
           }
-        }
-      });
+        },
+      );
     fetchPipeline();
     return () => {
       mounted = false;

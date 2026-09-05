@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { type Session, type User } from '@supabase/supabase-js';
+import { type Session, type User, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, hasSupabaseConfig } from '../services/supabase';
 
 interface AuthContextType {
@@ -24,14 +24,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }: { data: { session: Session | null } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -41,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGithub = async () => {
-    if (!hasSupabaseConfig()) throw new Error("Supabase is not configured.");
+    if (!hasSupabaseConfig()) throw new Error('Supabase is not configured.');
     await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
