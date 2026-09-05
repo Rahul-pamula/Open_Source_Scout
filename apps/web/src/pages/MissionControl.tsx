@@ -400,7 +400,7 @@ export function MissionControl() {
         }
 
         // Save to tracking as ENGAGED directly (comment was posted)
-        const { data: savedData } = await supabase.functions.invoke('tracking', {
+        await supabase.functions.invoke('tracking', {
           body: {
             action: 'save',
             issueData: {
