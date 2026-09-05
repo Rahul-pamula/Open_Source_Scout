@@ -72,16 +72,10 @@ export function Setup() {
               </p>
               <ol className="list-decimal pl-5 text-sm text-zinc-700 space-y-2">
                 <li>
-                  In your Supabase project, go to{' '}
-                  <a
-                    href="https://supabase.com/dashboard/project/projectid/settings/api-keys/legacy"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    Project Settings -&gt; API -&gt; Legacy API Keys
-                  </a>
-                  .
+                  Open your Supabase project dashboard, click the gear icon in the sidebar, and go
+                  to <strong>Project Settings -&gt; API -&gt; Legacy API Keys</strong>. The URL for
+                  this page includes your project ID, so it must be opened from inside the project
+                  dashboard.
                 </li>
                 <li>
                   Copy the <strong>anon key</strong> (starts with <code>eyJ</code>) into the
