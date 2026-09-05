@@ -1,14 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  X,
-  Loader2,
-  ExternalLink,
-  Copy,
-  Check,
-  ShieldAlert,
-  CheckCircle,
-  Terminal,
-} from 'lucide-react';
+import { X, Loader2, ExternalLink, Copy, Check, CheckCircle, Terminal } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { NormalizedIssue, EvaluationResult } from '../types';
@@ -20,8 +11,6 @@ interface DossierPanelProps {
   onClose: () => void;
 }
 
-type EngagementIntent =
-  'REQUEST_ASSIGNMENT' | 'PROPOSE_SOLUTION' | 'ASK_CLARIFICATION' | 'EXPRESS_INTEREST';
 type DraftState =
   | 'IDLE'
   | 'GENERATING'
