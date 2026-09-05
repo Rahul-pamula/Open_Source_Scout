@@ -172,7 +172,7 @@ export function MissionControl() {
       const githubHandle = (userProfile as any)?.github_handle || 'developer';
       const defaultMessage = `Hi! I'd love to work on this issue. I'm @${githubHandle} and I have experience with the relevant tech stack. Could I be assigned this one? I'll have a fix ready soon! 🙌`;
 
-      const { data, error: engageError } = await supabase.functions.invoke('engage', {
+      const { error: engageError } = await supabase.functions.invoke('engage', {
         body: {
           owner,
           repo,
