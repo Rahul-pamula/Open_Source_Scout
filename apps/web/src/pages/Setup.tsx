@@ -242,31 +242,13 @@ export function Setup() {
               </p>
             </div>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white shadow-md rounded-lg">
-            <div className="bg-zinc-800 p-3 h-fit rounded-full text-emerald-400">
-              <Terminal size={24} />
-            </div>
-            <div className="w-full">
-              <h3 className="text-lg font-bold">4. Run the CLI Setup</h3>
-              <p className="text-sm text-zinc-400 mt-1 mb-4">
-                Run this command in your terminal. It will prompt you for the keys you collected in
-                the scratchpad, securely inject them into your Supabase Vault, and deploy the Edge
-                Functions.
-              </p>
-
-              <div className="bg-black p-4 rounded text-sm font-mono text-emerald-400 border border-zinc-800 whitespace-pre overflow-x-auto selection:bg-emerald-500/30">
-                npx open-source-scout setup
-              </div>
-            </div>
-          </div>
-
-          {/* Step 5 */}
+          {/* Step 4 */}
           <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg hover:border-emerald-200 transition-colors">
             <div className="bg-orange-100 p-3 h-fit rounded-full text-orange-700">
               <Globe size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-900">5. Configure Supabase Auth URLs</h3>
+              <h3 className="text-lg font-bold text-zinc-900">4. Configure Supabase Auth URLs</h3>
               <p className="text-sm text-zinc-600 mt-1 mb-3">
                 Ensure GitHub OAuth redirects back to your frontend correctly.
               </p>
@@ -309,6 +291,25 @@ export function Setup() {
             </div>
           </div>
 
+          {/* Step 5 */}
+          <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white shadow-md rounded-lg">
+            <div className="bg-zinc-800 p-3 h-fit rounded-full text-emerald-400">
+              <Terminal size={24} />
+            </div>
+            <div className="w-full">
+              <h3 className="text-lg font-bold">5. Run the CLI Setup</h3>
+              <p className="text-sm text-zinc-400 mt-1 mb-4">
+                Run this command in your terminal. It will prompt you for the keys you collected in
+                the scratchpad, securely inject them into your Supabase Vault, and deploy the Edge
+                Functions.
+              </p>
+
+              <div className="bg-black p-4 rounded text-sm font-mono text-emerald-400 border border-zinc-800 whitespace-pre overflow-x-auto selection:bg-emerald-500/30">
+                npx open-source-scout setup
+              </div>
+            </div>
+          </div>
+
           {/* Step 6 */}
           <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg hover:border-emerald-200 transition-colors">
             <div className="bg-purple-100 p-3 h-fit rounded-full text-purple-700">
@@ -329,25 +330,6 @@ export function Setup() {
                 Go to Sign In
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
-            </div>
-          </div>
-
-          {/* Step 7 (final): Run the CLI Setup */}
-          <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white shadow-md rounded-lg">
-            <div className="bg-zinc-800 p-3 h-fit rounded-full text-emerald-400">
-              <Terminal size={24} />
-            </div>
-            <div className="w-full">
-              <h3 className="text-lg font-bold">Run the CLI Setup</h3>
-              <p className="text-sm text-zinc-400 mt-1 mb-4">
-                Run this command in your terminal. It will prompt you for the keys you collected in
-                the scratchpad, securely inject them into your Supabase Vault, and deploy the Edge
-                Functions.
-              </p>
-
-              <div className="bg-black p-4 rounded text-sm font-mono text-emerald-400 border border-zinc-800 whitespace-pre overflow-x-auto selection:bg-emerald-500/30">
-                npx open-source-scout setup
-              </div>
             </div>
           </div>
         </div>
