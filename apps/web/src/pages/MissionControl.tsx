@@ -167,7 +167,7 @@ export function MissionControl() {
       const githubHandle = (userProfile as any)?.github_handle || 'developer';
       const defaultMessage = `Hi! I'd love to work on this issue. I'm @${githubHandle} and I have experience with the relevant tech stack. Could I be assigned this one? I'll have a fix ready soon! 🙌`;
 
-      const { error } = await supabase.functions.invoke('engage', {
+      const { error: engageError } = await supabase.functions.invoke('engage', {
         body: {
           owner,
           repo,
@@ -178,10 +178,10 @@ export function MissionControl() {
         },
       });
 
-      if (error) throw new Error(error.message);
+      if (engageError) throw new Error(engageError.message);
 
-      // Save to pipeline and remove from scouted list
-      await supabase.functions.invoke('tracking', {
+      // 1. Save to pipeline
+      const { data: savedData } = await supabase.functions.invoke('tracking', {
         body: {
           action: 'save',
           issueData: {
@@ -189,13 +189,20 @@ export function MissionControl() {
             title: scoutedIssues.find((i) => i.url === githubUrl)?.title || '',
             repo_name: `${owner}/${repo}`,
             match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
+            claimed_via: 'MANUAL',
           },
         },
       });
 
+      // 2. Immediately mark as ENGAGED since comment was posted
+      if (savedData?.data?.id) {
+        await supabase.functions.invoke('tracking', {
+          body: { action: 'update_state', id: savedData.data.id, state: 'ENGAGED' },
+        });
+      }
+
       setScoutedIssues((prev) => prev.filter((i) => i.url !== githubUrl));
-      fetchPipeline();
-      alert('✅ Successfully claimed! Your comment has been posted to the GitHub issue.');
+      await fetchPipeline();
     } catch (err: any) {
       console.error('Claim failed:', err);
       alert('❌ Failed to claim issue: ' + (err.message || 'Unknown error'));
