@@ -136,28 +136,9 @@ export function Setup() {
                     GitHub Classic Personal Access Token
                   </a>
                   <div className="text-xs text-zinc-500 mt-1">
-                    <ol className="list-decimal pl-4 space-y-1 mt-1 mb-2">
-                      <li>
-                        Click <strong>Generate new token (classic)</strong>.
-                      </li>
-                      <li>
-                        Give it a Note (e.g. <strong>Open Source Scout</strong>).
-                      </li>
-                      <li>
-                        Change the <strong>Expiration</strong> to <strong>No expiration</strong> (or
-                        your preferred duration).
-                      </li>
-                      <li>
-                        Under <strong>Select scopes</strong>, explicitly check the box for{' '}
-                        <strong>public_repo</strong> (Access public repositories).
-                      </li>
-                      <li>
-                        Scroll down and click <strong>Generate token</strong>.
-                      </li>
-                    </ol>
                     <p className="text-xs italic text-red-500 font-bold mt-2">
-                      ⚠️ CRITICAL: DO NOT use a "Fine-grained token"! Fine-grained tokens are
-                      blocked from commenting on external open source repositories.
+                      ⚠️ CRITICAL: DO NOT use a &quot;Fine-grained token&quot;! Fine-grained tokens
+                      are blocked from commenting on external open source repositories.
                     </p>
                   </div>
                 </div>
@@ -348,6 +329,25 @@ export function Setup() {
                 Go to Sign In
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
+            </div>
+          </div>
+
+          {/* Step 7 (final): Run the CLI Setup */}
+          <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white shadow-md rounded-lg">
+            <div className="bg-zinc-800 p-3 h-fit rounded-full text-emerald-400">
+              <Terminal size={24} />
+            </div>
+            <div className="w-full">
+              <h3 className="text-lg font-bold">Run the CLI Setup</h3>
+              <p className="text-sm text-zinc-400 mt-1 mb-4">
+                Run this command in your terminal. It will prompt you for the keys you collected in
+                the scratchpad, securely inject them into your Supabase Vault, and deploy the Edge
+                Functions.
+              </p>
+
+              <div className="bg-black p-4 rounded text-sm font-mono text-emerald-400 border border-zinc-800 whitespace-pre overflow-x-auto selection:bg-emerald-500/30">
+                npx open-source-scout setup
+              </div>
             </div>
           </div>
         </div>
