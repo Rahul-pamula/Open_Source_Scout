@@ -174,6 +174,7 @@ export function MissionControl() {
           number: parseInt(number),
           draft: defaultMessage,
           intent: 'REQUEST_ASSIGNMENT',
+          skipRateLimit: true, // Manual claims bypass the automation rate limiter
         },
       });
 

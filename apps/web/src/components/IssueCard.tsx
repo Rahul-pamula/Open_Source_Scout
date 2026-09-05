@@ -6,9 +6,16 @@ interface IssueCardProps {
   onSave?: (id: string) => void;
   onClaim?: (url: string) => void;
   isClaiming?: boolean;
+  claimLabel?: string;
 }
 
-export function IssueCard({ issue, onSave, onClaim, isClaiming }: IssueCardProps) {
+export function IssueCard({
+  issue,
+  onSave,
+  onClaim,
+  isClaiming,
+  claimLabel = '🙌 Claim This Issue',
+}: IssueCardProps) {
   const { evaluation } = issue;
 
   // Determine score color
@@ -102,7 +109,7 @@ export function IssueCard({ issue, onSave, onClaim, isClaiming }: IssueCardProps
               disabled={isClaiming}
               className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isClaiming ? 'Claiming...' : '🙌 Claim This Issue'}
+              {isClaiming ? 'Claiming...' : claimLabel}
             </button>
           )}
         </div>

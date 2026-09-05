@@ -22,7 +22,7 @@ serve(async (req) => {
       })
     }
 
-    const { owner, repo, number, draft, intent } = await req.json()
+    const { owner, repo, number, draft, intent, skipRateLimit } = await req.json()
     
     if (!owner || !repo || !number || !draft || !intent) {
       return new Response(JSON.stringify({ error: 'owner, repo, number, draft, and intent are required' }), {
@@ -51,8 +51,10 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization') || undefined
 
-    // 1. Check Rate Limits
-    await rateLimiterService.checkRateLimits(authHeader, userId, `${owner}/${repo}`)
+    // 1. Check Rate Limits (only for automated flows, not manual claims)
+    if (!skipRateLimit) {
+      await rateLimiterService.checkRateLimits(authHeader, userId, `${owner}/${repo}`)
+    }
 
     // 2. Generate Key and Acquire Lock (Idempotency)
     const idempotencyKey = await idempotencyService.checkAndLockEngagement(
