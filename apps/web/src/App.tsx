@@ -4,6 +4,9 @@ import { Landing } from './pages/Landing';
 import { Setup } from './pages/Setup';
 import { Connect } from './pages/Connect';
 import { MissionControl } from './pages/MissionControl';
+import { PipelinePage } from './pages/PipelinePage';
+import { DiscoveryPage } from './pages/DiscoveryPage';
+import { AutomationPage } from './pages/AutomationPage';
 import { Identity } from './pages/Identity';
 import { Onboarding } from './pages/Onboarding';
 import { Docs } from './pages/Docs';
@@ -56,7 +59,12 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<MissionControl />} />
+            <Route element={<MissionControl />}>
+              <Route index element={<Navigate to="pipeline" replace />} />
+              <Route path="pipeline" element={<PipelinePage />} />
+              <Route path="discovery" element={<DiscoveryPage />} />
+              <Route path="automation" element={<AutomationPage />} />
+            </Route>
             <Route path="identity" element={<Identity />} />
           </Route>
 
