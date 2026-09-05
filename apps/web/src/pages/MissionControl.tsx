@@ -369,9 +369,9 @@ export function MissionControl() {
         if (saved?.data?.id) savedIds.push(saved.data.id);
       }
 
-      // Step 2: Trigger the worker to process those DISCOVERED issues
+      // Step 2: Trigger the worker to process those DISCOVERED issues (explicit = user consent = L3)
       const { error } = await supabase.functions.invoke('worker', {
-        body: { userId: user.id, profile: userProfile, count: automationBatchSize },
+        body: { userId: user.id, profile: userProfile, count: automationBatchSize, explicit: true },
       });
 
       if (error) throw new Error(error.message || 'Worker failed to start');

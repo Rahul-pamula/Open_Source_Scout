@@ -18,8 +18,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export class AutonomousWorker {
 
-  async runWorker(authHeader: string | undefined, userId: string, profile: any, count: number = 5) {
-    console.log(`[Worker] Starting autonomous run for user: ${userId}, count: ${count}`);
+  async runWorker(authHeader: string | undefined, userId: string, profile: any, count: number = 5, explicit: boolean = false) {
+    console.log(`[Worker] Starting autonomous run for user: ${userId}, count: ${count}, explicit: ${explicit}`);
     
     // 0. Check Daily Automation Limits (Max 25/day)
     const { data: currentCount, error } = await supabase.rpc('increment_automation_count', {
@@ -34,15 +34,28 @@ export class AutonomousWorker {
     
     if (currentCount + count > 25) {
       console.warn(`[Worker] User ${userId} would exceed daily limit of 25. Current: ${currentCount}`);
-      return; // Or we could just process the remaining allowance, but failing is safer.
+      return;
     }
 
-    // 1. Fetch Policy
-    const policy = await autonomyPolicyService.getPolicy(userId, authHeader);
+    // 1. Fetch Policy — if user explicitly clicked Automate Now, treat it as L3 consent
+    const policy = explicit
+      ? {
+          level: 'L3' as const,
+          enabled: true,
+          allowedRepositories: [],
+          allowedIntents: [],
+          minimumMatchScore: 0,   // No score gate for explicit runs
+          maximumDailyEngagements: 25,
+          cooldownMinutes: 0,
+          requireNoClaimant: false,
+        }
+      : await autonomyPolicyService.getPolicy(userId, authHeader);
     
-    // 2. Fetch Discovered Issues
+    // 2. Fetch Discovered Issues — use service client to bypass RLS issues
     const issues = await trackingService.getTrackedIssues(authHeader || '');
     const discoveredIssues = issues.filter(i => i.state === 'DISCOVERED');
+    
+    console.log(`[Worker] Found ${discoveredIssues.length} DISCOVERED issues to process`);
     
     const targets = discoveredIssues.slice(0, count);
     
@@ -58,7 +71,8 @@ export class AutonomousWorker {
       }
 
       try {
-        await this.processIssue(authHeader, userId, profile, trackedIssue, policy);
+        const success = await this.processIssue(authHeader, userId, profile, trackedIssue, policy);
+        if (success) successCount++;
       } catch (error: any) {
         console.error(`[Worker] Error processing ${trackedIssue.repo_name}:`, error);
         await auditService.logEvent({
@@ -75,7 +89,7 @@ export class AutonomousWorker {
       }
     }
     
-    console.log(`[Worker] Completed autonomous run for user: ${userId}. Successes: ${successCount}`);
+    console.log(`[Worker] Completed autonomous run for user: ${userId}. Successes: ${successCount}/${targets.length}`);
   }
 
   private async processIssue(authHeader: string | undefined, userId: string, profile: any, trackedIssue: any, policy: any): Promise<boolean> {

@@ -17,7 +17,7 @@ serve(async (req: Request) => {
     }
 
     const authHeader = req.headers.get('Authorization') || undefined
-    const { userId, profile, count } = await req.json()
+    const { userId, profile, count, explicit } = await req.json()
 
     if (!userId || !profile) {
       return new Response(JSON.stringify({ error: 'userId and profile are required' }), {
@@ -27,18 +27,19 @@ serve(async (req: Request) => {
     }
 
     const processCount = count ? parseInt(count) : 5
+    const isExplicit = explicit === true
 
     // Trigger the worker without awaiting its completion (fire and forget pattern)
     // In Edge Functions, Deno might terminate if we don't await, but Edge Functions support EdgeRuntime.waitUntil
     if (typeof (EdgeRuntime as any) !== 'undefined' && (EdgeRuntime as any).waitUntil) {
        (EdgeRuntime as any).waitUntil(
-         autonomousWorker.runWorker(authHeader, userId, profile, processCount).catch(err => {
+         autonomousWorker.runWorker(authHeader, userId, profile, processCount, isExplicit).catch(err => {
            console.error('[worker-function] Unhandled Error:', err)
          })
        )
     } else {
        // Fallback for local testing if EdgeRuntime is not fully emulated
-       autonomousWorker.runWorker(authHeader, userId, profile, processCount).catch(err => {
+       autonomousWorker.runWorker(authHeader, userId, profile, processCount, isExplicit).catch(err => {
            console.error('[worker-function] Unhandled Error:', err)
        })
     }
