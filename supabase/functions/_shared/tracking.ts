@@ -33,7 +33,8 @@ export class TrackingService {
   async saveIssue(authHeader: string, userId: string, issueData: any): Promise<TrackedIssue> {
     const supabase = this.getClient(authHeader);
     
-    const initialState: IssueState = issueData.match_score ? 'EVALUATED' : 'DISCOVERED';
+    // Allow caller to specify initial state (e.g. ENGAGED for manual claims)
+    const initialState: IssueState = issueData.initial_state || (issueData.match_score ? 'EVALUATED' : 'DISCOVERED');
 
     const { data, error } = await supabase
       .from('tracked_issues')
@@ -44,6 +45,7 @@ export class TrackingService {
         repo_name: issueData.repo_name,
         state: initialState,
         match_score: issueData.match_score || null,
+        claimed_via: issueData.claimed_via || 'MANUAL',
       })
       .select()
       .single();

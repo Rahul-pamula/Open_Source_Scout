@@ -223,7 +223,7 @@ export function MissionControl() {
         throw new Error(actualErrorMessage);
       }
 
-      // 1. Save to pipeline
+      // 1. Save to pipeline directly as ENGAGED (comment was already posted)
       const { data: savedData, error: trackingError } = await supabase.functions.invoke(
         'tracking',
         {
@@ -235,6 +235,7 @@ export function MissionControl() {
               repo_name: `${owner}/${repo}`,
               match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
               claimed_via: 'MANUAL',
+              initial_state: 'ENGAGED', // save directly as ENGAGED, no 2-step race
             },
           },
         },
@@ -253,11 +254,12 @@ export function MissionControl() {
         throw new Error(`Tracking save failed: ${actualErrorMessage}`);
       }
 
-      // 2. Immediately mark as ENGAGED since comment was posted
-      if (savedData?.data?.id) {
-        await supabase.functions.invoke('tracking', {
+      // 2. If already saved as a different state (duplicate), force-update to ENGAGED
+      if (savedData?.data?.id && savedData.data.state !== 'ENGAGED') {
+        const { error: stateErr } = await supabase.functions.invoke('tracking', {
           body: { action: 'update_state', id: savedData.data.id, state: 'ENGAGED' },
         });
+        if (stateErr) console.warn('State update warning:', stateErr.message);
       }
 
       // Remove from discovery list and refresh claimed tab
