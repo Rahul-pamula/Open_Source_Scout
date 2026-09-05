@@ -7,6 +7,8 @@ import { MissionControl } from './pages/MissionControl';
 import { DiscoveryPage } from './pages/DiscoveryPage';
 import { AutomationPage } from './pages/AutomationPage';
 import { AssignedPage } from './pages/AssignedPage';
+import { ReviewPage } from './pages/ReviewPage';
+import { MergedPage } from './pages/MergedPage';
 import { Identity } from './pages/Identity';
 import { Onboarding } from './pages/Onboarding';
 import { Docs } from './pages/Docs';
@@ -64,6 +66,8 @@ function App() {
               <Route path="discovery" element={<DiscoveryPage />} />
               <Route path="automation" element={<AutomationPage />} />
               <Route path="assigned" element={<AssignedPage />} />
+              <Route path="review" element={<ReviewPage />} />
+              <Route path="merged" element={<MergedPage />} />
               {/* Legacy redirect */}
               <Route path="pipeline" element={<Navigate to="/app/automation" replace />} />
             </Route>

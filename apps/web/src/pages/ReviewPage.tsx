@@ -1,22 +1,16 @@
 import { useOutletContext } from 'react-router-dom';
-import { CheckSquare, ExternalLink, Loader2 } from 'lucide-react';
+import { Eye, ExternalLink, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { TrackedIssue } from '../types';
 
-function AssignedCard({
-  issue,
-  onMarkUnderReview,
-}: {
-  issue: TrackedIssue;
-  onMarkUnderReview: () => void;
-}) {
+function ReviewCard({ issue, onMarkMerged }: { issue: TrackedIssue; onMarkMerged: () => void }) {
   const issueNumber = issue.github_issue_url.split('/').pop();
 
   return (
-    <div className="bg-white border border-blue-200 p-6 flex flex-col transition-shadow hover:shadow-md">
+    <div className="bg-white border border-yellow-200 p-6 flex flex-col transition-shadow hover:shadow-md">
       <div className="flex justify-between items-start mb-4 pb-4 border-b border-zinc-100">
-        <span className="font-mono text-xs font-bold tracking-widest text-blue-700 border border-blue-200 bg-blue-50 px-2 py-1">
-          ASSIGNED
+        <span className="font-mono text-xs font-bold tracking-widest text-yellow-700 border border-yellow-200 bg-yellow-50 px-2 py-1">
+          UNDER REVIEW
         </span>
       </div>
 
@@ -40,50 +34,34 @@ function AssignedCard({
           rel="noopener noreferrer"
           className="bg-zinc-900 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
         >
-          View Issue <ExternalLink size={14} className="ml-2" />
+          View PR / Issue <ExternalLink size={14} className="ml-2" />
         </a>
         <button
-          onClick={onMarkUnderReview}
-          className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm"
+          onClick={onMarkMerged}
+          className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm"
         >
-          👀 Mark Under Review
+          🎉 Mark Merged
         </button>
       </div>
     </div>
   );
 }
 
-export function AssignedPage() {
+export function ReviewPage() {
   const ctx = useOutletContext<MissionControlContextType>();
 
-  const assignedIssues = ctx.trackedIssues.filter(
-    (i) => i.state === 'ASSIGNED' && !i.contribution_checklist?.under_review,
+  const reviewIssues = ctx.trackedIssues.filter(
+    (i) => i.state === 'ASSIGNED' && i.contribution_checklist?.under_review,
   );
-
-  const handleMarkUnderReview = async (issue: TrackedIssue) => {
-    const currentChecklist = issue.contribution_checklist || {};
-    try {
-      await (ctx as any).supabase?.functions.invoke('tracking', {
-        body: {
-          action: 'update_checklist',
-          id: issue.id,
-          checklist: { ...currentChecklist, under_review: true },
-        },
-      });
-      await ctx.fetchPipeline();
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-blue-700 uppercase tracking-widest flex items-center gap-2">
-          <CheckSquare size={16} />
-          Assigned Issues
-          <span className="font-mono text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 border border-blue-100">
-            {assignedIssues.length}
+        <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
+          <Eye size={16} className="text-zinc-400" />
+          Under Review
+          <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5">
+            {reviewIssues.length}
           </span>
         </h2>
       </div>
@@ -91,22 +69,22 @@ export function AssignedPage() {
       {ctx.isTrackingLoading ? (
         <div className="flex items-center justify-center py-12 border border-zinc-100 bg-white">
           <Loader2 size={20} className="animate-spin text-zinc-300 mr-3" />
-          <span className="text-zinc-400 font-mono text-xs">Loading assigned issues...</span>
+          <span className="text-zinc-400 font-mono text-xs">Loading review issues...</span>
         </div>
-      ) : assignedIssues.length === 0 ? (
+      ) : reviewIssues.length === 0 ? (
         <div className="bg-zinc-50 border border-zinc-200 p-8 text-center">
-          <p className="text-zinc-500 font-mono text-sm mb-2">No assigned issues yet.</p>
+          <p className="text-zinc-500 font-mono text-sm mb-2">No issues under review.</p>
           <p className="text-zinc-400 font-mono text-xs">
-            Go to the Claimed tab and click "✅ Make Assigned" when a maintainer assigns you.
+            Go to the Assigned tab and click "Mark Under Review" when you submit a PR.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {assignedIssues.map((issue) => (
-            <AssignedCard
+          {reviewIssues.map((issue) => (
+            <ReviewCard
               key={issue.id}
               issue={issue}
-              onMarkUnderReview={() => handleMarkUnderReview(issue)}
+              onMarkMerged={() => ctx.handleUpdateState(issue.id, 'COMPLETED')}
             />
           ))}
         </div>

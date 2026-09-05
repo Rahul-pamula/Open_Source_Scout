@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import type { ScoutedIssue, TrackedIssue, NormalizedIssue } from '../types';
-import { Loader2, Activity, Search, Terminal } from 'lucide-react';
+import { Loader2, Activity, Search, Terminal, Eye, PartyPopper } from 'lucide-react';
 import { useSearchParams, Outlet, Link, useLocation } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
 
@@ -483,6 +483,18 @@ export function MissionControl() {
           className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/assigned') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           <Terminal size={16} /> Assigned
+        </Link>
+        <Link
+          to="/app/review"
+          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/review') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+        >
+          <Eye size={16} /> Under Review
+        </Link>
+        <Link
+          to="/app/merged"
+          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/merged') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+        >
+          <PartyPopper size={16} /> Merged
         </Link>
       </div>
 

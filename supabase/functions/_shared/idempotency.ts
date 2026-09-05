@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import crypto from 'node:crypto';
 import { getSecret } from './secrets.ts';
 
 export class IdempotencyService {
@@ -24,10 +23,14 @@ export class IdempotencyService {
    * Deterministic canonicalization function:
    * SHA-256(repository + issue_number + engagement_intent + normalized_comment)
    */
-  generateIdempotencyKey(repo: string, issueNumber: number, intent: string, draft: string): string {
+  async generateIdempotencyKey(repo: string, issueNumber: number, intent: string, draft: string): Promise<string> {
     const normalizedComment = draft.trim().replace(/\s+/g, ' ');
     const payload = `${repo}:${issueNumber}:${intent}:${normalizedComment}`;
-    return crypto.createHash('sha256').update(payload).digest('hex');
+    const encoder = new TextEncoder();
+    const data = encoder.encode(payload);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -42,7 +45,7 @@ export class IdempotencyService {
     intent: string,
     draft: string
   ): Promise<string> {
-    const key = this.generateIdempotencyKey(repoName, issueNumber, intent, draft);
+    const key = await this.generateIdempotencyKey(repoName, issueNumber, intent, draft);
     const supabase = this.getClient(authHeader);
 
     const { data, error } = await supabase
