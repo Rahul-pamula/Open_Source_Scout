@@ -172,15 +172,11 @@ async function run() {
     process.exit(1);
   }
 
-  // 5. Deploy Frontend (Optional / Instructions)
+  // 5. Success Instructions
   console.log(chalk.bold.green('\n✅ Deployment Complete!'));
   console.log(chalk.gray('\nYour backend is now fully operational on Supabase.'));
-  console.log(chalk.gray('To deploy the frontend to Vercel/Netlify, run:'));
-  console.log(chalk.cyan('  npm run build --prefix apps/web'));
-  console.log(chalk.gray('\nMake sure to set these environment variables in your frontend deployment:'));
-  console.log(chalk.cyan(`  VITE_SUPABASE_URL=https://${projectId}.supabase.co`));
-  console.log(chalk.cyan('  VITE_SUPABASE_ANON_KEY=<your-anon-key>'));
-  console.log(chalk.cyan(`  VITE_GITHUB_CLIENT_ID=<your-github-oauth-client-id>`));
+  console.log(chalk.gray('You can now log in to the Open Source Scout web app using your GitHub account!'));
+  console.log(chalk.cyan.bold('\n👉 https://rahul-pamula.github.io/Open_Source_Scout/'));
   
   console.log(chalk.bold('\nHappy Open Sourcing! 🚀\n'));
   } finally {
