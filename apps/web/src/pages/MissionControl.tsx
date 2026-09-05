@@ -71,13 +71,24 @@ export function MissionControl() {
     let mounted = true;
     supabase
       .from('users')
-      .select('bio, skills, automation_count_today, github_handle')
+      .select('bio, skills, automation_count_today, last_automation_date, github_handle')
       .eq('id', user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (mounted && data) {
           setUserProfile(data);
-          setAutomationCountToday(data.automation_count_today || 0);
+          // Reset count if it's a new day
+          const today = new Date().toISOString().split('T')[0];
+          const lastDate = data.last_automation_date || '';
+          if (lastDate !== today) {
+            setAutomationCountToday(0);
+            supabase
+              .from('users')
+              .update({ automation_count_today: 0, last_automation_date: today })
+              .eq('id', user.id);
+          } else {
+            setAutomationCountToday(data.automation_count_today || 0);
+          }
         }
       });
     fetchPipeline();
@@ -403,11 +414,15 @@ export function MissionControl() {
           },
         });
 
-        // Increment DB counter
-        await supabase.rpc('increment_automation_count', {
-          user_id: user.id,
-          increment_by: 1,
-        });
+        // Increment DB counter directly (RPC uses SECURITY DEFINER which may fail from client)
+        const newCount = automationCountToday + claimedUrls.length + 1;
+        await supabase
+          .from('users')
+          .update({
+            automation_count_today: newCount,
+            last_automation_date: new Date().toISOString().split('T')[0],
+          })
+          .eq('id', user.id);
 
         claimedUrls.push(issue.url);
         successCount++;
