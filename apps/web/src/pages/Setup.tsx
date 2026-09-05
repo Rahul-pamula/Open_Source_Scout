@@ -65,14 +65,30 @@ export function Setup() {
               <Server size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-900">2. Get Supabase Access Token</h3>
+              <h3 className="text-lg font-bold text-zinc-900">2. Get your Supabase API Keys</h3>
               <p className="text-sm text-zinc-600 mt-1 mb-3">
-                This token allows the CLI wizard to push migrations and edge functions to your
-                database.
+                You need both the public anon key for the browser connection and the access token
+                for the CLI deployment.
               </p>
               <ol className="list-decimal pl-5 text-sm text-zinc-700 space-y-2">
                 <li>
-                  Go to your{' '}
+                  In your Supabase project, go to{' '}
+                  <a
+                    href="https://supabase.com/dashboard/project/projectid/settings/api-keys/legacy"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Project Settings -&gt; API -&gt; Legacy API Keys
+                  </a>
+                  .
+                </li>
+                <li>
+                  Copy the <strong>anon key</strong> (starts with <code>eyJ</code>) into the
+                  Scratchpad. This is the public browser key used by the Connect screen.
+                </li>
+                <li>
+                  Then open your{' '}
                   <a
                     href="https://supabase.com/dashboard/account/tokens"
                     target="_blank"
@@ -84,11 +100,9 @@ export function Setup() {
                   .
                 </li>
                 <li>
-                  Click <strong>Generate new token</strong> and give it a name (e.g. "Scout CLI").
-                </li>
-                <li>
-                  Copy the <strong>Supabase Access Token</strong> (starts with <code>sbp_</code>)
-                  into the Scratchpad.
+                  Click <strong>Generate new token</strong>, give it a name, and copy the{' '}
+                  <strong>Supabase Access Token</strong> (starts with <code>sbp_</code>) into the
+                  Scratchpad.
                 </li>
               </ol>
             </div>
