@@ -593,7 +593,7 @@ export function MissionControl() {
           </div>
 
           {/* Pipeline / History Tabs */}
-          <div className="flex border-b border-zinc-200">
+          <div className="flex border-b border-zinc-200 mt-6">
             <button
               onClick={() => setActiveTab('PIPELINE')}
               className={`pb-2 pr-4 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${activeTab === 'PIPELINE' ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
