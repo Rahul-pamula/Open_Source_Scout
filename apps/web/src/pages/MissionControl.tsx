@@ -331,33 +331,73 @@ export function MissionControl() {
     if (isAutomating || !user || !userProfile) return;
 
     if (automationCountToday + automationBatchSize > 25) {
-      setAutomationError(
+      showToast(
+        'error',
         `Cannot exceed 25 automated actions per day. You have ${25 - automationCountToday} left.`,
       );
       return;
     }
 
+    if (scoutedIssues.length === 0) {
+      showToast('error', '⚠️ No scouted issues to automate. Run Discovery first.');
+      return;
+    }
+
     setIsAutomating(true);
     setAutomationError(null);
+    showToast('success', `⚡ Automating ${automationBatchSize} issue(s)... please wait.`);
 
     try {
+      // Step 1: Save the top N scouted issues into tracking as DISCOVERED (so worker can process them)
+      const targets = scoutedIssues.slice(0, automationBatchSize);
+      const savedIds: string[] = [];
+
+      for (const issue of targets) {
+        const { data: saved } = await supabase.functions.invoke('tracking', {
+          body: {
+            action: 'save',
+            issueData: {
+              github_issue_url: issue.url,
+              title: issue.title,
+              repo_name: issue.repoName,
+              match_score: issue.evaluation?.matchScore,
+              claimed_via: 'AUTO',
+              initial_state: 'DISCOVERED', // worker will move to ENGAGED after posting
+            },
+          },
+        });
+        if (saved?.data?.id) savedIds.push(saved.data.id);
+      }
+
+      // Step 2: Trigger the worker to process those DISCOVERED issues
       const { error } = await supabase.functions.invoke('worker', {
         body: { userId: user.id, profile: userProfile, count: automationBatchSize },
       });
 
       if (error) throw new Error(error.message || 'Worker failed to start');
 
-      // Update local count optimistically
+      // Step 3: Update local automation count optimistically
       setAutomationCountToday((prev) => prev + automationBatchSize);
 
-      // We don't await the worker, but we wait a few seconds and refresh pipeline
-      setTimeout(() => {
-        fetchPipeline();
-        handleDiscover();
-      }, 5000);
+      // Step 4: Remove automated issues from discovery list
+      const automatedUrls = new Set(targets.map((i) => i.url));
+      setScoutedIssues((prev) => {
+        const updated = prev.filter((i) => !automatedUrls.has(i.url));
+        sessionStorage.setItem('scout_discovered_issues', JSON.stringify(updated));
+        return updated;
+      });
+
+      // Step 5: Wait for worker to finish then refresh (worker is async, give it time)
+      showToast('success', `✅ Automation triggered! Checking results in 8 seconds...`);
+      setTimeout(async () => {
+        await fetchPipeline();
+        showToast('success', `🎉 Done! Check the Claimed tab for automated issues.`);
+        setIsAutomating(false);
+      }, 8000);
     } catch (err: any) {
-      setAutomationError(err.message || 'Failed to trigger automation');
-    } finally {
+      const msg = err.message || 'Failed to trigger automation';
+      setAutomationError(msg);
+      showToast('error', '❌ ' + msg);
       setIsAutomating(false);
     }
   };
@@ -403,7 +443,7 @@ export function MissionControl() {
       );
     } catch (err: any) {
       console.error('State update failed:', err);
-      alert('Failed to update state: ' + err.message);
+      showToast('error', 'Failed to update state: ' + err.message);
     }
   };
 
