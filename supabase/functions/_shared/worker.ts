@@ -9,12 +9,34 @@ import { rateLimiterService } from './rateLimiter.ts';
 import { idempotencyService } from './idempotency.ts';
 import { auditService } from './audit.ts';
 import type { EngagementIntent, NormalizedIssue } from './types.ts';
+import { getSecret } from './secrets.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = getSecret('SUPABASE_URL') || '';
+const SUPABASE_SERVICE_ROLE_KEY = getSecret('SUPABASE_SERVICE_ROLE_KEY') || '';
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export class AutonomousWorker {
 
-  async runWorker(authHeader: string | undefined, userId: string, profile: any) {
-    console.log(`[Worker] Starting autonomous run for user: ${userId}`);
+  async runWorker(authHeader: string | undefined, userId: string, profile: any, count: number = 5) {
+    console.log(`[Worker] Starting autonomous run for user: ${userId}, count: ${count}`);
     
+    // 0. Check Daily Automation Limits (Max 25/day)
+    const { data: currentCount, error } = await supabase.rpc('increment_automation_count', {
+      user_id: userId,
+      increment_by: 0 // Just peek
+    });
+    
+    if (error) {
+      console.error(`[Worker] Failed to check limits for ${userId}`, error);
+      return;
+    }
+    
+    if (currentCount + count > 25) {
+      console.warn(`[Worker] User ${userId} would exceed daily limit of 25. Current: ${currentCount}`);
+      return; // Or we could just process the remaining allowance, but failing is safer.
+    }
+
     // 1. Fetch Policy
     const policy = await autonomyPolicyService.getPolicy(userId, authHeader);
     
@@ -22,7 +44,11 @@ export class AutonomousWorker {
     const issues = await trackingService.getTrackedIssues(authHeader || '');
     const discoveredIssues = issues.filter(i => i.state === 'DISCOVERED');
     
-    for (const trackedIssue of discoveredIssues) {
+    const targets = discoveredIssues.slice(0, count);
+    
+    let successCount = 0;
+    
+    for (const trackedIssue of targets) {
       const lockKey = `worker_lock_${trackedIssue.id}`;
       const hasLock = await lockService.acquireLock(lockKey);
       
@@ -49,10 +75,10 @@ export class AutonomousWorker {
       }
     }
     
-    console.log(`[Worker] Completed autonomous run for user: ${userId}`);
+    console.log(`[Worker] Completed autonomous run for user: ${userId}. Successes: ${successCount}`);
   }
 
-  private async processIssue(authHeader: string | undefined, userId: string, profile: any, trackedIssue: any, policy: any) {
+  private async processIssue(authHeader: string | undefined, userId: string, profile: any, trackedIssue: any, policy: any): Promise<boolean> {
     const [owner, repo] = trackedIssue.repo_name.split('/');
     const issueNumber = parseInt(trackedIssue.github_issue_url.split('/').pop());
 
@@ -67,7 +93,7 @@ export class AutonomousWorker {
     // Quick early exit if score too low to save tokens on drafting
     if (evaluation.matchScore < policy.minimumMatchScore) {
       await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'REJECTED');
-      return;
+      return false;
     }
 
     // 3. Draft
@@ -88,14 +114,14 @@ export class AutonomousWorker {
         failureReason: safety.reasons.join(', ')
       });
       // Do not reject the issue here, just don't engage autonomously. The user can still L1 manually engage.
-      return;
+      return false;
     }
 
     if (policy.level === 'L2') {
       // Auto-Draft only. Store draft somewhere (in real app, update tracked_issues with draft).
       // For now, just mark state as DRAFTED.
       await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'DRAFTED');
-      return;
+      return false;
     }
 
     if (policy.level === 'L3') {
@@ -128,7 +154,16 @@ export class AutonomousWorker {
         safetyDecision: safety.checks,
         result: 'SUCCESS'
       });
+      
+      // 9. Increment Daily Counter
+      await supabase.rpc('increment_automation_count', {
+        user_id: userId,
+        increment_by: 1
+      });
+      
+      return true;
     }
+    return false;
   }
 }
 

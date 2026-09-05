@@ -12,6 +12,8 @@ import {
   XCircle,
   Search,
   Terminal,
+  History,
+  ShieldAlert,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
@@ -58,6 +60,13 @@ export function MissionControl() {
   const [isTrackingLoading, setIsTrackingLoading] = useState(true);
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [expandedPipelineId, setExpandedPipelineId] = useState<string | null>(null);
+  const [verifiedAssignments, setVerifiedAssignments] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState<'PIPELINE' | 'HISTORY'>('PIPELINE');
+
+  const [automationCountToday, setAutomationCountToday] = useState(0);
+  const [automationBatchSize, setAutomationBatchSize] = useState(1);
+  const [isAutomating, setIsAutomating] = useState(false);
+  const [automationError, setAutomationError] = useState<string | null>(null);
 
   // Initialization & Profile Fetch
   useEffect(() => {
@@ -65,11 +74,14 @@ export function MissionControl() {
     if (user) {
       supabase
         .from('users')
-        .select('bio, skills')
+        .select('bio, skills, automation_count_today')
         .eq('id', user.id)
         .maybeSingle()
         .then(({ data }) => {
-          if (mounted && data) setUserProfile(data);
+          if (mounted && data) {
+            setUserProfile(data);
+            setAutomationCountToday(data.automation_count_today || 0);
+          }
         });
       fetchPipeline();
     }
@@ -254,6 +266,41 @@ export function MissionControl() {
       setSyncStatus({ ...syncStatus, error: err.message || 'Sync failed.' });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleAutomateProcess = async () => {
+    if (isAutomating || !user || !userProfile) return;
+
+    if (automationCountToday + automationBatchSize > 25) {
+      setAutomationError(
+        `Cannot exceed 25 automated actions per day. You have ${25 - automationCountToday} left.`,
+      );
+      return;
+    }
+
+    setIsAutomating(true);
+    setAutomationError(null);
+
+    try {
+      const { error } = await supabase.functions.invoke('worker', {
+        body: { userId: user.id, profile: userProfile, count: automationBatchSize },
+      });
+
+      if (error) throw new Error(error.message || 'Worker failed to start');
+
+      // Update local count optimistically
+      setAutomationCountToday((prev) => prev + automationBatchSize);
+
+      // We don't await the worker, but we wait a few seconds and refresh pipeline
+      setTimeout(() => {
+        fetchPipeline();
+        handleDiscover();
+      }, 5000);
+    } catch (err: any) {
+      setAutomationError(err.message || 'Failed to trigger automation');
+    } finally {
+      setIsAutomating(false);
     }
   };
 
@@ -472,19 +519,99 @@ export function MissionControl() {
           )}
         </div>
 
-        {/* RIGHT: ACTIVE PIPELINE */}
+        {/* RIGHT: ACTIVE PIPELINE & AUTOMATION */}
         <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+          {/* Automation Control Panel */}
+          <div className="bg-white border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
+                🤖 Automate Pipeline
+              </h2>
+              <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 font-bold">
+                {automationCountToday} / 25 TODAY
+              </span>
+            </div>
+
+            <p className="text-xs text-zinc-600 font-mono">
+              Scout will autonomously discover, evaluate, and claim issues on your behalf.
+            </p>
+
+            <div className="flex items-center gap-4 bg-yellow-50 border border-yellow-200 p-3">
+              <ShieldAlert size={20} className="text-yellow-600 shrink-0" />
+              <p className="text-[10px] font-mono text-yellow-800">
+                <strong>WARNING:</strong> Excessive automated engagement may trigger GitHub bot
+                detection. To protect your account, automation is strictly rate-limited to 25 issues
+                per day.
+              </p>
+            </div>
+
+            {automationError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-xs">
+                {automationError}
+              </div>
+            )}
+
+            <div className="flex items-end gap-4 mt-2">
+              <div className="flex flex-col gap-1 w-1/3">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                  Batch Size
+                </label>
+                <select
+                  value={automationBatchSize}
+                  onChange={(e) => setAutomationBatchSize(Number(e.target.value))}
+                  className="w-full bg-zinc-50 border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-zinc-900 focus:ring-0 cursor-pointer"
+                  disabled={isAutomating}
+                >
+                  <option value={1}>1 Issue</option>
+                  <option value={2}>2 Issues</option>
+                  <option value={3}>3 Issues</option>
+                  <option value={4}>4 Issues</option>
+                  <option value={5}>5 Issues</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleAutomateProcess}
+                disabled={isAutomating || automationCountToday >= 25}
+                className={`w-2/3 font-mono text-xs font-bold py-2.5 px-4 border-2 shadow-[2px_2px_0px_#18181b] transition-all flex justify-center items-center gap-2 ${
+                  isAutomating || automationCountToday >= 25
+                    ? 'bg-zinc-200 border-zinc-300 text-zinc-400 shadow-none cursor-not-allowed'
+                    : 'bg-emerald-600 border-zinc-900 text-white hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none'
+                }`}
+              >
+                {isAutomating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> RUNNING...
+                  </>
+                ) : automationCountToday >= 25 ? (
+                  'LIMIT REACHED'
+                ) : (
+                  'AUTOMATE PROCESS'
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Pipeline / History Tabs */}
+          <div className="flex border-b border-zinc-200">
+            <button
+              onClick={() => setActiveTab('PIPELINE')}
+              className={`pb-2 pr-4 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${activeTab === 'PIPELINE' ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+            >
               <Activity size={16} /> Active Pipeline
-            </h2>
-            <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 font-bold">
-              {
-                trackedIssues.filter((i) => i.state !== 'COMPLETED' && i.state !== 'REJECTED')
-                  .length
-              }{' '}
-              ACTIVE
-            </span>
+              <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 ml-1">
+                {
+                  trackedIssues.filter((i) => i.state !== 'COMPLETED' && i.state !== 'REJECTED')
+                    .length
+                }
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('HISTORY')}
+              className={`pb-2 px-4 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${activeTab === 'HISTORY' ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+            >
+              <History size={16} /> Dashboard
+            </button>
           </div>
 
           {trackingError && (
@@ -496,7 +623,7 @@ export function MissionControl() {
           {isTrackingLoading ? (
             <div className="flex flex-col items-center justify-center py-12 border border-zinc-100">
               <Loader2 className="animate-spin text-zinc-400 mb-4" size={24} />
-              <p className="text-zinc-500 font-mono text-xs">Loading pipeline...</p>
+              <p className="text-zinc-500 font-mono text-xs">Loading...</p>
             </div>
           ) : trackedIssues.length === 0 ? (
             <div className="bg-zinc-50 border border-zinc-200 p-8 text-center text-zinc-500 font-mono text-sm">
@@ -505,191 +632,230 @@ export function MissionControl() {
           ) : (
             <div className="flex flex-col border border-zinc-200 shadow-sm bg-white">
               {/* List Rows */}
-              {trackedIssues.map((issue) => {
-                const isExpanded = expandedPipelineId === issue.id;
-                const transitions = getAvailableTransitions(issue.state);
-                const issueNumber = issue.github_issue_url.split('/').pop() || '';
+              {trackedIssues
+                .filter((issue) =>
+                  activeTab === 'PIPELINE'
+                    ? issue.state !== 'COMPLETED' && issue.state !== 'REJECTED'
+                    : issue.state === 'COMPLETED' ||
+                      issue.state === 'ASSIGNED' ||
+                      issue.state === 'REJECTED',
+                )
+                .map((issue) => {
+                  const isExpanded = expandedPipelineId === issue.id;
+                  const transitions = getAvailableTransitions(issue.state);
+                  const issueNumber = issue.github_issue_url.split('/').pop() || '';
 
-                return (
-                  <div
-                    key={issue.id}
-                    className="flex flex-col border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors"
-                  >
-                    {/* Main Row */}
-                    <div className="grid grid-cols-12 gap-3 p-4 items-center">
-                      {/* Title & Metadata */}
-                      <div className="col-span-6 flex flex-col gap-1 pr-2">
-                        <span
-                          className="font-semibold text-sm text-zinc-900 truncate"
-                          title={issue.title}
-                        >
-                          {issue.title}
-                        </span>
-                        <div className="flex items-center gap-2 font-mono text-[9px] text-zinc-500">
-                          <span className="truncate">
-                            {issue.repo_name} #{issueNumber}
+                  return (
+                    <div
+                      key={issue.id}
+                      className="flex flex-col border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-colors"
+                    >
+                      {/* Main Row */}
+                      <div className="grid grid-cols-12 gap-3 p-4 items-center">
+                        {/* Title & Metadata */}
+                        <div className="col-span-6 flex flex-col gap-1 pr-2">
+                          <span
+                            className="font-semibold text-sm text-zinc-900 truncate"
+                            title={issue.title}
+                          >
+                            {issue.title}
                           </span>
-                          {issue.match_score && (
-                            <>
-                              <span>·</span>
-                              <span
-                                className={
-                                  issue.match_score >= 80 ? 'text-emerald-600 font-bold' : ''
-                                }
-                              >
-                                {issue.match_score}% MATCH
-                              </span>
-                            </>
+                          <div className="flex items-center gap-2 font-mono text-[9px] text-zinc-500">
+                            <span className="truncate">
+                              {issue.repo_name} #{issueNumber}
+                            </span>
+                            {issue.match_score && (
+                              <>
+                                <span>·</span>
+                                <span
+                                  className={
+                                    issue.match_score >= 80 ? 'text-emerald-600 font-bold' : ''
+                                  }
+                                >
+                                  {issue.match_score}% MATCH
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {issue.contribution_checklist && (
+                            <div className="flex items-center gap-1 mt-1 text-[9px] font-mono font-bold uppercase text-emerald-600">
+                              <Terminal size={10} />
+                              {Object.values(issue.contribution_checklist).filter(Boolean).length}/4
+                              Checklist
+                            </div>
                           )}
                         </div>
-                        {issue.contribution_checklist && (
-                          <div className="flex items-center gap-1 mt-1 text-[9px] font-mono font-bold uppercase text-emerald-600">
-                            <Terminal size={10} />
-                            {Object.values(issue.contribution_checklist).filter(Boolean).length}/4
-                            Checklist
-                          </div>
-                        )}
-                      </div>
 
-                      {/* State Badge */}
-                      <div className="col-span-3 flex items-center justify-center">
-                        <span
-                          className={`font-mono text-[9px] px-2 py-1 border font-bold uppercase tracking-wider ${
-                            issue.state === 'COMPLETED'
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                              : issue.state === 'REJECTED'
-                                ? 'border-red-200 bg-red-50 text-red-700'
-                                : issue.state === 'ASSIGNED' || issue.state === 'ENGAGED'
-                                  ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                  : 'border-zinc-200 bg-zinc-50 text-zinc-700'
-                          }`}
-                        >
-                          {issue.state}
-                        </span>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="col-span-3 flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openDossier(issue.github_issue_url)}
-                          className="text-zinc-400 hover:text-zinc-900 transition-colors"
-                          title="Open Dossier"
-                        >
-                          <Search size={14} />
-                        </button>
-                        <a
-                          href={issue.github_issue_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-zinc-400 hover:text-emerald-600 transition-colors"
-                          title="Open on GitHub"
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-
-                        <button
-                          onClick={() => setExpandedPipelineId(isExpanded ? null : issue.id)}
-                          className="flex items-center gap-1 font-mono text-[9px] uppercase font-bold text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-1.5 py-1 bg-white hover:bg-zinc-100 transition-colors"
-                        >
-                          {isExpanded ? 'Close' : 'View'}
-                          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Expanded State Progression Panel */}
-                    {isExpanded && (
-                      <div className="border-t border-zinc-100 bg-zinc-50/80 p-4 flex flex-col gap-4 inset-shadow-sm animate-in slide-in-from-top-2 fade-in duration-200">
-                        {/* Visual State Flow */}
-                        <div className="flex items-center justify-between px-2">
-                          {STATE_FLOW.map((state, index) => {
-                            const isCurrent = issue.state === state;
-                            const isPast =
-                              STATE_FLOW.indexOf(issue.state) > index && issue.state !== 'REJECTED';
-
-                            return (
-                              <div
-                                key={state}
-                                className="flex flex-col items-center flex-1 relative group"
-                              >
-                                {/* Connecting Line */}
-                                {index < STATE_FLOW.length - 1 && (
-                                  <div
-                                    className={`absolute top-2.5 left-1/2 w-full h-[2px] -z-10 ${
-                                      isPast ? 'bg-emerald-400' : 'bg-zinc-200'
-                                    }`}
-                                  />
-                                )}
-
-                                {/* Node */}
-                                <div
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center border-2 mb-1.5 ${
-                                    isCurrent
-                                      ? 'border-emerald-500 bg-emerald-50'
-                                      : isPast
-                                        ? 'border-emerald-500 bg-emerald-500'
-                                        : 'border-zinc-300 bg-white'
-                                  }`}
-                                >
-                                  {isCurrent && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                  )}
-                                  {isPast && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                </div>
-
-                                {/* Label */}
-                                <span
-                                  className={`font-mono text-[8px] uppercase font-bold text-center tracking-widest ${
-                                    isCurrent
-                                      ? 'text-emerald-700'
-                                      : isPast
-                                        ? 'text-zinc-700'
-                                        : 'text-zinc-400'
-                                  }`}
-                                >
-                                  {state}
-                                </span>
-                              </div>
-                            );
-                          })}
+                        {/* State Badge */}
+                        <div className="col-span-3 flex items-center justify-center">
+                          <span
+                            className={`font-mono text-[9px] px-2 py-1 border font-bold uppercase tracking-wider ${
+                              issue.state === 'COMPLETED'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : issue.state === 'REJECTED'
+                                  ? 'border-red-200 bg-red-50 text-red-700'
+                                  : issue.state === 'ASSIGNED' || issue.state === 'ENGAGED'
+                                    ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                    : 'border-zinc-200 bg-zinc-50 text-zinc-700'
+                            }`}
+                          >
+                            {issue.state}
+                          </span>
                         </div>
 
-                        {issue.state === 'REJECTED' && (
-                          <div className="flex justify-center mt-1">
-                            <span className="font-mono text-[10px] text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 flex items-center gap-1.5">
-                              <XCircle size={12} /> ABORTED: REJECTED
-                            </span>
-                          </div>
-                        )}
+                        {/* Actions */}
+                        <div className="col-span-3 flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openDossier(issue.github_issue_url)}
+                            className="text-zinc-400 hover:text-zinc-900 transition-colors"
+                            title="Open Dossier"
+                          >
+                            <Search size={14} />
+                          </button>
+                          <a
+                            href={issue.github_issue_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-zinc-400 hover:text-emerald-600 transition-colors"
+                            title="Open on GitHub"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
 
-                        {/* Transition Controls */}
-                        {transitions.length > 0 && (
-                          <div className="flex flex-col items-center mt-2">
-                            <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">
-                              Available Transitions
-                            </span>
-                            <div className="flex flex-wrap justify-center gap-2">
-                              {transitions.map((targetState) => (
-                                <button
-                                  key={targetState}
-                                  onClick={() => handleStateUpdate(issue.id, targetState)}
-                                  className={`font-mono text-[10px] font-bold px-3 py-1.5 border shadow-sm transition-transform active:scale-95 ${
-                                    targetState === 'REJECTED'
-                                      ? 'bg-white border-red-200 text-red-600 hover:bg-red-50'
-                                      : 'bg-zinc-900 border-zinc-900 text-white shadow-[2px_2px_0px_#10b981] hover:-translate-y-px'
-                                  }`}
-                                >
-                                  Move to {targetState}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                          <button
+                            onClick={() => setExpandedPipelineId(isExpanded ? null : issue.id)}
+                            className="flex items-center gap-1 font-mono text-[9px] uppercase font-bold text-zinc-500 hover:text-zinc-900 border border-zinc-200 px-1.5 py-1 bg-white hover:bg-zinc-100 transition-colors"
+                          >
+                            {isExpanded ? 'Close' : 'View'}
+                            {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+
+                      {/* Expanded State Progression Panel */}
+                      {isExpanded && (
+                        <div className="border-t border-zinc-100 bg-zinc-50/80 p-4 flex flex-col gap-4 inset-shadow-sm animate-in slide-in-from-top-2 fade-in duration-200">
+                          {/* Visual State Flow */}
+                          <div className="flex items-center justify-between px-2">
+                            {STATE_FLOW.map((state, index) => {
+                              const isCurrent = issue.state === state;
+                              const isPast =
+                                STATE_FLOW.indexOf(issue.state) > index &&
+                                issue.state !== 'REJECTED';
+
+                              return (
+                                <div
+                                  key={state}
+                                  className="flex flex-col items-center flex-1 relative group"
+                                >
+                                  {/* Connecting Line */}
+                                  {index < STATE_FLOW.length - 1 && (
+                                    <div
+                                      className={`absolute top-2.5 left-1/2 w-full h-[2px] -z-10 ${
+                                        isPast ? 'bg-emerald-400' : 'bg-zinc-200'
+                                      }`}
+                                    />
+                                  )}
+
+                                  {/* Node */}
+                                  <div
+                                    className={`w-5 h-5 rounded-full flex items-center justify-center border-2 mb-1.5 ${
+                                      isCurrent
+                                        ? 'border-emerald-500 bg-emerald-50'
+                                        : isPast
+                                          ? 'border-emerald-500 bg-emerald-500'
+                                          : 'border-zinc-300 bg-white'
+                                    }`}
+                                  >
+                                    {isCurrent && (
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    )}
+                                    {isPast && (
+                                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                    )}
+                                  </div>
+
+                                  {/* Label */}
+                                  <span
+                                    className={`font-mono text-[8px] uppercase font-bold text-center tracking-widest ${
+                                      isCurrent
+                                        ? 'text-emerald-700'
+                                        : isPast
+                                          ? 'text-zinc-700'
+                                          : 'text-zinc-400'
+                                    }`}
+                                  >
+                                    {state}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {issue.state === 'REJECTED' && (
+                            <div className="flex justify-center mt-1">
+                              <span className="font-mono text-[10px] text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 flex items-center gap-1.5">
+                                <XCircle size={12} /> ABORTED: REJECTED
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Transition Controls */}
+                          {transitions.length > 0 && (
+                            <div className="flex flex-col items-center mt-2">
+                              <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">
+                                Available Transitions
+                              </span>
+                              <div className="flex flex-col items-center gap-3">
+                                {transitions.map((targetState) => {
+                                  const isAssignedTransition = targetState === 'ASSIGNED';
+                                  const isVerified = !!verifiedAssignments[issue.id];
+                                  return (
+                                    <div
+                                      key={targetState}
+                                      className="flex flex-col items-center w-full"
+                                    >
+                                      {isAssignedTransition && (
+                                        <label className="flex items-center gap-2 mb-2 bg-emerald-50 border border-emerald-200 p-2 text-[10px] font-mono text-emerald-800 cursor-pointer w-full justify-center">
+                                          <input
+                                            type="checkbox"
+                                            checked={isVerified}
+                                            onChange={(e) =>
+                                              setVerifiedAssignments({
+                                                ...verifiedAssignments,
+                                                [issue.id]: e.target.checked,
+                                              })
+                                            }
+                                            className="w-3 h-3 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500 cursor-pointer"
+                                          />
+                                          I verify the maintainer has assigned me or replied
+                                          positively.
+                                        </label>
+                                      )}
+                                      <button
+                                        disabled={isAssignedTransition && !isVerified}
+                                        onClick={() => handleStateUpdate(issue.id, targetState)}
+                                        className={`font-mono text-[10px] font-bold px-3 py-1.5 border shadow-sm transition-transform active:scale-95 w-full max-w-[200px] ${
+                                          targetState === 'REJECTED'
+                                            ? 'bg-white border-red-200 text-red-600 hover:bg-red-50'
+                                            : isAssignedTransition && !isVerified
+                                              ? 'bg-zinc-200 border-zinc-300 text-zinc-400 cursor-not-allowed shadow-none'
+                                              : 'bg-zinc-900 border-zinc-900 text-white shadow-[2px_2px_0px_#10b981] hover:-translate-y-px'
+                                        }`}
+                                      >
+                                        Move to {targetState}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
