@@ -49,7 +49,7 @@ You MUST output ONLY valid JSON in the following strict format, with no markdown
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.1-8b-instant', // Fast, cheap model perfect for classification
+      model: 'groq/compound-mini', // Fast, cheap model perfect for classification
       response_format: { type: 'json_object' },
       temperature: 0.1, // Keep it deterministic
     });
@@ -125,7 +125,7 @@ INSTRUCTIONS:
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.1-70b-versatile', // Use 70b for better writing quality
+      model: 'groq/compound', // Use larger model for better writing quality
       response_format: { type: 'json_object' },
       temperature: 0.2, 
     });

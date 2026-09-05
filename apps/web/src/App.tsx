@@ -60,7 +60,7 @@ function App() {
             }
           >
             <Route element={<MissionControl />}>
-              <Route index element={<Navigate to="pipeline" replace />} />
+              <Route index element={<Navigate to="discovery" replace />} />
               <Route path="pipeline" element={<PipelinePage />} />
               <Route path="discovery" element={<DiscoveryPage />} />
               <Route path="automation" element={<AutomationPage />} />

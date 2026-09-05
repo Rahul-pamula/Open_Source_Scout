@@ -427,10 +427,10 @@ export function MissionControl() {
 
       <div className="mb-8 border-b border-zinc-200 flex gap-6">
         <Link
-          to="/app/pipeline"
-          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/pipeline') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+          to="/app/discovery"
+          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/discovery') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
-          <Terminal size={16} /> Pipeline
+          <Search size={16} /> Discovery
         </Link>
         <Link
           to="/app/automation"
@@ -440,10 +440,10 @@ export function MissionControl() {
           Automation
         </Link>
         <Link
-          to="/app/discovery"
-          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/discovery') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+          to="/app/pipeline"
+          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/pipeline') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
-          <Search size={16} /> Discovery
+          <Terminal size={16} /> Pipeline
         </Link>
       </div>
 
