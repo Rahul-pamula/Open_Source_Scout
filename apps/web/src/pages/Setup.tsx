@@ -166,6 +166,101 @@ export function Setup() {
           </div>
 
           {/* Step 4 */}
+          {/* Step 3b: GitHub OAuth App */}
+          <div className="bg-white border border-zinc-200 p-6 flex gap-4 shadow-sm rounded-lg hover:border-emerald-200 transition-colors">
+            <div className="bg-sky-100 p-3 h-fit rounded-full text-sky-700">
+              <Key size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-zinc-900">3.b Create a GitHub OAuth App</h3>
+              <p className="text-sm text-zinc-600 mt-1 mb-3">
+                To enable Sign in with GitHub, register an OAuth App in GitHub and paste the Client
+                ID and Client Secret into the Supabase GitHub provider settings.
+              </p>
+
+              <ol className="list-decimal pl-5 text-sm text-zinc-700 space-y-2">
+                <li>
+                  Open GitHub:{' '}
+                  <a
+                    href="https://github.com/settings/applications/new"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Register a new OAuth App
+                  </a>
+                  .
+                </li>
+                <li>
+                  Fill the form:
+                  <ul className="list-disc pl-5 text-xs text-zinc-600 mt-1 space-y-1">
+                    <li>
+                      <strong>Application name:</strong> Open Source Scout (or your preferred name)
+                    </li>
+                    <li>
+                      <strong>Homepage URL / Site URL:</strong>{' '}
+                      <code className="bg-zinc-100 px-1 rounded">
+                        https://rahul-pamula.github.io/Open_Source_Scout/
+                      </code>
+                    </li>
+                    <li>
+                      <strong>Authorization callback URL:</strong>{' '}
+                      <code
+                        onClick={() =>
+                          navigator.clipboard.writeText(window.location.origin + '/auth/callback')
+                        }
+                        className="bg-zinc-100 px-1 rounded cursor-pointer"
+                        title="Click to copy"
+                      >
+                        https://&lt;YOUR_PROJECT&gt;.supabase.co/auth/v1/callback
+                      </code>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  Click <strong>Register application</strong>. On the next page copy the{' '}
+                  <strong>Client ID</strong> and click <strong>Generate a new client secret</strong>{' '}
+                  to copy the <strong>Client Secret</strong> (GitHub shows the secret only once).
+                </li>
+                <li>
+                  In Supabase Dashboard → <strong>Authentication → Providers → GitHub</strong>:
+                  paste the Client ID and Client Secret and toggle <strong>Enabled</strong>.
+                </li>
+                <li>
+                  In Supabase → <strong>Authentication → URL Configuration</strong> set:
+                  <div className="mt-2 text-xs text-zinc-600">
+                    <div>
+                      Site URL:{' '}
+                      <code className="bg-zinc-100 px-1 rounded">
+                        https://rahul-pamula.github.io/Open_Source_Scout/
+                      </code>
+                    </div>
+                    <div className="mt-1">
+                      Redirect URLs:{' '}
+                      <code className="bg-zinc-100 px-1 rounded">
+                        https://rahul-pamula.github.io/Open_Source_Scout/
+                      </code>{' '}
+                      and{' '}
+                      <code className="bg-zinc-100 px-1 rounded">
+                        https://rahul-pamula.github.io/Open_Source_Scout/*
+                      </code>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  Test by opening:
+                  <div className="mt-2 font-mono text-xs bg-zinc-100 p-2 rounded">
+                    https://&lt;YOUR_PROJECT&gt;.supabase.co/auth/v1/authorize?provider=github&redirect_to=https%3A%2F%2Frahul-pamula.github.io%2FOpen_Source_Scout%2F
+                  </div>
+                </li>
+              </ol>
+
+              <p className="text-xs text-zinc-500 mt-3">
+                Notes: GitHub requires the callback URL to match exactly (no wildcard on GitHub).
+                Only enable Device Flow if you need CLI or device-based auth.
+              </p>
+            </div>
+          </div>
           <div className="bg-zinc-900 border border-zinc-800 p-6 flex gap-4 text-white shadow-md rounded-lg">
             <div className="bg-zinc-800 p-3 h-fit rounded-full text-emerald-400">
               <Terminal size={24} />

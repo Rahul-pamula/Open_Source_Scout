@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Server, GitBranch, Database } from 'lucide-react';
-import { setSupabaseConfig, hasSupabaseConfig } from '../services/supabase';
+import { setSupabaseConfig, hasSupabaseConfig, getSupabaseConfig } from '../services/supabase';
 
 export function Connect() {
   const { signInWithGithub } = useAuth();
@@ -9,6 +9,23 @@ export function Connect() {
   const [url, setUrl] = useState('');
   const [key, setKey] = useState('');
   const isConfigured = hasSupabaseConfig();
+  const stored = getSupabaseConfig();
+
+  const buildAuthorizeUrl = (projectUrl: string) => {
+    const redirect = encodeURIComponent('https://rahul-pamula.github.io/Open_Source_Scout/');
+    const base = projectUrl.replace(/\/$/, '');
+    return `${base}/auth/v1/authorize?provider=github&redirect_to=${redirect}`;
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copied to clipboard');
+    } catch (err) {
+      void err;
+      alert('Unable to copy — please copy manually');
+    }
+  };
 
   const handleConnect = () => {
     const trimmedUrl = url.trim();
@@ -72,6 +89,44 @@ export function Connect() {
               >
                 Connect to Database
               </button>
+              <div className="mt-4 border-t pt-4 text-sm text-zinc-600">
+                <div className="mb-2 font-bold text-zinc-900">Connection helper</div>
+                <div className="mb-2">
+                  Current project:{' '}
+                  <span className="font-mono text-xs">{stored?.url ?? 'Not set'}</span>
+                </div>
+                <div className="mb-3">
+                  Anon key:{' '}
+                  <span className="font-mono text-xs">
+                    {stored?.key ? stored.key.replace(/(.{6}).+(.{4})/, '$1…$2') : 'Not set'}
+                  </span>
+                </div>
+                {stored?.url ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.open(buildAuthorizeUrl(stored.url), '_blank')}
+                      className="px-3 py-1 bg-emerald-600 text-white rounded text-sm"
+                    >
+                      Open Test OAuth
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(buildAuthorizeUrl(stored.url))}
+                      className="px-3 py-1 bg-zinc-100 border text-zinc-800 rounded text-sm"
+                    >
+                      Copy Test URL
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-xs text-zinc-500">
+                    Set your Project URL & Anon Key above, then click Connect to enable the test
+                    links.
+                  </div>
+                )}
+                <div className="mt-3 text-xs text-zinc-500">
+                  Reminder: enable GitHub under Supabase → Authentication → Providers and add the
+                  GitHub Client ID/Secret.
+                </div>
+              </div>
             </div>
           </div>
         ) : (
