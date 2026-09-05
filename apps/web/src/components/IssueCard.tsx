@@ -9,11 +9,11 @@ interface IssueCardProps {
 
 export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
   const { evaluation } = issue;
-  
+
   // Determine score color
   let scoreColor = 'text-zinc-400';
   let scoreLabel = 'UNEVALUATED';
-  
+
   if (evaluation) {
     if (evaluation.matchScore >= 80) {
       scoreColor = 'text-emerald-500';
@@ -35,11 +35,9 @@ export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
           <span className={`font-mono text-xs font-bold tracking-widest ${scoreColor}`}>
             {scoreLabel}
           </span>
-          {evaluation && (
-            <span className="text-zinc-500 text-sm mt-1">{evaluation.intent}</span>
-          )}
+          {evaluation && <span className="text-zinc-500 text-sm mt-1">{evaluation.intent}</span>}
         </div>
-        
+
         {evaluation && (
           <div className={`text-2xl font-bold font-mono ${scoreColor}`}>
             {evaluation.matchScore}%
@@ -49,12 +47,10 @@ export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
 
       {/* Title & Repo */}
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2">
-          {issue.title}
-        </h3>
-        <a 
-          href={issue.repoUrl} 
-          target="_blank" 
+        <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2">{issue.title}</h3>
+        <a
+          href={issue.repoUrl}
+          target="_blank"
           rel="noopener noreferrer"
           className="text-zinc-500 font-mono text-sm hover:text-emerald-600 transition-colors inline-flex items-center"
         >
@@ -66,8 +62,11 @@ export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
       {/* Labels */}
       {issue.labels.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
-          {issue.labels.map(label => (
-            <span key={label} className="bg-zinc-100 text-zinc-600 font-mono text-xs px-2 py-1 border border-zinc-200">
+          {issue.labels.map((label) => (
+            <span
+              key={label}
+              className="bg-zinc-100 text-zinc-600 font-mono text-xs px-2 py-1 border border-zinc-200"
+            >
               {label}
             </span>
           ))}
@@ -80,23 +79,14 @@ export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
           <div className="absolute -top-3 left-4 bg-zinc-50 px-2 text-xs font-bold text-emerald-600 tracking-wider">
             SCOUT ANALYSIS
           </div>
-          <p className="text-zinc-700 text-sm leading-relaxed mt-2">
-            {evaluation.explanation}
-          </p>
+          <p className="text-zinc-700 text-sm leading-relaxed mt-2">{evaluation.explanation}</p>
         </div>
       )}
 
       {/* Footer Actions */}
       <div className="mt-auto flex items-center justify-between pt-4">
-        {onOpenDossier ? (
-          <button 
-            onClick={() => onOpenDossier(issue.url)}
-            className="bg-zinc-900 text-white font-bold py-2 px-6 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
-          >
-            View Issue <ExternalLink size={14} className="ml-2" />
-          </button>
-        ) : (
-          <a 
+        <div className="flex gap-2">
+          <a
             href={issue.url}
             target="_blank"
             rel="noopener noreferrer"
@@ -104,10 +94,19 @@ export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
           >
             View Issue <ExternalLink size={14} className="ml-2" />
           </a>
-        )}
-        
+
+          {onOpenDossier && (
+            <button
+              onClick={() => onOpenDossier(issue.url)}
+              className="bg-white text-zinc-900 font-bold py-2 px-4 shadow-[4px_4px_0px_#d4d4d8] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#d4d4d8] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
+            >
+              Dossier
+            </button>
+          )}
+        </div>
+
         {onSave && (
-          <button 
+          <button
             onClick={() => onSave(issue.id)}
             className="text-zinc-400 hover:text-emerald-500 transition-colors p-2 flex items-center gap-2 text-sm font-medium"
           >

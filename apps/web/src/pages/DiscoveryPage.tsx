@@ -7,7 +7,7 @@ export function DiscoveryPage() {
   const ctx = useOutletContext<MissionControlContextType>();
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
           <Search size={16} className="text-zinc-400" /> Scouted Opportunities
@@ -38,7 +38,7 @@ export function DiscoveryPage() {
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {ctx.scoutedIssues.map((issue) => (
             <IssueCard
               key={issue.id}
