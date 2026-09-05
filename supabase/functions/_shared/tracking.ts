@@ -22,7 +22,7 @@ export class TrackingService {
       'EVALUATED': ['DRAFTED', 'ENGAGED', 'REJECTED'],
       'DRAFTED': ['ENGAGED', 'REJECTED'],
       'ENGAGED': ['ASSIGNED', 'REJECTED'],
-      'ASSIGNED': ['COMPLETED'],
+      'ASSIGNED': ['COMPLETED', 'REJECTED'],
       'COMPLETED': [],
       'REJECTED': []
     };
