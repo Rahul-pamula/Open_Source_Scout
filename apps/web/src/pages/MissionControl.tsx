@@ -88,7 +88,7 @@ export function MissionControl() {
     }
   }, [userProfile, scoutedIssues.length, lastScanTime, isDiscovering]);
 
-  // --- Discovery Logic (Stage 3 Batching) ---
+  // --- Discovery Logic (Search only, no AI eval) ---
   const handleDiscover = async () => {
     if (isDiscovering) return;
     try {
@@ -96,14 +96,13 @@ export function MissionControl() {
       setDiscoveryError(null);
       setDiscoveryStatus('Searching GitHub...');
 
-      const profileStr = userProfile?.bio || 'I am a developer looking for issues.';
       const skillsQuery =
         userProfile && userProfile.skills.length > 0
           ? userProfile.skills.map((s) => `language:${s}`).join(' ')
           : 'language:typescript';
       const dynamicSearchQuery = `is:open is:issue label:"good first issue" ${skillsQuery}`;
 
-      // Step 1: Fetch and Filter
+      // Fetch from GitHub search
       const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
         body: { query: dynamicSearchQuery, limit: 10 },
       });
@@ -124,15 +123,13 @@ export function MissionControl() {
 
       setDiscoveryStatus('Filtering candidates...');
 
+      // Filter out issues already in the pipeline
       const currentTrackedUrls = new Set(trackedIssues.map((t) => t.github_issue_url));
-      const newEligibleIssues = rawEligibleIssues.filter(
-        (issue) => !currentTrackedUrls.has(issue.url),
-      );
+      const newIssues = rawEligibleIssues
+        .filter((issue) => !currentTrackedUrls.has(issue.url))
+        .slice(0, 10);
 
-      // Limit to 5 for AI evaluation (Frontend guard, backed by hard backend guard)
-      const issuesToEvaluate = newEligibleIssues.slice(0, 5);
-
-      if (issuesToEvaluate.length === 0) {
+      if (newIssues.length === 0) {
         setDiscoveryStatus(null);
         setDiscoveryError('Found issues, but they are already in your Active Pipeline.');
         setLastScanTime(Date.now());
@@ -140,53 +137,9 @@ export function MissionControl() {
         return;
       }
 
-      setDiscoveryStatus(`Analyzing ${issuesToEvaluate.length} promising issues...`);
-
-      // Step 2: Batch Evaluate (Single API Request)
-      const { data: evalRes, error: evalReqError } = await supabase.functions.invoke('evaluate', {
-        body: { issues: issuesToEvaluate, profile: profileStr },
-      });
-
-      if (evalReqError) {
-        throw new Error('Batch evaluation failed: ' + evalReqError.message);
-      }
-
-      const evalResults = evalRes?.data || [];
-      const newlyScouted: ScoutedIssue[] = [];
-      let failureCount = 0;
-
-      // Merge results
-      for (const issue of issuesToEvaluate) {
-        const issueId = issue.id || issue.url;
-        const result = evalResults.find((r: any) => r.issueId === issueId);
-
-        if (result && result.success && result.data) {
-          newlyScouted.push({ ...issue, evaluation: result.data });
-        } else {
-          // If evaluation failed for this specific issue, we still keep it but track the failure
-          failureCount++;
-          newlyScouted.push({ ...issue });
-          console.warn(`Evaluation failed for issue ${issueId}:`, result?.error);
-        }
-      }
-
-      // Sort by match score descending
-      newlyScouted.sort(
-        (a, b) => (b.evaluation?.matchScore || 0) - (a.evaluation?.matchScore || 0),
-      );
-
-      setScoutedIssues(newlyScouted); // Updates UI without clearing existing if it failed before this step
-
-      if (failureCount > 0 && failureCount < issuesToEvaluate.length) {
-        setDiscoveryError(
-          `Scout successfully analyzed ${issuesToEvaluate.length - failureCount} issues, but ${failureCount} failed to analyze.`,
-        );
-      } else if (failureCount === issuesToEvaluate.length) {
-        setDiscoveryError('Scout found issues, but AI analysis failed for all of them.');
-      } else {
-        setDiscoveryError(null);
-      }
-
+      // Show issues directly — no AI analysis
+      setScoutedIssues(newIssues as ScoutedIssue[]);
+      setDiscoveryError(null);
       setDiscoveryStatus(null);
       setLastScanTime(Date.now());
     } catch (err: any) {
@@ -194,6 +147,59 @@ export function MissionControl() {
       setDiscoveryStatus(null);
     } finally {
       setIsDiscovering(false);
+    }
+  };
+
+  // --- Claim Issue (post default message, no AI) ---
+  const [claimingIssueUrl, setClaimingIssueUrl] = useState<string | null>(null);
+
+  const handleClaimIssue = async (githubUrl: string) => {
+    if (claimingIssueUrl) return;
+    try {
+      setClaimingIssueUrl(githubUrl);
+      const url = new URL(githubUrl);
+      const parts = url.pathname.split('/').filter(Boolean);
+      if (parts.length < 4 || parts[2] !== 'issues') {
+        throw new Error('Invalid GitHub issue URL');
+      }
+      const [owner, repo, , number] = parts;
+
+      const githubHandle = (userProfile as any)?.github_handle || 'developer';
+      const defaultMessage = `Hi! I'd love to work on this issue. I'm @${githubHandle} and I have experience with the relevant tech stack. Could I be assigned this one? I'll have a fix ready soon! 🙌`;
+
+      const { error } = await supabase.functions.invoke('engage', {
+        body: {
+          owner,
+          repo,
+          number: parseInt(number),
+          draft: defaultMessage,
+          intent: 'REQUEST_ASSIGNMENT',
+        },
+      });
+
+      if (error) throw new Error(error.message);
+
+      // Save to pipeline and remove from scouted list
+      await supabase.functions.invoke('tracking', {
+        body: {
+          action: 'save',
+          issueData: {
+            github_issue_url: githubUrl,
+            title: scoutedIssues.find((i) => i.url === githubUrl)?.title || '',
+            repo_name: `${owner}/${repo}`,
+            match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
+          },
+        },
+      });
+
+      setScoutedIssues((prev) => prev.filter((i) => i.url !== githubUrl));
+      fetchPipeline();
+      alert('✅ Successfully claimed! Your comment has been posted to the GitHub issue.');
+    } catch (err: any) {
+      console.error('Claim failed:', err);
+      alert('❌ Failed to claim issue: ' + (err.message || 'Unknown error'));
+    } finally {
+      setClaimingIssueUrl(null);
     }
   };
 
@@ -373,6 +379,8 @@ export function MissionControl() {
     trackingError,
     handleSaveToPipeline,
     openDossier,
+    claimingIssueUrl,
+    handleClaimIssue,
     isSyncing,
     syncStatus,
     handleSync,

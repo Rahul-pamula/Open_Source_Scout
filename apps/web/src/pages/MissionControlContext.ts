@@ -17,6 +17,8 @@ export interface MissionControlContextType {
   trackingError: string | null;
   handleSaveToPipeline: (issueId: string) => Promise<void>;
   openDossier: (githubUrl: string) => void;
+  claimingIssueUrl: string | null;
+  handleClaimIssue: (githubUrl: string) => Promise<void>;
 
   // Sync
   isSyncing: boolean;

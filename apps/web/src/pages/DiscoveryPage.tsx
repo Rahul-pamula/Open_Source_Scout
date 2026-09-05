@@ -44,7 +44,8 @@ export function DiscoveryPage() {
               key={issue.id}
               issue={issue}
               onSave={ctx.handleSaveToPipeline}
-              onOpenDossier={ctx.openDossier}
+              onClaim={ctx.handleClaimIssue}
+              isClaiming={ctx.claimingIssueUrl === issue.url}
             />
           ))}
         </div>

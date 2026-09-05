@@ -4,10 +4,11 @@ import type { ScoutedIssue } from '../types';
 interface IssueCardProps {
   issue: ScoutedIssue;
   onSave?: (id: string) => void;
-  onOpenDossier?: (url: string) => void;
+  onClaim?: (url: string) => void;
+  isClaiming?: boolean;
 }
 
-export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
+export function IssueCard({ issue, onSave, onClaim, isClaiming }: IssueCardProps) {
   const { evaluation } = issue;
 
   // Determine score color
@@ -95,12 +96,13 @@ export function IssueCard({ issue, onSave, onOpenDossier }: IssueCardProps) {
             View Issue <ExternalLink size={14} className="ml-2" />
           </a>
 
-          {onOpenDossier && (
+          {onClaim && (
             <button
-              onClick={() => onOpenDossier(issue.url)}
-              className="bg-white text-zinc-900 font-bold py-2 px-4 shadow-[4px_4px_0px_#d4d4d8] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#d4d4d8] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
+              onClick={() => onClaim(issue.url)}
+              disabled={isClaiming}
+              className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Dossier
+              {isClaiming ? 'Claiming...' : '🙌 Claim This Issue'}
             </button>
           )}
         </div>
