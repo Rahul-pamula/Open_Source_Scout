@@ -6,9 +6,11 @@ import type { TrackedIssue } from '../types';
 function AssignedCard({
   issue,
   onMarkUnderReview,
+  onMarkDropped,
 }: {
   issue: TrackedIssue;
   onMarkUnderReview: () => void;
+  onMarkDropped: () => void;
 }) {
   const issueNumber = issue.github_issue_url.split('/').pop();
 
@@ -33,20 +35,28 @@ function AssignedCard({
         </a>
       </div>
 
-      <div className="mt-auto flex items-center gap-3 pt-4 border-t border-zinc-100">
-        <a
-          href={issue.github_issue_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-zinc-900 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
-        >
-          View Issue <ExternalLink size={14} className="ml-2" />
-        </a>
+      <div className="mt-auto flex items-center justify-between pt-4 border-t border-zinc-100">
+        <div className="flex gap-2">
+          <a
+            href={issue.github_issue_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-zinc-900 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
+          >
+            View Issue <ExternalLink size={14} className="ml-2" />
+          </a>
+          <button
+            onClick={onMarkUnderReview}
+            className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm"
+          >
+            👀 Mark Under Review
+          </button>
+        </div>
         <button
-          onClick={onMarkUnderReview}
-          className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm"
+          onClick={onMarkDropped}
+          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center"
         >
-          👀 Mark Under Review
+          Drop / Close
         </button>
       </div>
     </div>
@@ -107,6 +117,7 @@ export function AssignedPage() {
               key={issue.id}
               issue={issue}
               onMarkUnderReview={() => handleMarkUnderReview(issue)}
+              onMarkDropped={() => ctx.handleUpdateState(issue.id, 'REJECTED')}
             />
           ))}
         </div>

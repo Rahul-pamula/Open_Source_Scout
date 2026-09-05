@@ -11,6 +11,7 @@ import {
   PartyPopper,
   CheckCircle2,
   XCircle,
+  ArchiveX,
 } from 'lucide-react';
 import { useSearchParams, Outlet, Link, useLocation } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
@@ -293,7 +294,11 @@ export function MissionControl() {
   const fetchPipeline = async () => {
     if (!session?.access_token) return;
     try {
-      setIsTrackingLoading(true);
+      // Only show the global loading spinner on initial load (when trackedIssues is empty)
+      if (trackedIssues.length === 0) {
+        setIsTrackingLoading(true);
+      }
+
       const { data: resData, error: trackError } = await supabase.functions.invoke('tracking', {
         body: { action: 'list' },
       });
@@ -663,6 +668,12 @@ export function MissionControl() {
           className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/merged') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           <PartyPopper size={16} /> Merged
+        </Link>
+        <Link
+          to="/app/dropped"
+          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/dropped') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-red-500'}`}
+        >
+          <ArchiveX size={16} /> Dropped
         </Link>
       </div>
 

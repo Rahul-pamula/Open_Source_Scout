@@ -75,9 +75,9 @@ function ClaimedCard({
         </div>
         <button
           onClick={onMarkNotAssigned}
-          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider"
+          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center"
         >
-          Not Assigned
+          Drop / Close
         </button>
       </div>
     </div>

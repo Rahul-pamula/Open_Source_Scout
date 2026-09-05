@@ -9,6 +9,7 @@ import { AutomationPage } from './pages/AutomationPage';
 import { AssignedPage } from './pages/AssignedPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { MergedPage } from './pages/MergedPage';
+import { DroppedPage } from './pages/DroppedPage';
 import { Identity } from './pages/Identity';
 import { Onboarding } from './pages/Onboarding';
 import { Docs } from './pages/Docs';
@@ -68,6 +69,7 @@ function App() {
               <Route path="assigned" element={<AssignedPage />} />
               <Route path="review" element={<ReviewPage />} />
               <Route path="merged" element={<MergedPage />} />
+              <Route path="dropped" element={<DroppedPage />} />
               {/* Legacy redirect */}
               <Route path="pipeline" element={<Navigate to="/app/automation" replace />} />
             </Route>
