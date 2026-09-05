@@ -471,125 +471,51 @@ export function MissionControl() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* LEFT: SCOUTED OPPORTUNITIES */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] xl:grid-cols-[1fr_400px] gap-8 items-start">
+        {/* LEFT COLUMN: MAIN WORKSPACE */}
         <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-              <Search size={16} /> Scouted Opportunities
-            </h2>
-            <button
-              onClick={handleDiscover}
-              disabled={isDiscovering}
-              className="text-xs font-mono border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1 font-medium disabled:opacity-50"
-            >
-              Scan Now
-            </button>
-          </div>
-
-          {discoveryError && (
-            <div className="bg-red-50 border border-red-200 text-red-600 p-4 font-mono text-sm">
-              [ERROR] {discoveryError}
-            </div>
-          )}
-
-          {scoutedIssues.length === 0 && !isDiscovering && !discoveryError ? (
-            <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center">
-              <p className="text-zinc-500 font-mono text-sm mb-4">
-                No new opportunities in your feed.
-              </p>
-              <button
-                onClick={handleDiscover}
-                className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[2px_2px_0px_#18181b] border border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#18181b] transition-all text-xs"
-              >
-                Trigger Manual Scan
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {scoutedIssues.map((issue) => (
-                <IssueCard
-                  key={issue.id}
-                  issue={issue}
-                  onSave={handleSaveToPipeline}
-                  onOpenDossier={openDossier}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT: ACTIVE PIPELINE & AUTOMATION */}
-        <div className="flex flex-col gap-6">
-          {/* Automation Control Panel */}
-          <div className="bg-white border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
-                🤖 Automate Pipeline
-              </h2>
-              <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 font-bold">
-                {automationCountToday} / 25 TODAY
+          {/* Summary Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
+            <div className="bg-white border border-zinc-200 p-4 flex flex-col shadow-sm">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">
+                Active Pipelines
+              </span>
+              <span className="text-2xl font-mono text-zinc-900">
+                {
+                  trackedIssues.filter((i) => i.state !== 'COMPLETED' && i.state !== 'REJECTED')
+                    .length
+                }
               </span>
             </div>
-
-            <p className="text-xs text-zinc-600 font-mono">
-              Scout will autonomously discover, evaluate, and claim issues on your behalf.
-            </p>
-
-            <div className="flex items-center gap-4 bg-yellow-50 border border-yellow-200 p-3">
-              <ShieldAlert size={20} className="text-yellow-600 shrink-0" />
-              <p className="text-[10px] font-mono text-yellow-800">
-                <strong>WARNING:</strong> Excessive automated engagement may trigger GitHub bot
-                detection. To protect your account, automation is strictly rate-limited to 25 issues
-                per day.
-              </p>
+            <div className="bg-white border border-zinc-200 p-4 flex flex-col shadow-sm">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">
+                Completed
+              </span>
+              <span className="text-2xl font-mono text-zinc-900">
+                {trackedIssues.filter((i) => i.state === 'COMPLETED').length}
+              </span>
             </div>
-
-            {automationError && (
-              <div className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-xs">
-                {automationError}
-              </div>
-            )}
-
-            <div className="flex items-end gap-4 mt-2">
-              <div className="flex flex-col gap-1 w-1/3">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                  Batch Size
-                </label>
-                <select
-                  value={automationBatchSize}
-                  onChange={(e) => setAutomationBatchSize(Number(e.target.value))}
-                  className="w-full bg-zinc-50 border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-zinc-900 focus:ring-0 cursor-pointer"
-                  disabled={isAutomating}
-                >
-                  <option value={1}>1 Issue</option>
-                  <option value={2}>2 Issues</option>
-                  <option value={3}>3 Issues</option>
-                  <option value={4}>4 Issues</option>
-                  <option value={5}>5 Issues</option>
-                </select>
-              </div>
-
-              <button
-                onClick={handleAutomateProcess}
-                disabled={isAutomating || automationCountToday >= 25}
-                className={`w-2/3 font-mono text-xs font-bold py-2.5 px-4 border-2 shadow-[2px_2px_0px_#18181b] transition-all flex justify-center items-center gap-2 ${
-                  isAutomating || automationCountToday >= 25
-                    ? 'bg-zinc-200 border-zinc-300 text-zinc-400 shadow-none cursor-not-allowed'
-                    : 'bg-emerald-600 border-zinc-900 text-white hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none'
-                }`}
-              >
-                {isAutomating ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" /> RUNNING...
-                  </>
-                ) : automationCountToday >= 25 ? (
-                  'LIMIT REACHED'
-                ) : (
-                  'AUTOMATE PROCESS'
-                )}
-              </button>
+            <div className="bg-white border border-zinc-200 p-4 flex flex-col shadow-sm">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">
+                Automation Limit
+              </span>
+              <span className="text-2xl font-mono text-zinc-900">
+                25 <span className="text-[10px] text-zinc-400">/ DAY</span>
+              </span>
             </div>
+            <div className="bg-white border border-zinc-200 p-4 flex flex-col shadow-sm">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">
+                Automated Today
+              </span>
+              <span className="text-2xl font-mono text-emerald-600">{automationCountToday}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mb-2">
+            <Terminal size={18} className="text-zinc-400" />
+            <h2 className="text-lg font-bold text-zinc-900 uppercase tracking-widest">
+              Your Manual Pipeline
+            </h2>
           </div>
 
           {/* Pipeline / History Tabs */}
@@ -856,6 +782,175 @@ export function MissionControl() {
                     </div>
                   );
                 })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: DISCOVERY & AUTOMATION */}
+      <div className="flex flex-col gap-8">
+        {/* Automation Center */}
+        <div className="flex flex-col gap-6">
+          {/* Automation Control Panel */}
+          <div className="bg-white border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] p-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
+                🤖 Automation Center
+              </h2>
+              <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-1 font-bold">
+                {automationCountToday} / 25 TODAY
+              </span>
+            </div>
+
+            <p className="text-xs text-zinc-600 font-mono">
+              Scout will autonomously discover, evaluate, and claim issues on your behalf.
+            </p>
+
+            <div className="flex items-center gap-4 bg-yellow-50 border border-yellow-200 p-3">
+              <ShieldAlert size={20} className="text-yellow-600 shrink-0" />
+              <p className="text-[10px] font-mono text-yellow-800">
+                <strong>WARNING:</strong> Excessive automated engagement may trigger GitHub bot
+                detection. To protect your account, automation is strictly rate-limited to 25 issues
+                per day.
+              </p>
+            </div>
+
+            {automationError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-xs">
+                {automationError}
+              </div>
+            )}
+
+            <div className="flex items-end gap-4 mt-2">
+              <div className="flex flex-col gap-1 w-1/3">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                  Batch Size
+                </label>
+                <select
+                  value={automationBatchSize}
+                  onChange={(e) => setAutomationBatchSize(Number(e.target.value))}
+                  className="w-full bg-zinc-50 border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-zinc-900 focus:ring-0 cursor-pointer"
+                  disabled={isAutomating}
+                >
+                  <option value={1}>1 Issue</option>
+                  <option value={2}>2 Issues</option>
+                  <option value={3}>3 Issues</option>
+                  <option value={4}>4 Issues</option>
+                  <option value={5}>5 Issues</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleAutomateProcess}
+                disabled={isAutomating || automationCountToday >= 25}
+                className={`w-2/3 font-mono text-xs font-bold py-2.5 px-4 border-2 shadow-[2px_2px_0px_#18181b] transition-all flex justify-center items-center gap-2 ${
+                  isAutomating || automationCountToday >= 25
+                    ? 'bg-zinc-200 border-zinc-300 text-zinc-400 shadow-none cursor-not-allowed'
+                    : 'bg-emerald-600 border-zinc-900 text-white hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none'
+                }`}
+              >
+                {isAutomating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> RUNNING...
+                  </>
+                ) : automationCountToday >= 25 ? (
+                  'LIMIT REACHED'
+                ) : (
+                  'AUTOMATE PROCESS'
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Automated Activity Feed */}
+          <div className="bg-zinc-50 border border-zinc-200 p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-zinc-600 uppercase tracking-widest flex items-center gap-2">
+                <Activity
+                  size={14}
+                  className={isAutomating ? 'text-emerald-500 animate-pulse' : 'text-zinc-400'}
+                />
+                Automated Activity
+              </h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              {trackedIssues.length === 0 ? (
+                <p className="text-[10px] font-mono text-zinc-400 italic">
+                  No automated activity yet.
+                </p>
+              ) : (
+                trackedIssues.slice(0, 5).map((issue, idx) => (
+                  <div key={'auto-' + issue.id + '-' + idx} className="flex gap-2 items-start">
+                    <div className="mt-0.5 relative flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                      {idx !== Math.min(trackedIssues.length, 5) - 1 && (
+                        <div className="absolute top-2 w-px h-6 bg-zinc-200"></div>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-zinc-700 capitalize">
+                        {issue.state.toLowerCase()}
+                      </span>
+                      <span className="text-[10px] font-mono text-zinc-500 truncate w-56">
+                        {issue.repo_name} #{issue.github_issue_url.split('/').pop()}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-mono text-zinc-400 ml-auto whitespace-nowrap">
+                      {new Date(issue.updated_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Scouted Opportunities */}
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+              <Search size={16} /> Scouted Opportunities
+            </h2>
+            <button
+              onClick={handleDiscover}
+              disabled={isDiscovering}
+              className="text-xs font-mono border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1 font-medium disabled:opacity-50"
+            >
+              Scan Now
+            </button>
+          </div>
+
+          {discoveryError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-4 font-mono text-sm">
+              [ERROR] {discoveryError}
+            </div>
+          )}
+
+          {scoutedIssues.length === 0 && !isDiscovering && !discoveryError ? (
+            <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center">
+              <p className="text-zinc-500 font-mono text-sm mb-4">
+                No new opportunities in your feed.
+              </p>
+              <button
+                onClick={handleDiscover}
+                className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[2px_2px_0px_#18181b] border border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#18181b] transition-all text-xs"
+              >
+                Trigger Manual Scan
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {scoutedIssues.map((issue) => (
+                <IssueCard
+                  key={issue.id}
+                  issue={issue}
+                  onSave={handleSaveToPipeline}
+                  onOpenDossier={openDossier}
+                />
+              ))}
             </div>
           )}
         </div>
