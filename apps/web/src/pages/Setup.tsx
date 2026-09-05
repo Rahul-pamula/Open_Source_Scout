@@ -120,35 +120,36 @@ export function Setup() {
                 </div>
                 <div>
                   <a
-                    href="https://github.com/settings/tokens?type=beta"
+                    href="https://github.com/settings/tokens"
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-600 hover:underline font-bold text-sm"
                   >
-                    GitHub Fine-grained Personal Access Token
+                    GitHub Classic Personal Access Token
                   </a>
                   <div className="text-xs text-zinc-500 mt-1">
                     <ol className="list-decimal pl-4 space-y-1 mt-1 mb-2">
                       <li>
-                        Click <strong>Generate new token</strong>.
+                        Click <strong>Generate new token (classic)</strong>.
                       </li>
                       <li>
-                        Change the <strong>Expiration</strong> to <strong>1 year</strong> (or
-                        remember to update it when it expires).
+                        Give it a Note (e.g. <strong>Open Source Scout</strong>).
                       </li>
                       <li>
-                        Under <strong>Repository access</strong>, select{' '}
-                        <strong>All repositories</strong>.
+                        Change the <strong>Expiration</strong> to <strong>No expiration</strong> (or
+                        your preferred duration).
                       </li>
                       <li>
-                        Under <strong>Permissions</strong>, click <strong>+ Add permissions</strong>
-                        . Find <strong>Issues</strong> and <strong>Pull Requests</strong> and set
-                        them both to <strong>Read and Write</strong>.
+                        Under <strong>Select scopes</strong>, explicitly check the box for{' '}
+                        <strong>public_repo</strong> (Access public repositories).
+                      </li>
+                      <li>
+                        Scroll down and click <strong>Generate token</strong>.
                       </li>
                     </ol>
-                    <p className="text-xs italic text-zinc-400">
-                      If your GitHub token ever expires, simply generate a new one and run the CLI
-                      setup again.
+                    <p className="text-xs italic text-red-500 font-bold mt-2">
+                      ⚠️ CRITICAL: DO NOT use a "Fine-grained token"! Fine-grained tokens are
+                      blocked from commenting on external open source repositories.
                     </p>
                   </div>
                 </div>
