@@ -45,27 +45,27 @@ export function MissionControl() {
   const [isAutomating, setIsAutomating] = useState(false);
   const [automationError, setAutomationError] = useState<string | null>(null);
 
-  // Initialization & Profile Fetch
+  // Initialization & Profile Fetch — runs only when user ID changes (login/logout)
   useEffect(() => {
+    if (!user?.id) return;
     let mounted = true;
-    if (user) {
-      supabase
-        .from('users')
-        .select('bio, skills, automation_count_today')
-        .eq('id', user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (mounted && data) {
-            setUserProfile(data);
-            setAutomationCountToday(data.automation_count_today || 0);
-          }
-        });
-      fetchPipeline();
-    }
+    supabase
+      .from('users')
+      .select('bio, skills, automation_count_today, github_handle')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (mounted && data) {
+          setUserProfile(data);
+          setAutomationCountToday(data.automation_count_today || 0);
+        }
+      });
+    fetchPipeline();
     return () => {
       mounted = false;
     };
-  }, [user, session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Save discovered issues to session storage when they update
   useEffect(() => {
@@ -174,7 +174,8 @@ export function MissionControl() {
           number: parseInt(number),
           draft: defaultMessage,
           intent: 'REQUEST_ASSIGNMENT',
-          skipRateLimit: true, // Manual claims bypass the automation rate limiter
+          skipRateLimit: true, // Manual claims bypass automation rate limiter
+          skipIdempotency: true, // Manual claims bypass duplicate-check so retries work
         },
       });
 
@@ -324,6 +325,22 @@ export function MissionControl() {
     }
   };
 
+  const handleUpdateState = async (trackedId: string, newState: import('../types').IssueState) => {
+    try {
+      const { error } = await supabase.functions.invoke('tracking', {
+        body: { action: 'update_state', id: trackedId, state: newState },
+      });
+      if (error) throw new Error(error.message);
+      // Optimistically update local state
+      setTrackedIssues((prev) =>
+        prev.map((i) => (i.id === trackedId ? { ...i, state: newState } : i)),
+      );
+    } catch (err: any) {
+      console.error('State update failed:', err);
+      alert('Failed to update state: ' + err.message);
+    }
+  };
+
   // --- URL State (Dossier Side Panel) ---
   const [searchParams, setSearchParams] = useSearchParams();
   const issueParam = searchParams.get('issue'); // expected format: owner/repo/number
@@ -389,6 +406,7 @@ export function MissionControl() {
     openDossier,
     claimingIssueUrl,
     handleClaimIssue,
+    handleUpdateState,
     isSyncing,
     syncStatus,
     handleSync,
@@ -453,13 +471,13 @@ export function MissionControl() {
           className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/automation') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
           <Activity size={16} className={isAutomating ? 'text-emerald-500 animate-pulse' : ''} />{' '}
-          Automation
+          Claimed
         </Link>
         <Link
-          to="/app/pipeline"
-          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/pipeline') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+          to="/app/assigned"
+          className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/assigned') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
-          <Terminal size={16} /> Pipeline
+          <Terminal size={16} /> Assigned
         </Link>
       </div>
 

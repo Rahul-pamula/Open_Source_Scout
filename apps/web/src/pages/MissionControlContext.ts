@@ -19,6 +19,7 @@ export interface MissionControlContextType {
   openDossier: (githubUrl: string) => void;
   claimingIssueUrl: string | null;
   handleClaimIssue: (githubUrl: string) => Promise<void>;
+  handleUpdateState: (trackedId: string, newState: import('../types').IssueState) => Promise<void>;
 
   // Sync
   isSyncing: boolean;

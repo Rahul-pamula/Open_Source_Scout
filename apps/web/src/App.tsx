@@ -4,9 +4,9 @@ import { Landing } from './pages/Landing';
 import { Setup } from './pages/Setup';
 import { Connect } from './pages/Connect';
 import { MissionControl } from './pages/MissionControl';
-import { PipelinePage } from './pages/PipelinePage';
 import { DiscoveryPage } from './pages/DiscoveryPage';
 import { AutomationPage } from './pages/AutomationPage';
+import { AssignedPage } from './pages/AssignedPage';
 import { Identity } from './pages/Identity';
 import { Onboarding } from './pages/Onboarding';
 import { Docs } from './pages/Docs';
@@ -61,9 +61,11 @@ function App() {
           >
             <Route element={<MissionControl />}>
               <Route index element={<Navigate to="discovery" replace />} />
-              <Route path="pipeline" element={<PipelinePage />} />
               <Route path="discovery" element={<DiscoveryPage />} />
               <Route path="automation" element={<AutomationPage />} />
+              <Route path="assigned" element={<AssignedPage />} />
+              {/* Legacy redirect */}
+              <Route path="pipeline" element={<Navigate to="/app/automation" replace />} />
             </Route>
             <Route path="identity" element={<Identity />} />
           </Route>
