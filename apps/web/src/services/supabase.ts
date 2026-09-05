@@ -1,15 +1,54 @@
 import { createClient } from '@supabase/supabase-js';
 
-const getStoredUrl = () => localStorage.getItem('OSS_SUPABASE_URL') || import.meta.env.VITE_SUPABASE_URL;
-const getStoredKey = () => localStorage.getItem('OSS_SUPABASE_ANON_KEY') || import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const hasSupabaseConfig = () => {
-  return !!(getStoredUrl() && getStoredKey());
+const normalizeSupabaseValue = (value: string | null | undefined) => {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
 };
 
+const readStorageItem = (key: string) => {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  return normalizeSupabaseValue(window.localStorage.getItem(key));
+};
+
+const getStoredUrl = () => {
+  return (
+    readStorageItem('OSS_SUPABASE_URL') ||
+    normalizeSupabaseValue(import.meta.env.VITE_SUPABASE_URL) ||
+    null
+  );
+};
+
+const getStoredKey = () => {
+  return (
+    readStorageItem('OSS_SUPABASE_ANON_KEY') ||
+    normalizeSupabaseValue(import.meta.env.VITE_SUPABASE_ANON_KEY) ||
+    null
+  );
+};
+
+export const getSupabaseConfig = () => {
+  const url = getStoredUrl();
+  const key = getStoredKey();
+
+  if (!url || !key) {
+    return null;
+  }
+
+  return { url, key };
+};
+
+export const hasSupabaseConfig = () => !!getSupabaseConfig();
+
 export const setSupabaseConfig = (url: string, key: string) => {
-  localStorage.setItem('OSS_SUPABASE_URL', url);
-  localStorage.setItem('OSS_SUPABASE_ANON_KEY', key);
+  const normalizedUrl = normalizeSupabaseValue(url);
+  const normalizedKey = normalizeSupabaseValue(key);
+
+  if (!normalizedUrl || !normalizedKey) {
+    throw new Error('Supabase URL and anon key are required.');
+  }
+
+  localStorage.setItem('OSS_SUPABASE_URL', normalizedUrl);
+  localStorage.setItem('OSS_SUPABASE_ANON_KEY', normalizedKey);
 };
 
 export const clearSupabaseConfig = () => {
@@ -17,12 +56,26 @@ export const clearSupabaseConfig = () => {
   localStorage.removeItem('OSS_SUPABASE_ANON_KEY');
 };
 
-const supabaseUrl = getStoredUrl();
-const supabaseAnonKey = getStoredKey();
+const getSupabaseClient = () => {
+  const config = getSupabaseConfig();
+  if (!config) {
+    return null;
+  }
 
-// If we don't have the config yet, we can't create the client. 
-// We will create a "dummy" client that throws if used before init, or just return null.
-// But to avoid rewriting the whole app, we'll export it and assume it's only used inside protected routes.
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : ({} as ReturnType<typeof createClient>); // Type coercion to avoid TS errors in the rest of the app, it will throw at runtime if used on Landing page.
+  return createClient(config.url, config.key);
+};
+
+export const supabase = new Proxy({} as any, {
+  get(_target, prop) {
+    const client = getSupabaseClient();
+
+    if (!client) {
+      throw new Error(
+        'Open Source Scout is not connected to a Supabase project. Please configure the project URL and anon key in the Connect screen.',
+      );
+    }
+
+    const value = Reflect.get(client as object, prop);
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
