@@ -123,7 +123,7 @@ async function run() {
     githubToken: process.env.SCOUT_GITHUB_TOKEN || (await prompt({
       type: 'input',
       name: 'githubToken',
-      message: 'GitHub Fine-grained Personal Access Token (Needs Read/Write for Issues & PRs. Set expiration to 1 year):',
+      message: 'GitHub Classic Personal Access Token (Requires "public_repo" scope. Do NOT use Fine-grained tokens as they cannot access external repos):',
       required: true
     })).githubToken,
     groqApiKey: process.env.SCOUT_GROQ_KEY || (await prompt({

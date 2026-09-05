@@ -172,7 +172,7 @@ export function MissionControl() {
       const githubHandle = (userProfile as any)?.github_handle || 'developer';
       const defaultMessage = `Hi! I'd love to work on this issue. I'm @${githubHandle} and I have experience with the relevant tech stack. Could I be assigned this one? I'll have a fix ready soon! 🙌`;
 
-      const { error: engageError } = await supabase.functions.invoke('engage', {
+      const { data, error: engageError } = await supabase.functions.invoke('engage', {
         body: {
           owner,
           repo,
@@ -184,7 +184,24 @@ export function MissionControl() {
         },
       });
 
-      if (engageError) throw new Error(engageError.message);
+      if (engageError) {
+        let actualErrorMessage = engageError.message;
+
+        // Supabase `invoke` wraps the error. The real response body is sometimes in `context` or we can try to parse it.
+        try {
+          if (engageError.context && typeof engageError.context.json === 'function') {
+            const errBody = await engageError.context.json();
+            if (errBody && errBody.error) {
+              actualErrorMessage = errBody.error;
+            }
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+
+        console.error('Parsed engage error:', actualErrorMessage);
+        throw new Error(actualErrorMessage);
+      }
 
       // 1. Save to pipeline
       const { data: savedData } = await supabase.functions.invoke('tracking', {
