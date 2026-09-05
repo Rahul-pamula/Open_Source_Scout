@@ -1,12 +1,40 @@
 {
   "name": "open-source-scout",
   "version": "1.0.0",
-  "description": "CLI to deploy your self-hosted Open Source Scout instance",
-  "main": "bin/setup.js",
+  "description": "Setup wizard for deploying your own Open Source Scout backend with Supabase and Edge Functions.",
+  "homepage": "https://github.com/Rahul-pamula/Open_Source_Scout#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rahul-pamula/Open_Source_Scout.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rahul-pamula/Open_Source_Scout/issues"
+  },
+  "keywords": [
+    "open-source-scout",
+    "supabase",
+    "github",
+    "groq",
+    "setup",
+    "cli"
+  ],
+  "license": "UNLICENSED",
+  "main": "./bin/setup.js",
   "bin": {
     "open-source-scout": "./bin/setup.js"
   },
   "type": "module",
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node ./bin/setup.js",
+    "test": "node --test test/*.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "chalk": "^5.3.0",
     "enquirer": "^2.4.1",

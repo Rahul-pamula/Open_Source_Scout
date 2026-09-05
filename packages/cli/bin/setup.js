@@ -5,9 +5,23 @@ import enquirer from 'enquirer';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 const { prompt } = enquirer;
+const repoUrl = 'https://github.com/Rahul-pamula/Open_Source_Scout.git';
+
+const requestedCommand = process.argv[2];
+if (requestedCommand && !['setup', 'help', '--help', '-h'].includes(requestedCommand)) {
+  console.log(chalk.red(`Unknown command: ${requestedCommand}`));
+  console.log(chalk.cyan('Usage: npx open-source-scout setup'));
+  process.exit(1);
+}
+
+if (requestedCommand === 'help' || requestedCommand === '--help' || requestedCommand === '-h') {
+  console.log(chalk.bold.green('\n🚀 Open Source Scout Setup\n'));
+  console.log(chalk.gray('This wizard deploys your own self-hosted Open Source Scout backend.\n'));
+  console.log(chalk.cyan('Usage: npx open-source-scout setup\n'));
+  process.exit(0);
+}
 
 console.log(chalk.bold.green('\n🚀 Open Source Scout Setup\n'));
 console.log(chalk.gray('This wizard will deploy your own self-hosted, data-sovereign instance of Scout.\n'));
@@ -28,7 +42,7 @@ async function run() {
 
   if (!hasSupabase) {
     console.log(chalk.red('Supabase CLI not found. Please install it first:'));
-    console.log(chalk.cyan('npm i -g supabase-cli'));
+    console.log(chalk.cyan('npm i -g supabase'));
     process.exit(1);
   }
 
@@ -47,13 +61,13 @@ async function run() {
     required: true
   })).projectId;
 
-  const tempDir = '.scout-tmp';
+  const tempDir = path.resolve(process.cwd(), '.scout-tmp');
   const originalCwd = process.cwd();
 
   console.log(chalk.bold('\n📥 Cloning Repository (Invisible Clone)'));
   try {
     if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
-    await execa('git', ['clone', '--depth', '1', 'https://github.com/Rahul-pamula/Open_Source_Scout.git', tempDir], { stdio: 'ignore' });
+    await execa('git', ['clone', '--depth', '1', repoUrl, tempDir], { stdio: 'ignore' });
     process.chdir(tempDir);
     console.log(chalk.green('✅ Repository cloned.'));
   } catch (e) {
@@ -92,9 +106,17 @@ async function run() {
     console.log(chalk.red('\n✖ Failed to push database schema.'));
     
     if (errorOutput.includes('42710') || errorOutput.includes('already exists')) {
-      console.log(chalk.yellow('\n⚠️  Database Schema Already Exists!'));
-      console.log(chalk.gray('It looks like your Supabase database is already configured with the Scout schema.'));
+      console.log(chalk.yellow('\n⚠️ Partial Deployment Detected!'));
+      console.log(chalk.gray('Your Supabase database already contains one or more Scout database objects.'));
+      console.log(chalk.cyan('Manually remove the conflicting object in Supabase, then rerun the setup command.'));
       
+      if (!process.stdin.isTTY) {
+        console.log(chalk.white('\nTo safely recover and retry:'));
+        console.log(chalk.cyan('1. Go to your Supabase Dashboard -> Project Settings -> Database -> "Reset database".'));
+        console.log(chalk.cyan('2. Run the setup command again.'));
+        process.exit(1);
+      }
+
       const { skipMigration } = await prompt({
         type: 'confirm',
         name: 'skipMigration',
