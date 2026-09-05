@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
 @theme {
@@ -8,12 +8,12 @@
   /* Fonts */
   --font-sans: 'Inter', 'Geist', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  
+
   /* Core Colors */
   --color-bg-base: #fafafa;
   --color-surface: #ffffff;
   --color-border-subtle: #e4e4e7;
-  
+
   /* Shadows */
   --shadow-neo: 4px 4px 0px #18181b;
   --shadow-neo-active: 0px 0px 0px #18181b;
@@ -22,10 +22,11 @@
 @layer base {
   body {
     @apply bg-[var(--color-bg-base)] text-zinc-900 font-sans antialiased;
-    
+
     /* Aurora subtle background gradient */
-    background-image: radial-gradient(at 0% 0%, hsla(152, 85%, 90%, 0.4) 0px, transparent 50%),
-                      radial-gradient(at 100% 0%, hsla(220, 85%, 95%, 0.4) 0px, transparent 50%);
+    background-image:
+      radial-gradient(at 0% 0%, hsla(152, 85%, 90%, 0.4) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(220, 85%, 95%, 0.4) 0px, transparent 50%);
     background-attachment: fixed;
     background-repeat: no-repeat;
   }
@@ -36,4 +37,20 @@
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2;
   }
+}
+
+/* Toast Animation */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.25s ease-out forwards;
 }

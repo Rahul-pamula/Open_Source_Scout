@@ -1,10 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
 import type { ScoutedIssue, TrackedIssue, NormalizedIssue } from '../types';
-import { Loader2, Activity, Search, Terminal, Eye, PartyPopper } from 'lucide-react';
+import {
+  Loader2,
+  Activity,
+  Search,
+  Terminal,
+  Eye,
+  PartyPopper,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 import { useSearchParams, Outlet, Link, useLocation } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
+
+type Toast = { id: number; type: 'success' | 'error'; message: string };
 
 export function MissionControl() {
   const location = useLocation();
@@ -44,6 +55,15 @@ export function MissionControl() {
   const [automationBatchSize, setAutomationBatchSize] = useState(1);
   const [isAutomating, setIsAutomating] = useState(false);
   const [automationError, setAutomationError] = useState<string | null>(null);
+
+  // -- Toast Notifications --
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+  }, []);
 
   // Initialization & Profile Fetch — runs only when user ID changes (login/logout)
   useEffect(() => {
@@ -204,18 +224,34 @@ export function MissionControl() {
       }
 
       // 1. Save to pipeline
-      const { data: savedData } = await supabase.functions.invoke('tracking', {
-        body: {
-          action: 'save',
-          issueData: {
-            github_issue_url: githubUrl,
-            title: scoutedIssues.find((i) => i.url === githubUrl)?.title || '',
-            repo_name: `${owner}/${repo}`,
-            match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
-            claimed_via: 'MANUAL',
+      const { data: savedData, error: trackingError } = await supabase.functions.invoke(
+        'tracking',
+        {
+          body: {
+            action: 'save',
+            issueData: {
+              github_issue_url: githubUrl,
+              title: scoutedIssues.find((i) => i.url === githubUrl)?.title || '',
+              repo_name: `${owner}/${repo}`,
+              match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
+              claimed_via: 'MANUAL',
+            },
           },
         },
-      });
+      );
+
+      if (trackingError) {
+        let actualErrorMessage = trackingError.message;
+        try {
+          if (trackingError.context && typeof trackingError.context.json === 'function') {
+            const errBody = await trackingError.context.json();
+            if (errBody && errBody.error) {
+              actualErrorMessage = errBody.error;
+            }
+          }
+        } catch (e) {}
+        throw new Error(`Tracking save failed: ${actualErrorMessage}`);
+      }
 
       // 2. Immediately mark as ENGAGED since comment was posted
       if (savedData?.data?.id) {
@@ -224,11 +260,17 @@ export function MissionControl() {
         });
       }
 
+      // Remove from discovery list and refresh claimed tab
       setScoutedIssues((prev) => prev.filter((i) => i.url !== githubUrl));
+      sessionStorage.setItem(
+        'scout_discovered_issues',
+        JSON.stringify(scoutedIssues.filter((i) => i.url !== githubUrl)),
+      );
       await fetchPipeline();
+      showToast('success', '🎉 Issue claimed! Comment posted. Check the Claimed tab.');
     } catch (err: any) {
       console.error('Claim failed:', err);
-      alert('❌ Failed to claim issue: ' + (err.message || 'Unknown error'));
+      showToast('error', '❌ ' + (err.message || 'Failed to claim issue'));
     } finally {
       setClaimingIssueUrl(null);
     }
@@ -343,7 +385,7 @@ export function MissionControl() {
       fetchPipeline();
     } catch (err: any) {
       console.error(err);
-      alert('Error saving issue. It may already be tracked.');
+      showToast('error', '❌ Error saving issue. It may already be tracked.');
     }
   };
 
@@ -443,6 +485,21 @@ export function MissionControl() {
 
   return (
     <div className="max-w-7xl mx-auto pb-12">
+      {/* Toast Notifications */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium pointer-events-auto animate-fade-in-up transition-all ${
+              t.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
+            }`}
+          >
+            {t.type === 'success' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+            {t.message}
+          </div>
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-end mb-8 border-b border-zinc-200 pb-4">
         <div>
