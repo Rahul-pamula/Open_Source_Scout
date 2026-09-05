@@ -197,7 +197,7 @@ Output ONLY valid JSON in the following strict format:
         reasoning: result.reasoning || ''
       };
     } catch (err: any) {
-      throw new Error(\`Groq Reply Analysis Failed: \${err.message}\`);
+      throw new Error(`Groq Reply Analysis Failed: ${err.message}`);
     }
   }
 }
