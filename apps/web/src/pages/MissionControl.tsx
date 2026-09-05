@@ -339,21 +339,57 @@ export function MissionControl() {
     }
 
     if (scoutedIssues.length === 0) {
-      showToast('error', '⚠️ No scouted issues to automate. Run Discovery first.');
+      showToast('error', '⚠️ No scouted issues. Go to Discovery and click Scan Now first.');
       return;
     }
 
     setIsAutomating(true);
     setAutomationError(null);
-    showToast('success', `⚡ Automating ${automationBatchSize} issue(s)... please wait.`);
 
-    try {
-      // Step 1: Save the top N scouted issues into tracking as DISCOVERED (so worker can process them)
-      const targets = scoutedIssues.slice(0, automationBatchSize);
-      const savedIds: string[] = [];
+    const targets = scoutedIssues.slice(0, automationBatchSize);
+    let successCount = 0;
+    const claimedUrls: string[] = [];
 
-      for (const issue of targets) {
-        const { data: saved } = await supabase.functions.invoke('tracking', {
+    showToast('success', `⚡ Auto-claiming ${targets.length} issue(s)...`);
+
+    for (const issue of targets) {
+      try {
+        const url = new URL(issue.url);
+        const parts = url.pathname.split('/').filter(Boolean);
+        if (parts.length < 4 || parts[2] !== 'issues') continue;
+        const [owner, repo, , number] = parts;
+
+        const githubHandle = (userProfile as any)?.github_handle || 'developer';
+        const autoMessage = `Hi! I'd love to work on this issue. I'm @${githubHandle} and I'm interested in contributing here. Could I be assigned this one? I'll get started right away! 🚀`;
+
+        // Use the same engage function as manual claims — proven to work
+        const { error: engageError } = await supabase.functions.invoke('engage', {
+          body: {
+            owner,
+            repo,
+            number: parseInt(number),
+            draft: autoMessage,
+            intent: 'REQUEST_ASSIGNMENT',
+            skipRateLimit: true,
+            skipIdempotency: true,
+          },
+        });
+
+        if (engageError) {
+          let msg = engageError.message;
+          try {
+            if (engageError.context && typeof engageError.context.json === 'function') {
+              const errBody = await engageError.context.json();
+              if (errBody?.error) msg = errBody.error;
+            }
+          } catch (_) {}
+          console.error(`Auto-claim failed for ${issue.url}:`, msg);
+          showToast('error', `❌ Failed: ${issue.title.slice(0, 40)}... — ${msg}`);
+          continue;
+        }
+
+        // Save to tracking as ENGAGED directly (comment was posted)
+        const { data: savedData } = await supabase.functions.invoke('tracking', {
           body: {
             action: 'save',
             issueData: {
@@ -362,44 +398,45 @@ export function MissionControl() {
               repo_name: issue.repoName,
               match_score: issue.evaluation?.matchScore,
               claimed_via: 'AUTO',
-              initial_state: 'DISCOVERED', // worker will move to ENGAGED after posting
+              initial_state: 'ENGAGED',
             },
           },
         });
-        if (saved?.data?.id) savedIds.push(saved.data.id);
+
+        // Increment DB counter
+        await supabase.rpc('increment_automation_count', {
+          user_id: user.id,
+          increment_by: 1,
+        });
+
+        claimedUrls.push(issue.url);
+        successCount++;
+        showToast('success', `✅ Auto-claimed: ${issue.title.slice(0, 50)}...`);
+      } catch (err: any) {
+        console.error(`Automation error for ${issue.url}:`, err);
+        showToast('error', `❌ Error: ${err.message}`);
       }
+    }
 
-      // Step 2: Trigger the worker to process those DISCOVERED issues (explicit = user consent = L3)
-      const { error } = await supabase.functions.invoke('worker', {
-        body: { userId: user.id, profile: userProfile, count: automationBatchSize, explicit: true },
-      });
-
-      if (error) throw new Error(error.message || 'Worker failed to start');
-
-      // Step 3: Update local automation count optimistically
-      setAutomationCountToday((prev) => prev + automationBatchSize);
-
-      // Step 4: Remove automated issues from discovery list
-      const automatedUrls = new Set(targets.map((i) => i.url));
+    // Remove claimed issues from discovery list
+    if (claimedUrls.length > 0) {
+      const claimedSet = new Set(claimedUrls);
       setScoutedIssues((prev) => {
-        const updated = prev.filter((i) => !automatedUrls.has(i.url));
+        const updated = prev.filter((i) => !claimedSet.has(i.url));
         sessionStorage.setItem('scout_discovered_issues', JSON.stringify(updated));
         return updated;
       });
-
-      // Step 5: Wait for worker to finish then refresh (worker is async, give it time)
-      showToast('success', `✅ Automation triggered! Checking results in 8 seconds...`);
-      setTimeout(async () => {
-        await fetchPipeline();
-        showToast('success', `🎉 Done! Check the Claimed tab for automated issues.`);
-        setIsAutomating(false);
-      }, 8000);
-    } catch (err: any) {
-      const msg = err.message || 'Failed to trigger automation';
-      setAutomationError(msg);
-      showToast('error', '❌ ' + msg);
-      setIsAutomating(false);
+      setAutomationCountToday((prev) => prev + successCount);
+      await fetchPipeline();
+      showToast(
+        'success',
+        `🎉 Done! ${successCount} issue(s) auto-claimed. Check the Claimed tab.`,
+      );
+    } else {
+      showToast('error', '⚠️ No issues were claimed. Check the Discovery tab.');
     }
+
+    setIsAutomating(false);
   };
 
   const handleSaveToPipeline = async (issueId: string) => {
