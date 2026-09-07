@@ -97,6 +97,17 @@ export class TrackingService {
     if (updateError) throw new Error(`Supabase Update Error: ${updateError.message}`);
     return data;
   }
+
+  async updateIssueChecklist(authHeader: string, id: string, checklist: any): Promise<void> {
+    const supabase = this.getClient(authHeader);
+    
+    const { error } = await supabase
+      .from('tracked_issues')
+      .update({ contribution_checklist: checklist })
+      .eq('id', id);
+      
+    if (error) throw new Error(`Supabase Update Error: ${error.message}`);
+  }
 }
 
 export const trackingService = new TrackingService();
