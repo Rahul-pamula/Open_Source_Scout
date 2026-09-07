@@ -1,4 +1,5 @@
 import { useOutletContext } from 'react-router-dom';
+import { useState } from 'react';
 import { CheckSquare, ExternalLink, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { TrackedIssue } from '../types';
@@ -9,10 +10,21 @@ function AssignedCard({
   onMarkDropped,
 }: {
   issue: TrackedIssue;
-  onMarkUnderReview: () => void;
+  onMarkUnderReview: () => Promise<void>;
   onMarkDropped: () => void;
 }) {
+  const [isUpdating, setIsUpdating] = useState(false);
   const issueNumber = issue.github_issue_url.split('/').pop();
+
+  const handleReviewClick = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await onMarkUnderReview();
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-blue-200 p-6 flex flex-col transition-shadow hover:shadow-md">
@@ -46,10 +58,12 @@ function AssignedCard({
             View Issue <ExternalLink size={14} className="ml-2" />
           </a>
           <button
-            onClick={onMarkUnderReview}
-            className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm"
+            onClick={handleReviewClick}
+            disabled={isUpdating}
+            className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-75 disabled:pointer-events-none transition-all text-sm flex items-center gap-2"
           >
-            👀 Mark Under Review
+            {isUpdating ? <Loader2 size={14} className="animate-spin" /> : '👀'}
+            {isUpdating ? 'Updating...' : 'Mark Under Review'}
           </button>
         </div>
         <button
@@ -72,18 +86,7 @@ export function AssignedPage() {
 
   const handleMarkUnderReview = async (issue: TrackedIssue) => {
     const currentChecklist = issue.contribution_checklist || {};
-    try {
-      await (ctx as any).supabase?.functions.invoke('tracking', {
-        body: {
-          action: 'update_checklist',
-          id: issue.id,
-          checklist: { ...currentChecklist, under_review: true },
-        },
-      });
-      await ctx.fetchPipeline();
-    } catch (e) {
-      console.error(e);
-    }
+    await ctx.handleUpdateChecklist(issue.id, { ...currentChecklist, under_review: true });
   };
 
   return (
