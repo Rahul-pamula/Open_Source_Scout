@@ -24,7 +24,7 @@ export class TrackingService {
       'ENGAGED': ['ASSIGNED', 'REJECTED'],
       'ASSIGNED': ['COMPLETED', 'REJECTED'],
       'COMPLETED': [],
-      'REJECTED': []
+      'REJECTED': ['ENGAGED']
     };
 
     return transitions[currentState].includes(nextState);
