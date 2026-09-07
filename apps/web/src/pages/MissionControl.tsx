@@ -216,36 +216,7 @@ export function MissionControl() {
       const githubHandle = (userProfile as any)?.github_handle || 'developer';
       const defaultMessage = `Hi! I'd love to work on this issue. I'm @${githubHandle} and I have experience with the relevant tech stack. Could I be assigned this one? I'll have a fix ready soon! 🙌`;
 
-      const { error: engageError } = await supabase.functions.invoke('engage', {
-        body: {
-          owner,
-          repo,
-          number: parseInt(number),
-          draft: defaultMessage,
-          intent: 'REQUEST_ASSIGNMENT',
-        },
-      });
-
-      if (engageError) {
-        let actualErrorMessage = engageError.message;
-
-        // Supabase `invoke` wraps the error. The real response body is sometimes in `context` or we can try to parse it.
-        try {
-          if (engageError.context && typeof engageError.context.json === 'function') {
-            const errBody = await engageError.context.json();
-            if (errBody && errBody.error) {
-              actualErrorMessage = errBody.error;
-            }
-          }
-        } catch (e) {
-          // ignore parsing error
-        }
-
-        console.error('Parsed engage error:', actualErrorMessage);
-        throw new Error(actualErrorMessage);
-      }
-
-      // 1. Save to pipeline directly as ENGAGED (comment was already posted)
+      // 1. Secure the Lock: Save to pipeline directly as DRAFTED first
       const { data: savedData, error: trackingError } = await supabase.functions.invoke(
         'tracking',
         {
@@ -257,7 +228,7 @@ export function MissionControl() {
               repo_name: `${owner}/${repo}`,
               match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
               claimed_via: 'MANUAL',
-              initial_state: 'ENGAGED', // save directly as ENGAGED, no 2-step race
+              initial_state: 'DRAFTED', // secure lock in DRAFTED before engaging
             },
           },
         },
@@ -276,21 +247,52 @@ export function MissionControl() {
         throw new Error(`Tracking save failed: ${actualErrorMessage}`);
       }
 
-      // 2. If already saved as a different state (duplicate), force-update to ENGAGED
-      if (savedData?.data?.id && savedData.data.state !== 'ENGAGED') {
-        const { error: stateErr } = await supabase.functions.invoke('tracking', {
-          body: { action: 'update_state', id: savedData.data.id, state: 'ENGAGED' },
-        });
-        if (stateErr) console.warn('State update warning:', stateErr.message);
-      }
+      const trackedId = savedData?.data?.id;
 
-      // Remove from discovery list and refresh claimed tab
+      // The issue is now successfully tracked in the DB.
+      // Remove it from the discovery list immediately so it doesn't get stuck if engage fails.
       setScoutedIssues((prev) => prev.filter((i) => i.url !== githubUrl));
       sessionStorage.setItem(
         'scout_discovered_issues',
         JSON.stringify(scoutedIssues.filter((i) => i.url !== githubUrl)),
       );
-      await fetchPipeline();
+      // Fire-and-forget fetch to update the pipeline tabs in the background
+      fetchPipeline();
+
+      // 2. Execute Engagement (Post to GitHub)
+      const { error: engageError } = await supabase.functions.invoke('engage', {
+        body: {
+          owner,
+          repo,
+          number: parseInt(number),
+          draft: defaultMessage,
+          intent: 'REQUEST_ASSIGNMENT',
+        },
+      });
+
+      if (engageError) {
+        let actualErrorMessage = engageError.message;
+        try {
+          if (engageError.context && typeof engageError.context.json === 'function') {
+            const errBody = await engageError.context.json();
+            if (errBody && errBody.error) {
+              actualErrorMessage = errBody.error;
+            }
+          }
+        } catch (e) {}
+        console.error('Parsed engage error:', actualErrorMessage);
+        throw new Error(actualErrorMessage);
+      }
+
+      // 3. Commit State: Update to ENGAGED
+      if (trackedId) {
+        const { error: stateErr } = await supabase.functions.invoke('tracking', {
+          body: { action: 'update_state', id: trackedId, state: 'ENGAGED' },
+        });
+        if (stateErr) console.warn('State update warning:', stateErr.message);
+      }
+
+      await fetchPipeline(); // Final sync after state update
       showToast('success', '🎉 Issue claimed! Comment posted. Check the Claimed tab.');
     } catch (err: any) {
       console.error('Claim failed:', err);
@@ -388,7 +390,40 @@ export function MissionControl() {
         const githubHandle = (userProfile as any)?.github_handle || 'developer';
         const autoMessage = `Hi! I'd love to work on this issue. I'm @${githubHandle} and I'm interested in contributing here. Could I be assigned this one? I'll get started right away! 🚀`;
 
-        // Use the same engage function as manual claims — proven to work
+        // 1. Secure the Lock: Save to tracking as DRAFTED first
+        const { data: savedData, error: trackError } = await supabase.functions.invoke('tracking', {
+          body: {
+            action: 'save',
+            issueData: {
+              github_issue_url: issue.url,
+              title: issue.title,
+              repo_name: issue.repoName,
+              match_score: issue.evaluation?.matchScore,
+              claimed_via: 'AUTO',
+              initial_state: 'DRAFTED',
+            },
+          },
+        });
+
+        if (trackError) {
+          let msg = trackError.message;
+          try {
+            if (trackError.context && typeof trackError.context.json === 'function') {
+              const errBody = await trackError.context.json();
+              if (errBody?.error) msg = errBody.error;
+            }
+          } catch (_) {}
+          console.error(`Auto-claim failed (db lock) for ${issue.url}:`, msg);
+          showToast('error', `❌ Failed: ${issue.title.slice(0, 40)}... — ${msg}`);
+          continue;
+        }
+
+        const trackedId = savedData?.data?.id;
+
+        // Remove from discovery list immediately since it's now tracked
+        claimedUrls.push(issue.url);
+
+        // 2. Execute Engagement (Post Comment)
         const { error: engageError } = await supabase.functions.invoke('engage', {
           body: {
             owner,
@@ -412,23 +447,16 @@ export function MissionControl() {
           continue;
         }
 
-        // Save to tracking as ENGAGED directly (comment was posted)
-        await supabase.functions.invoke('tracking', {
-          body: {
-            action: 'save',
-            issueData: {
-              github_issue_url: issue.url,
-              title: issue.title,
-              repo_name: issue.repoName,
-              match_score: issue.evaluation?.matchScore,
-              claimed_via: 'AUTO',
-              initial_state: 'ENGAGED',
-            },
-          },
-        });
+        // 3. Commit state to ENGAGED
+        if (trackedId) {
+          await supabase.functions.invoke('tracking', {
+            body: { action: 'update_state', id: trackedId, state: 'ENGAGED' },
+          });
+        }
 
         // Increment DB counter directly (RPC uses SECURITY DEFINER which may fail from client)
-        const newCount = automationCountToday + claimedUrls.length + 1;
+        // Only increment if engage actually succeeded
+        const newCount = automationCountToday + successCount + 1;
         await supabase
           .from('users')
           .update({
@@ -437,7 +465,6 @@ export function MissionControl() {
           })
           .eq('id', user.id);
 
-        claimedUrls.push(issue.url);
         successCount++;
         showToast('success', `✅ Auto-claimed: ${issue.title.slice(0, 50)}...`);
       } catch (err: any) {
@@ -446,7 +473,7 @@ export function MissionControl() {
       }
     }
 
-    // Remove claimed issues from discovery list
+    // Remove tracked issues from discovery list
     if (claimedUrls.length > 0) {
       const claimedSet = new Set(claimedUrls);
       setScoutedIssues((prev) => {
@@ -456,12 +483,17 @@ export function MissionControl() {
       });
       setAutomationCountToday((prev) => prev + successCount);
       await fetchPipeline();
-      showToast(
-        'success',
-        `🎉 Done! ${successCount} issue(s) auto-claimed. Check the Claimed tab.`,
-      );
+
+      if (successCount > 0) {
+        showToast(
+          'success',
+          `🎉 Done! ${successCount} issue(s) auto-claimed. Check the Claimed tab.`,
+        );
+      } else {
+        showToast('error', '⚠️ Issues were tracked, but GitHub engagement failed for all of them.');
+      }
     } else {
-      showToast('error', '⚠️ No issues were claimed. Check the Discovery tab.');
+      showToast('error', '⚠️ No issues were successfully tracked or claimed.');
     }
 
     setIsAutomating(false);
