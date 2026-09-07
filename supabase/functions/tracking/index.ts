@@ -56,12 +56,7 @@ serve(async (req) => {
       const { id, checklist } = body
       if (!id || !checklist) throw new Error('Missing tracking ID or checklist')
       
-      const { error } = await trackingService.supabase
-        .from('tracked_issues')
-        .update({ contribution_checklist: checklist })
-        .eq('id', id)
-      
-      if (error) throw error
+      await trackingService.updateIssueChecklist(authHeader as string, id, checklist)
 
       return new Response(
         JSON.stringify({ message: 'Checklist updated successfully' }),
