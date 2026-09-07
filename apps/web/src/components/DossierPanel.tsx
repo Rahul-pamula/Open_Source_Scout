@@ -166,6 +166,56 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
     }
   };
 
+  const handleGenerateAIDraft = async () => {
+    setDraftState('GENERATING');
+    setDraftError(null);
+    try {
+      // 1. Fetch user bio
+      let profileStr = 'I am a developer looking for issues.';
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('users')
+          .select('bio')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (profileData?.bio) profileStr = profileData.bio;
+      }
+
+      // 2. Fetch comments for context
+      let comments = [];
+      try {
+        const { data: commentsRes } = await supabase.functions.invoke('dossier', {
+          body: { action: 'get_comments', owner, repo, number },
+        });
+        if (commentsRes?.data) {
+          comments = commentsRes.data;
+        }
+      } catch (e) {
+        console.warn('Failed to fetch comments for draft generation', e);
+      }
+
+      // 3. Generate Draft
+      const { data: draftRes, error: draftError } = await supabase.functions.invoke('dossier', {
+        body: {
+          action: 'generate_draft',
+          issue,
+          comments,
+          profile: profileStr,
+          intent: 'REQUEST_ASSIGNMENT',
+        },
+      });
+
+      if (draftError) throw new Error(draftError.message || 'Failed to generate AI draft.');
+      if (!draftRes?.data?.draft) throw new Error('No draft returned from AI.');
+
+      setDraftText(draftRes.data.draft);
+      setDraftState('READY');
+    } catch (err: any) {
+      setDraftError(err.message || 'Failed to generate AI draft.');
+      setDraftState('ERROR');
+    }
+  };
+
   const handlePostComment = async () => {
     if (!draftText.trim()) {
       setDraftError('Comment cannot be empty.');
@@ -591,6 +641,18 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                         Select a message template to claim this issue:
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button
+                          onClick={handleGenerateAIDraft}
+                          className="text-left bg-emerald-50 border border-emerald-200 p-4 hover:border-emerald-600 hover:shadow-[4px_4px_0px_#059669] transition-all focus:outline-none focus:ring-2 focus:ring-emerald-600 group md:col-span-2"
+                        >
+                          <div className="font-bold text-emerald-900 mb-1 group-hover:text-emerald-700 transition-colors flex items-center gap-2">
+                            ✨ Context-Aware AI Draft
+                          </div>
+                          <div className="text-xs text-emerald-700 font-mono">
+                            Generate a customized, professional claim draft based on the issue
+                            description, recent comments, and your developer profile.
+                          </div>
+                        </button>
                         {CLAIM_TEMPLATES.map((template) => (
                           <button
                             key={template.id}
@@ -628,9 +690,26 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                         </button>
                       </div>
 
-                      {draftState === 'READY' ||
-                      draftState === 'EDITING' ||
-                      draftState === 'REVIEWING_POST' ? (
+                      {draftState === 'GENERATING' ? (
+                        <div className="bg-emerald-50 border border-emerald-200 p-8 text-center flex flex-col items-center my-4">
+                          <Loader2 size={24} className="animate-spin text-emerald-600 mb-4" />
+                          <p className="font-mono text-xs text-emerald-700 uppercase tracking-widest">
+                            Generating AI Draft...
+                          </p>
+                        </div>
+                      ) : draftState === 'ERROR' ? (
+                        <div className="bg-red-50 border border-red-200 p-6 text-center flex flex-col items-center gap-4 my-4">
+                          <div className="font-mono text-sm text-red-600">{draftError}</div>
+                          <button
+                            onClick={() => setDraftState('IDLE')}
+                            className="bg-white text-zinc-700 font-bold py-2 px-6 border border-zinc-300 hover:bg-zinc-50 text-xs tracking-widest uppercase"
+                          >
+                            Return to Templates
+                          </button>
+                        </div>
+                      ) : draftState === 'READY' ||
+                        draftState === 'EDITING' ||
+                        draftState === 'REVIEWING_POST' ? (
                         <>
                           {draftError && (
                             <div className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-xs">
