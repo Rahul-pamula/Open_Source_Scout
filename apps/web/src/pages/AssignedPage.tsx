@@ -1,29 +1,25 @@
 import { useOutletContext } from 'react-router-dom';
-import { useState } from 'react';
+
 import { CheckSquare, ExternalLink, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { TrackedIssue } from '../types';
 
 function AssignedCard({
   issue,
+  isPending,
   onMarkUnderReview,
   onMarkDropped,
 }: {
   issue: TrackedIssue;
+  isPending?: boolean;
   onMarkUnderReview: () => Promise<void>;
   onMarkDropped: () => void;
 }) {
-  const [isUpdating, setIsUpdating] = useState(false);
   const issueNumber = issue.github_issue_url.split('/').pop();
 
   const handleReviewClick = async () => {
-    if (isUpdating) return;
-    setIsUpdating(true);
-    try {
-      await onMarkUnderReview();
-    } finally {
-      setIsUpdating(false);
-    }
+    if (isPending) return;
+    await onMarkUnderReview();
   };
 
   return (
@@ -59,18 +55,19 @@ function AssignedCard({
           </a>
           <button
             onClick={handleReviewClick}
-            disabled={isUpdating}
-            className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-75 disabled:pointer-events-none transition-all text-sm flex items-center gap-2"
+            disabled={isPending}
+            className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all text-sm flex items-center gap-2"
           >
-            {isUpdating ? <Loader2 size={14} className="animate-spin" /> : '👀'}
-            {isUpdating ? 'Updating...' : 'Mark Under Review'}
+            {isPending ? <Loader2 size={14} className="animate-spin" /> : '👀'}
+            {isPending ? 'Updating...' : 'Mark Under Review'}
           </button>
         </div>
         <button
           onClick={onMarkDropped}
-          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center"
+          disabled={isPending}
+          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center disabled:opacity-50 disabled:pointer-events-none"
         >
-          Drop / Close
+          {isPending ? 'Updating...' : 'Drop / Close'}
         </button>
       </div>
     </div>
@@ -119,6 +116,7 @@ export function AssignedPage() {
             <AssignedCard
               key={issue.id}
               issue={issue}
+              isPending={!!ctx.pendingIssues[issue.id]}
               onMarkUnderReview={() => handleMarkUnderReview(issue)}
               onMarkDropped={() => ctx.handleUpdateState(issue.id, 'REJECTED')}
             />

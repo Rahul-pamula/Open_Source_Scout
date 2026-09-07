@@ -52,6 +52,24 @@ export function MissionControl() {
   const [isTrackingLoading, setIsTrackingLoading] = useState(true);
   const [trackingError, setTrackingError] = useState<string | null>(null);
 
+  const [pendingIssues, setPendingIssues] = useState<Record<string, number>>({});
+  const pendingIssuesRef = useRef<Record<string, number>>({});
+  const pipelineVersionRef = useRef(0);
+
+  const setIssuePending = (id: string, reqId: number | null) => {
+    setPendingIssues((prev) => {
+      const next = { ...prev };
+      if (reqId === null) {
+        delete next[id];
+      } else {
+        next[id] = reqId;
+      }
+      pendingIssuesRef.current = next;
+      return next;
+    });
+    pipelineVersionRef.current += 1;
+  };
+
   const [automationCountToday, setAutomationCountToday] = useState(0);
   const [automationBatchSize, setAutomationBatchSize] = useState(1);
   const [isAutomating, setIsAutomating] = useState(false);
@@ -305,8 +323,11 @@ export function MissionControl() {
   // --- Tracking Logic (From Operations) ---
   const fetchPipeline = async () => {
     if (!session?.access_token) return;
+
+    // Capture version to prevent overwriting optimistic state with stale fetch data
+    const currentVersion = pipelineVersionRef.current;
+
     try {
-      // Only show the global loading spinner on initial load (when trackedIssues is empty)
       if (trackedIssues.length === 0) {
         setIsTrackingLoading(true);
       }
@@ -315,6 +336,13 @@ export function MissionControl() {
         body: { action: 'list' },
       });
       if (trackError) throw new Error('Failed to fetch tracking data: ' + trackError.message);
+
+      if (currentVersion !== pipelineVersionRef.current) {
+        // An optimistic update happened while we were fetching!
+        // Discard this stale response.
+        return;
+      }
+
       setTrackedIssues(resData.data);
     } catch (err: any) {
       console.error('Failed to load tracking:', err);
@@ -529,34 +557,82 @@ export function MissionControl() {
   };
 
   const handleUpdateState = async (trackedId: string, newState: import('../types').IssueState) => {
+    if (pendingIssuesRef.current[trackedId]) return; // Prevent concurrent modifications on same issue
+
+    const issueToUpdate = trackedIssues.find((i) => i.id === trackedId);
+    if (!issueToUpdate) return;
+
+    const previousState = issueToUpdate.state;
+    const reqId = Date.now();
+
+    // 1. Optimistically update local state immediately
+    setTrackedIssues((prev) =>
+      prev.map((i) => (i.id === trackedId ? { ...i, state: newState } : i)),
+    );
+    setIssuePending(trackedId, reqId);
+
     try {
+      // 2. Persist to backend
       const { error } = await supabase.functions.invoke('tracking', {
         body: { action: 'update_state', id: trackedId, state: newState },
       });
       if (error) throw new Error(error.message);
-      // Optimistically update local state
-      setTrackedIssues((prev) =>
-        prev.map((i) => (i.id === trackedId ? { ...i, state: newState } : i)),
-      );
+      // Success! Keep optimistic state.
     } catch (err: any) {
       console.error('State update failed:', err);
-      showToast('error', 'Failed to update state: ' + err.message);
+      // 3. Rollback on failure ONLY if this request is still the active one
+      if (pendingIssuesRef.current[trackedId] === reqId) {
+        setTrackedIssues((prev) =>
+          prev.map((i) => (i.id === trackedId ? { ...i, state: previousState } : i)),
+        );
+        showToast('error', 'Failed to update state: ' + err.message);
+        // Explicitly increment version on rollback to invalidate fetches
+        pipelineVersionRef.current += 1;
+      }
+    } finally {
+      if (pendingIssuesRef.current[trackedId] === reqId) {
+        setIssuePending(trackedId, null);
+      }
     }
   };
 
   const handleUpdateChecklist = async (trackedId: string, checklist: any) => {
+    if (pendingIssuesRef.current[trackedId]) return;
+
+    const issueToUpdate = trackedIssues.find((i) => i.id === trackedId);
+    if (!issueToUpdate) return;
+
+    const previousChecklist = issueToUpdate.contribution_checklist;
+    const reqId = Date.now();
+
+    // 1. Optimistically update local state immediately
+    setTrackedIssues((prev) =>
+      prev.map((i) => (i.id === trackedId ? { ...i, contribution_checklist: checklist } : i)),
+    );
+    setIssuePending(trackedId, reqId);
+
     try {
+      // 2. Persist to backend
       const { error } = await supabase.functions.invoke('tracking', {
         body: { action: 'update_checklist', id: trackedId, checklist },
       });
       if (error) throw new Error(error.message);
-      // Optimistically update local state
-      setTrackedIssues((prev) =>
-        prev.map((i) => (i.id === trackedId ? { ...i, contribution_checklist: checklist } : i)),
-      );
     } catch (err: any) {
       console.error('Checklist update failed:', err);
-      showToast('error', 'Failed to update checklist: ' + err.message);
+      // 3. Rollback on failure ONLY if this request is still the active one
+      if (pendingIssuesRef.current[trackedId] === reqId) {
+        setTrackedIssues((prev) =>
+          prev.map((i) =>
+            i.id === trackedId ? { ...i, contribution_checklist: previousChecklist } : i,
+          ),
+        );
+        showToast('error', 'Failed to update checklist: ' + err.message);
+        pipelineVersionRef.current += 1;
+      }
+    } finally {
+      if (pendingIssuesRef.current[trackedId] === reqId) {
+        setIssuePending(trackedId, null);
+      }
     }
   };
 
@@ -621,6 +697,7 @@ export function MissionControl() {
     trackedIssues,
     isTrackingLoading,
     trackingError,
+    pendingIssues,
     handleSaveToPipeline,
     openDossier,
     claimingIssueUrl,

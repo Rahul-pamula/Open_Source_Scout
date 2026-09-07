@@ -3,7 +3,15 @@ import { Eye, ExternalLink, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { TrackedIssue } from '../types';
 
-function ReviewCard({ issue, onMarkMerged }: { issue: TrackedIssue; onMarkMerged: () => void }) {
+function ReviewCard({
+  issue,
+  isPending,
+  onMarkMerged,
+}: {
+  issue: TrackedIssue;
+  isPending?: boolean;
+  onMarkMerged: () => void;
+}) {
   const issueNumber = issue.github_issue_url.split('/').pop();
 
   return (
@@ -38,9 +46,11 @@ function ReviewCard({ issue, onMarkMerged }: { issue: TrackedIssue; onMarkMerged
         </a>
         <button
           onClick={onMarkMerged}
-          className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm"
+          disabled={isPending}
+          className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
         >
-          🎉 Mark Merged
+          {isPending ? <Loader2 size={14} className="animate-spin" /> : '🎉'}
+          {isPending ? 'Updating...' : 'Mark Merged'}
         </button>
       </div>
     </div>
@@ -84,6 +94,7 @@ export function ReviewPage() {
             <ReviewCard
               key={issue.id}
               issue={issue}
+              isPending={!!ctx.pendingIssues[issue.id]}
               onMarkMerged={() => ctx.handleUpdateState(issue.id, 'COMPLETED')}
             />
           ))}
