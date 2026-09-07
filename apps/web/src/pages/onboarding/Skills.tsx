@@ -168,7 +168,13 @@ export function Skills({ onBack, onComplete, bio, githubHandle }: SkillsProps) {
       onComplete();
     } catch (err) {
       const e = err as Error;
-      setServerError(e.message || 'Failed to save profile. Try again.');
+      if (e.message?.includes("Could not find the 'experience_level' column")) {
+        setServerError(
+          "Database schema is outdated: missing 'experience_level' column. Please run the setup command again or apply the latest database migrations.",
+        );
+      } else {
+        setServerError(e.message || 'Failed to save profile. Try again.');
+      }
     } finally {
       setIsLoading(false);
     }
