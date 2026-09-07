@@ -5,10 +5,12 @@ import type { TrackedIssue } from '../types';
 
 function ClaimedCard({
   issue,
+  isPending,
   onMakeAssigned,
   onMarkNotAssigned,
 }: {
   issue: TrackedIssue;
+  isPending?: boolean;
   onMakeAssigned: () => void;
   onMarkNotAssigned: () => void;
 }) {
@@ -68,16 +70,19 @@ function ClaimedCard({
           </a>
           <button
             onClick={onMakeAssigned}
-            className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm"
+            disabled={isPending}
+            className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
           >
-            ✅ Make Assigned
+            {isPending ? <Loader2 size={14} className="animate-spin" /> : '✅'}
+            {isPending ? 'Updating...' : 'Make Assigned'}
           </button>
         </div>
         <button
           onClick={onMarkNotAssigned}
-          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center"
+          disabled={isPending}
+          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center disabled:opacity-50 disabled:pointer-events-none"
         >
-          Drop / Close
+          {isPending ? 'Updating...' : 'Drop / Close'}
         </button>
       </div>
     </div>
@@ -183,6 +188,7 @@ export function AutomationPage() {
             <ClaimedCard
               key={issue.id}
               issue={issue}
+              isPending={!!ctx.pendingIssues[issue.id]}
               onMakeAssigned={() => ctx.handleUpdateState(issue.id, 'ASSIGNED')}
               onMarkNotAssigned={() => ctx.handleUpdateState(issue.id, 'REJECTED')}
             />

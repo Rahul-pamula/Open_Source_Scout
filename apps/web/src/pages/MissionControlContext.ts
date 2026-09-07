@@ -15,6 +15,7 @@ export interface MissionControlContextType {
   trackedIssues: TrackedIssue[];
   isTrackingLoading: boolean;
   trackingError: string | null;
+  pendingIssues: Record<string, number>;
   handleSaveToPipeline: (issueId: string) => Promise<void>;
   openDossier: (githubUrl: string) => void;
   claimingIssueUrl: string | null;
