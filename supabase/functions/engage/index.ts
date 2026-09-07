@@ -22,7 +22,7 @@ serve(async (req) => {
       })
     }
 
-    const { owner, repo, number, draft, intent, skipRateLimit, skipIdempotency } = await req.json()
+    const { owner, repo, number, draft, intent } = await req.json()
     
     if (!owner || !repo || !number || !draft || !intent) {
       return new Response(JSON.stringify({ error: 'owner, repo, number, draft, and intent are required' }), {
@@ -51,31 +51,24 @@ serve(async (req) => {
 
     const authHeader = req.headers.get('Authorization') || undefined
 
-    // 1. Rate Limits (only for automated flows)
-    if (!skipRateLimit) {
-      await rateLimiterService.checkRateLimits(authHeader, userId, `${owner}/${repo}`)
-    }
+    // 1. Rate Limits
+    await rateLimiterService.checkRateLimits(authHeader, userId, `${owner}/${repo}`)
 
-    // 2. Idempotency (skip for manual one-click claims)
-    let idempotencyKey: string | null = null
-    if (!skipIdempotency) {
-      idempotencyKey = await idempotencyService.checkAndLockEngagement(
-        authHeader,
-        userId,
-        `${owner}/${repo}`,
-        parseInt(number),
-        intent,
-        draft
-      )
-    }
+    // 2. Idempotency
+    const idempotencyKey = await idempotencyService.checkAndLockEngagement(
+      authHeader,
+      userId,
+      `${owner}/${repo}`,
+      parseInt(number),
+      intent,
+      draft
+    )
 
     // 3. Post comment
     const result = await githubAdapter.postComment(owner, repo, parseInt(number), draft)
     
-    // 4. Record success (only when idempotency was checked)
-    if (idempotencyKey) {
-      await idempotencyService.recordSuccessfulEngagement(authHeader, idempotencyKey, result.commentId)
-    }
+    // 4. Record success
+    await idempotencyService.recordSuccessfulEngagement(authHeader, idempotencyKey, result.commentId)
 
     return new Response(JSON.stringify({ data: result }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
