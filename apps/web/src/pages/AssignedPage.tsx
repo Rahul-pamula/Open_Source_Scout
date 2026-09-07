@@ -2,6 +2,7 @@ import { useOutletContext } from 'react-router-dom';
 
 import { CheckSquare, ExternalLink, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
+import { IssueCardSkeleton } from '../components/IssueCard';
 import type { TrackedIssue } from '../types';
 
 function AssignedCard({
@@ -23,42 +24,42 @@ function AssignedCard({
   };
 
   return (
-    <div className="bg-white border border-blue-200 p-6 flex flex-col transition-shadow hover:shadow-md">
-      <div className="flex justify-between items-start mb-4 pb-4 border-b border-zinc-100">
-        <span className="font-mono text-xs font-bold tracking-widest text-blue-700 border border-blue-200 bg-blue-50 px-2 py-1">
+    <div className="bg-white border border-blue-200 p-4 flex flex-col transition-shadow hover:shadow-md h-full">
+      <div className="flex justify-between items-start mb-3 pb-3 border-b border-zinc-100">
+        <span className="font-mono text-[10px] font-bold tracking-widest text-blue-700 border border-blue-200 bg-blue-50 px-2 py-1">
           ASSIGNED
         </span>
       </div>
 
-      <div className="mb-5">
-        <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2">{issue.title}</h3>
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-zinc-900 leading-snug mb-1">{issue.title}</h3>
         <a
           href={issue.github_issue_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-zinc-500 font-mono text-sm hover:text-emerald-600 transition-colors inline-flex items-center"
+          className="text-zinc-500 font-mono text-xs hover:text-emerald-600 transition-colors inline-flex items-center"
         >
           {issue.repo_name} #{issueNumber}
-          <ExternalLink size={12} className="ml-1" />
+          <ExternalLink size={10} className="ml-1" />
         </a>
       </div>
 
-      <div className="mt-auto flex items-center justify-between pt-4 border-t border-zinc-100">
+      <div className="mt-auto flex items-center justify-between pt-3 border-t border-zinc-100">
         <div className="flex gap-2">
           <a
             href={issue.github_issue_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-zinc-900 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"
+            className="bg-zinc-900 text-white font-bold py-1.5 px-4 shadow-[2px_2px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#10b981] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center"
           >
-            View Issue <ExternalLink size={14} className="ml-2" />
+            View Issue <ExternalLink size={12} className="ml-1.5" />
           </a>
           <button
             onClick={handleReviewClick}
             disabled={isPending}
-            className="bg-blue-600 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#1e3a8a] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all text-sm flex items-center gap-2"
+            className="bg-blue-600 text-white font-bold py-1.5 px-3 shadow-[2px_2px_0px_#1e3a8a] border-2 border-blue-800 hover:-translate-y-px hover:shadow-[3px_3px_0px_#1e3a8a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:pointer-events-none transition-all text-xs flex items-center gap-1.5"
           >
-            {isPending ? <Loader2 size={14} className="animate-spin" /> : '👀'}
+            {isPending ? <Loader2 size={12} className="animate-spin" /> : '👀'}
             {isPending ? 'Updating...' : 'Mark Under Review'}
           </button>
         </div>
@@ -99,15 +100,16 @@ export function AssignedPage() {
       </div>
 
       {ctx.isTrackingLoading ? (
-        <div className="flex items-center justify-center py-12 border border-zinc-100 bg-white">
-          <Loader2 size={20} className="animate-spin text-zinc-300 mr-3" />
-          <span className="text-zinc-400 font-mono text-xs">Loading assigned issues...</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <IssueCardSkeleton key={i} />
+          ))}
         </div>
       ) : assignedIssues.length === 0 ? (
-        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center">
-          <p className="text-zinc-500 font-mono text-sm mb-2">No assigned issues yet.</p>
-          <p className="text-zinc-400 font-mono text-xs">
-            Go to the Claimed tab and click "✅ Make Assigned" when a maintainer assigns you.
+        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
+          <p className="text-zinc-500 font-mono text-sm mb-4">
+            No assigned issues yet. Claimed issues that receive a maintainer assignment will appear
+            here.
           </p>
         </div>
       ) : (

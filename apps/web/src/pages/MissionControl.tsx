@@ -717,7 +717,7 @@ export function MissionControl() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto pb-12">
+    <div className="flex flex-col h-full min-h-0 max-w-7xl mx-auto w-full relative">
       {/* Toast Notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((t) => (
@@ -734,7 +734,7 @@ export function MissionControl() {
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-end mb-8 border-b border-zinc-200 pb-4">
+      <div className="flex justify-between items-end mb-6 border-b border-zinc-200 pb-4 shrink-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Mission Control</h1>
           <p className="text-zinc-600 font-mono text-sm">
@@ -771,7 +771,7 @@ export function MissionControl() {
         </div>
       </div>
 
-      <div className="mb-8 border-b border-zinc-200 flex gap-6">
+      <div className="mb-6 border-b border-zinc-200 flex gap-4 md:gap-6 shrink-0 overflow-x-auto overflow-y-hidden">
         <Link
           to="/app/discovery"
           className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 ${location.pathname.includes('/discovery') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
@@ -812,7 +812,9 @@ export function MissionControl() {
       </div>
 
       {/* Main Content Area */}
-      <Outlet context={ctx} />
+      <div className="flex-1 min-h-0 overflow-y-auto pb-12 pr-1 md:pr-4">
+        <Outlet context={ctx} />
+      </div>
 
       {/* Dossier Side Panel Overlay */}
       {dossierProps && (

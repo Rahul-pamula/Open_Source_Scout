@@ -1,7 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
-import { IssueCard } from '../components/IssueCard';
+import { IssueCard, IssueCardSkeleton } from '../components/IssueCard';
 
 export function DiscoveryPage() {
   const ctx = useOutletContext<MissionControlContextType>();
@@ -27,9 +27,17 @@ export function DiscoveryPage() {
         </div>
       )}
 
-      {ctx.scoutedIssues.length === 0 && !ctx.isDiscovering && !ctx.discoveryError ? (
+      {ctx.isDiscovering ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <IssueCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : ctx.scoutedIssues.length === 0 && !ctx.discoveryError ? (
         <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
-          <p className="text-zinc-500 font-mono text-sm mb-4">No new opportunities in your feed.</p>
+          <p className="text-zinc-500 font-mono text-sm mb-4">
+            No issues discovered yet. Run a scan to find issues matched to your profile.
+          </p>
           <button
             onClick={ctx.handleDiscover}
             className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[2px_2px_0px_#18181b] border border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#18181b] transition-all text-xs"

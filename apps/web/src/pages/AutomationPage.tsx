@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { Activity, AlertTriangle, ExternalLink, Loader2, Zap, Plus } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
+import { IssueCardSkeleton } from '../components/IssueCard';
 import type { TrackedIssue } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -262,21 +263,18 @@ export function AutomationPage() {
 
       {/* Claimed issues grid */}
       {ctx.isTrackingLoading ? (
-        <div className="flex items-center justify-center py-12 border border-zinc-100 bg-white">
-          <Loader2 size={20} className="animate-spin text-zinc-300 mr-3" />
-          <span className="text-zinc-400 font-mono text-xs">Loading claimed issues...</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <IssueCardSkeleton key={i} />
+          ))}
         </div>
       ) : claimedIssues.length === 0 ? (
         <div className="bg-zinc-50 border-2 border-dashed border-zinc-200 p-12 text-center flex flex-col items-center">
           <div className="bg-white p-3 rounded-full shadow-sm border border-zinc-200 mb-4 text-zinc-400">
             <Activity size={24} />
           </div>
-          <h3 className="text-lg font-bold text-zinc-900 mb-2">
-            No issues in your claimed pipeline yet.
-          </h3>
-          <p className="text-zinc-500 text-sm mb-6 max-w-md">
-            You can claim an issue from Discovery, let Scout automatically claim matching issues, or
-            add an issue you found yourself.
+          <p className="text-zinc-500 text-sm font-mono mb-6 max-w-md">
+            No claimed issues yet. Claim an issue from Discovery or add an external GitHub issue.
           </p>
           <div className="flex items-center gap-4">
             <Link
