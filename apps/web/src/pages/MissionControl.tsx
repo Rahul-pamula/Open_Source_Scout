@@ -516,6 +516,22 @@ export function MissionControl() {
     }
   };
 
+  const handleUpdateChecklist = async (trackedId: string, checklist: any) => {
+    try {
+      const { error } = await supabase.functions.invoke('tracking', {
+        body: { action: 'update_checklist', id: trackedId, checklist },
+      });
+      if (error) throw new Error(error.message);
+      // Optimistically update local state
+      setTrackedIssues((prev) =>
+        prev.map((i) => (i.id === trackedId ? { ...i, contribution_checklist: checklist } : i)),
+      );
+    } catch (err: any) {
+      console.error('Checklist update failed:', err);
+      showToast('error', 'Failed to update checklist: ' + err.message);
+    }
+  };
+
   // --- URL State (Dossier Side Panel) ---
   const [searchParams, setSearchParams] = useSearchParams();
   const issueParam = searchParams.get('issue'); // expected format: owner/repo/number
@@ -582,6 +598,7 @@ export function MissionControl() {
     claimingIssueUrl,
     handleClaimIssue,
     handleUpdateState,
+    handleUpdateChecklist,
     isSyncing,
     syncStatus,
     handleSync,
