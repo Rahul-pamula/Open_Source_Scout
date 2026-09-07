@@ -56,13 +56,26 @@ export const clearSupabaseConfig = () => {
   localStorage.removeItem('OSS_SUPABASE_ANON_KEY');
 };
 
+// Singleton client instance — created once, reused forever.
+// NEVER call createClient() inside a component or on every render.
+let _cachedClient: ReturnType<typeof createClient> | null = null;
+let _cachedUrl: string | null = null;
+let _cachedKey: string | null = null;
+
 const getSupabaseClient = () => {
   const config = getSupabaseConfig();
-  if (!config) {
-    return null;
+  if (!config) return null;
+
+  // Return existing client if config hasn't changed
+  if (_cachedClient && _cachedUrl === config.url && _cachedKey === config.key) {
+    return _cachedClient;
   }
 
-  return createClient(config.url, config.key);
+  // Config changed (e.g. user set up a new project) — create a fresh client
+  _cachedClient = createClient(config.url, config.key);
+  _cachedUrl = config.url;
+  _cachedKey = config.key;
+  return _cachedClient;
 };
 
 export const supabase = new Proxy({} as any, {
