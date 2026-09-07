@@ -1,55 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabase';
 import { ArrowRight, UserCircle, Code2, Rocket } from 'lucide-react';
 import { Skills } from './onboarding/Skills';
 
 export function Onboarding() {
-  const { session, user } = useAuth();
-  const navigate = useNavigate();
-  
+  const { session, refreshProfile } = useAuth();
+
   const [step, setStep] = useState(1);
   const [bio, setBio] = useState('');
+  const [githubHandle, setGithubHandle] = useState('');
   const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    if (!session) {
-      navigate('/');
-    } else {
-      checkExistingProfile();
-    }
-  }, [session, navigate]);
-
-  const checkExistingProfile = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('bio, skills')
-        .eq('id', user.id)
-        .maybeSingle();
-        
-      if (!error && data && data.bio) {
-        navigate('/');
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleNextStep = () => {
-    if (step === 1 && !bio.trim()) {
-      setError('Please tell us a bit about yourself.');
-      return;
+    if (step === 1) {
+      if (!githubHandle.trim()) {
+        setError('Please enter your GitHub handle.');
+        return;
+      }
+      if (!bio.trim()) {
+        setError('Please tell us a bit about yourself.');
+        return;
+      }
     }
     setError(null);
     setStep(step + 1);
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    await refreshProfile();
     setStep(3);
-    setTimeout(() => navigate('/'), 1200);
   };
 
   if (!session) return null;
@@ -57,29 +36,40 @@ export function Onboarding() {
   return (
     <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[70vh] py-12">
       <div className="w-full bg-white border-2 border-zinc-900 shadow-[8px_8px_0px_#18181b] p-8 md:p-12">
-        
         {/* Progress indicator */}
         <div className="flex justify-between items-center mb-12 border-b-2 border-zinc-100 pb-8">
-          <div className={`flex flex-col items-center gap-2 ${step >= 1 ? 'text-zinc-900' : 'text-zinc-300'}`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${step >= 1 ? 'border-zinc-900 bg-emerald-300' : 'border-zinc-300'}`}>
+          <div
+            className={`flex flex-col items-center gap-2 ${step >= 1 ? 'text-zinc-900' : 'text-zinc-300'}`}
+          >
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${step >= 1 ? 'border-zinc-900 bg-emerald-300' : 'border-zinc-300'}`}
+            >
               <UserCircle size={20} />
             </div>
             <span className="font-mono text-xs font-bold uppercase tracking-wider">Profile</span>
           </div>
-          
+
           <div className={`flex-1 h-0.5 mx-4 ${step >= 2 ? 'bg-zinc-900' : 'bg-zinc-100'}`}></div>
-          
-          <div className={`flex flex-col items-center gap-2 ${step >= 2 ? 'text-zinc-900' : 'text-zinc-300'}`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${step >= 2 ? 'border-zinc-900 bg-emerald-300' : 'border-zinc-300'}`}>
+
+          <div
+            className={`flex flex-col items-center gap-2 ${step >= 2 ? 'text-zinc-900' : 'text-zinc-300'}`}
+          >
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${step >= 2 ? 'border-zinc-900 bg-emerald-300' : 'border-zinc-300'}`}
+            >
               <Code2 size={20} />
             </div>
             <span className="font-mono text-xs font-bold uppercase tracking-wider">Skills</span>
           </div>
-          
+
           <div className={`flex-1 h-0.5 mx-4 ${step >= 3 ? 'bg-zinc-900' : 'bg-zinc-100'}`}></div>
-          
-          <div className={`flex flex-col items-center gap-2 ${step >= 3 ? 'text-zinc-900' : 'text-zinc-300'}`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${step >= 3 ? 'border-zinc-900 bg-emerald-300' : 'border-zinc-300'}`}>
+
+          <div
+            className={`flex flex-col items-center gap-2 ${step >= 3 ? 'text-zinc-900' : 'text-zinc-300'}`}
+          >
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${step >= 3 ? 'border-zinc-900 bg-emerald-300' : 'border-zinc-300'}`}
+            >
               <Rocket size={20} />
             </div>
             <span className="font-mono text-xs font-bold uppercase tracking-wider">Ready</span>
@@ -92,24 +82,53 @@ export function Onboarding() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">Who are you?</h1>
               <p className="text-zinc-500 font-mono text-sm">
-                Write a short bio. Scout uses this to generate context-aware comments and find relevant issues.
+                Provide your GitHub handle and a short bio. Scout uses this to generate
+                context-aware comments.
               </p>
             </div>
 
             {error && (
-              <div id="bio-error" role="alert" className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-sm">
+              <div
+                id="bio-error"
+                role="alert"
+                className="bg-red-50 border border-red-200 text-red-600 p-3 font-mono text-sm"
+              >
                 [ERROR] {error}
               </div>
             )}
-            
-            <textarea
-              id="bio-input"
-              className="w-full border-2 border-zinc-200 p-4 min-h-[160px] font-mono text-sm focus:border-zinc-900 focus:ring-0 outline-none transition-colors resize-y"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              autoFocus
-            />
-            
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="github-handle" className="text-sm font-bold text-zinc-900">
+                GitHub Handle
+              </label>
+              <div className="flex items-center">
+                <span className="bg-zinc-100 border-2 border-r-0 border-zinc-200 p-3 text-zinc-500 font-mono text-sm">
+                  @
+                </span>
+                <input
+                  id="github-handle"
+                  type="text"
+                  className="flex-1 border-2 border-zinc-200 p-3 font-mono text-sm focus:border-zinc-900 focus:ring-0 outline-none transition-colors"
+                  placeholder="username"
+                  value={githubHandle}
+                  onChange={(e) => setGithubHandle(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="bio-input" className="text-sm font-bold text-zinc-900">
+                Developer Bio
+              </label>
+              <textarea
+                id="bio-input"
+                className="w-full border-2 border-zinc-200 p-4 min-h-[120px] font-mono text-sm focus:border-zinc-900 focus:ring-0 outline-none transition-colors resize-y"
+                placeholder="e.g. I am a frontend developer specializing in React and UI/UX."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+              />
+            </div>
+
             <button
               id="bio-continue"
               onClick={handleNextStep}
@@ -124,6 +143,7 @@ export function Onboarding() {
         {step === 2 && (
           <Skills
             bio={bio}
+            githubHandle={githubHandle}
             onBack={() => setStep(1)}
             onComplete={handleComplete}
           />

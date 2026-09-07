@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
 import { Setup } from './pages/Setup';
@@ -16,17 +16,34 @@ import { Docs } from './pages/Docs';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasSupabaseConfig } from './services/supabase';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+function ProtectedRoute({
+  children,
+  requireOnboarding = true,
+}: {
+  children: React.ReactNode;
+  requireOnboarding?: boolean;
+}) {
+  const { user, userProfile, loading } = useAuth();
+  const location = useLocation();
 
   if (!hasSupabaseConfig()) return <Navigate to="/connect" replace />;
   if (loading)
     return (
-      <div className="flex min-h-screen items-center justify-center text-zinc-500">
+      <div className="flex min-h-screen items-center justify-center text-zinc-500 font-mono text-sm">
         Loading session...
       </div>
     );
   if (!user) return <Navigate to="/connect" replace />;
+
+  const hasCompletedOnboarding = !!(userProfile?.bio?.trim() && userProfile?.github_handle?.trim());
+
+  if (requireOnboarding && !hasCompletedOnboarding) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  if (!requireOnboarding && hasCompletedOnboarding && location.pathname === '/onboarding') {
+    return <Navigate to="/app" replace />;
+  }
 
   return <>{children}</>;
 }
@@ -48,7 +65,7 @@ function App() {
           <Route
             path="/onboarding"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireOnboarding={false}>
                 <Onboarding />
               </ProtectedRoute>
             }
@@ -57,7 +74,7 @@ function App() {
           <Route
             path="/app"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireOnboarding={true}>
                 <Layout />
               </ProtectedRoute>
             }

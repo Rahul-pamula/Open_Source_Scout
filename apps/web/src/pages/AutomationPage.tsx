@@ -1,7 +1,9 @@
-import { useOutletContext } from 'react-router-dom';
-import { Activity, AlertTriangle, ExternalLink, Loader2, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { useOutletContext, Link } from 'react-router-dom';
+import { Activity, AlertTriangle, ExternalLink, Loader2, Zap, Plus } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { TrackedIssue } from '../types';
+import { supabase } from '../services/supabase';
 
 function ClaimedCard({
   issue,
@@ -15,9 +17,9 @@ function ClaimedCard({
   onMarkNotAssigned: () => void;
 }) {
   const issueNumber = issue.github_issue_url.split('/').pop();
-  // Detect claim method from state or fallback to AUTO (worker sets state directly)
   const claimedVia = (issue as any).claimed_via || 'AUTO';
   const isManual = claimedVia === 'MANUAL';
+  const isExternal = claimedVia === 'EXTERNAL';
 
   return (
     <div className="bg-white border border-zinc-200 p-6 flex flex-col transition-shadow hover:shadow-md">
@@ -27,10 +29,16 @@ function ClaimedCard({
           className={`font-mono text-xs font-bold tracking-widest px-2 py-1 border ${
             isManual
               ? 'border-blue-200 bg-blue-50 text-blue-700'
-              : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : isExternal
+                ? 'border-purple-200 bg-purple-50 text-purple-700'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-700'
           }`}
         >
-          {isManual ? '🤚 CLAIMED MANUALLY' : '⚡ CLAIMED BY AUTO'}
+          {isManual
+            ? '🤚 CLAIMED MANUALLY'
+            : isExternal
+              ? '🔗 SOURCE: EXTERNAL'
+              : '⚡ CLAIMED BY AUTO'}
         </span>
         <span
           className={`font-mono text-[9px] px-2 py-1 border font-bold uppercase tracking-wider ${
@@ -91,11 +99,53 @@ function ClaimedCard({
 
 export function AutomationPage() {
   const ctx = useOutletContext<MissionControlContextType>();
-
   const claimedIssues = ctx.trackedIssues.filter((i) => i.state === 'ENGAGED');
 
+  const [showExternalInput, setShowExternalInput] = useState(false);
+  const [externalUrl, setExternalUrl] = useState('');
+  const [isAddingExternal, setIsAddingExternal] = useState(false);
+  const [externalError, setExternalError] = useState<string | null>(null);
+
+  const handleAddExternal = async () => {
+    setExternalError(null);
+    if (!externalUrl.trim()) return;
+
+    const urlPattern = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+)$/;
+    if (!urlPattern.test(externalUrl.trim())) {
+      setExternalError(
+        'Invalid GitHub issue URL. Format: https://github.com/owner/repo/issues/123',
+      );
+      return;
+    }
+
+    setIsAddingExternal(true);
+    try {
+      const { error } = await supabase.functions.invoke('tracking', {
+        body: { action: 'fetch_and_save', github_url: externalUrl.trim() },
+      });
+
+      if (error) {
+        let msg = error.message;
+        if (error.context && typeof error.context.json === 'function') {
+          const errBody = await error.context.json().catch(() => null);
+          if (errBody?.error) msg = errBody.error;
+        }
+        throw new Error(msg);
+      }
+
+      setExternalUrl('');
+      setShowExternalInput(false);
+      await ctx.fetchPipeline(); // Refresh pipeline immediately
+    } catch (err: any) {
+      console.error('Failed to add external issue:', err);
+      setExternalError(err.message || 'Failed to add external issue.');
+    } finally {
+      setIsAddingExternal(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full pb-12">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
@@ -130,44 +180,85 @@ export function AutomationPage() {
         </div>
       )}
 
-      {/* Automate control bar */}
-      <div className="flex items-center justify-between border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-zinc-900">Auto-claim from Discovery</span>
-          <span className="text-[10px] font-mono text-zinc-400">
-            Scout will post claim comments on your scouted opportunities automatically.
-          </span>
+      {/* Actions control bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between border border-zinc-200 bg-white p-4 shadow-sm gap-4">
+        {/* Automate from Discovery */}
+        <div className="flex items-center justify-between flex-1 md:border-r border-zinc-200 md:pr-4">
+          <div className="flex flex-col gap-0.5 mr-4">
+            <span className="text-sm font-bold text-zinc-900">Auto-claim from Discovery</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <select
+              value={ctx.automationBatchSize}
+              onChange={(e) => ctx.setAutomationBatchSize(Number(e.target.value))}
+              disabled={ctx.isAutomating || ctx.automationCountToday >= 25}
+              className="border border-zinc-300 p-1.5 text-[10px] font-mono bg-white outline-none focus:border-emerald-500 disabled:bg-zinc-50 disabled:text-zinc-400"
+            >
+              <option value={1}>1 Issue</option>
+              <option value={2}>2 Issues</option>
+              <option value={5}>5 Issues</option>
+            </select>
+            <button
+              onClick={ctx.handleAutomateProcess}
+              disabled={ctx.isAutomating || ctx.automationCountToday >= 25}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-300 text-white font-bold py-1.5 px-3 border-2 border-emerald-800 shadow-[2px_2px_0px_#065f46] hover:-translate-y-px hover:shadow-[3px_3px_0px_#065f46] disabled:shadow-none disabled:translate-y-0 disabled:border-zinc-300 transition-all uppercase tracking-widest text-[10px] flex items-center gap-1"
+            >
+              {ctx.isAutomating ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Zap size={12} />
+              )}
+              {ctx.isAutomating ? 'RUNNING...' : 'AUTOMATE'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={ctx.automationBatchSize}
-            onChange={(e) => ctx.setAutomationBatchSize(Number(e.target.value))}
-            disabled={ctx.isAutomating || ctx.automationCountToday >= 25}
-            className="border border-zinc-300 p-2 text-xs font-mono bg-white outline-none focus:border-emerald-500 disabled:bg-zinc-50 disabled:text-zinc-400"
-          >
-            <option value={1}>1 Issue</option>
-            <option value={2}>2 Issues</option>
-            <option value={5}>5 Issues</option>
-          </select>
+
+        {/* Add External Issue */}
+        <div className="flex items-center justify-between flex-1 md:pl-4">
+          <div className="flex flex-col gap-0.5 mr-4">
+            <span className="text-sm font-bold text-zinc-900">External Issue</span>
+          </div>
           <button
-            onClick={ctx.handleAutomateProcess}
-            disabled={ctx.isAutomating || ctx.automationCountToday >= 25}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-300 text-white font-bold py-2 px-5 border-2 border-emerald-800 shadow-[2px_2px_0px_#065f46] hover:-translate-y-px hover:shadow-[3px_3px_0px_#065f46] disabled:shadow-none disabled:translate-y-0 disabled:border-zinc-300 transition-all uppercase tracking-widest text-xs flex items-center gap-2"
+            onClick={() => setShowExternalInput(!showExternalInput)}
+            className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-1.5 px-3 border-2 border-zinc-900 shadow-[2px_2px_0px_#18181b] hover:-translate-y-px hover:shadow-[3px_3px_0px_#18181b] transition-all uppercase tracking-widest text-[10px] flex items-center gap-1 shrink-0"
           >
-            {ctx.isAutomating ? (
-              <>
-                <Loader2 size={12} className="animate-spin" /> RUNNING...
-              </>
-            ) : ctx.automationCountToday >= 25 ? (
-              'LIMIT REACHED'
-            ) : (
-              <>
-                <Zap size={12} /> AUTOMATE NOW
-              </>
-            )}
+            <Plus size={12} /> ADD EXTERNAL ISSUE
           </button>
         </div>
       </div>
+
+      {/* External Input Form */}
+      {showExternalInput && (
+        <div className="bg-zinc-50 border border-zinc-200 p-4 -mt-4 animate-fade-in-up">
+          <p className="text-zinc-600 text-sm font-mono mb-3">
+            Add an issue you found yourself. Scout will fetch the details and add it to your claimed
+            pipeline.
+          </p>
+          {externalError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 p-2 text-xs font-mono mb-3">
+              {externalError}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="https://github.com/owner/repo/issues/123"
+              className="flex-1 border border-zinc-300 p-2 font-mono text-sm focus:border-zinc-900 focus:outline-none"
+              value={externalUrl}
+              onChange={(e) => setExternalUrl(e.target.value)}
+              disabled={isAddingExternal}
+            />
+            <button
+              onClick={handleAddExternal}
+              disabled={isAddingExternal || !externalUrl.trim()}
+              className="bg-zinc-900 text-white font-bold px-6 py-2 disabled:opacity-50 flex items-center transition-opacity text-sm font-mono uppercase tracking-widest"
+            >
+              {isAddingExternal ? <Loader2 size={14} className="animate-spin mr-2" /> : null}
+              {isAddingExternal ? 'Fetching...' : 'Add Issue'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Claimed issues grid */}
       {ctx.isTrackingLoading ? (
@@ -176,11 +267,31 @@ export function AutomationPage() {
           <span className="text-zinc-400 font-mono text-xs">Loading claimed issues...</span>
         </div>
       ) : claimedIssues.length === 0 ? (
-        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center">
-          <p className="text-zinc-500 font-mono text-sm mb-2">No claimed issues yet.</p>
-          <p className="text-zinc-400 font-mono text-xs">
-            Go to Discovery and click "🙌 Claim This Issue", or use the Automate Now button above.
+        <div className="bg-zinc-50 border-2 border-dashed border-zinc-200 p-12 text-center flex flex-col items-center">
+          <div className="bg-white p-3 rounded-full shadow-sm border border-zinc-200 mb-4 text-zinc-400">
+            <Activity size={24} />
+          </div>
+          <h3 className="text-lg font-bold text-zinc-900 mb-2">
+            No issues in your claimed pipeline yet.
+          </h3>
+          <p className="text-zinc-500 text-sm mb-6 max-w-md">
+            You can claim an issue from Discovery, let Scout automatically claim matching issues, or
+            add an issue you found yourself.
           </p>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/app/discovery"
+              className="bg-white text-zinc-900 font-bold py-2 px-6 border border-zinc-200 shadow-sm hover:bg-zinc-50 transition-colors text-sm"
+            >
+              Discover Issues
+            </Link>
+            <button
+              onClick={() => setShowExternalInput(true)}
+              className="text-zinc-600 font-bold hover:text-zinc-900 transition-colors text-sm underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-900"
+            >
+              + Add External Issue
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

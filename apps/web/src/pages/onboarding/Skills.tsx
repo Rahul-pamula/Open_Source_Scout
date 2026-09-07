@@ -6,18 +6,46 @@ import { Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
 // ── Data ────────────────────────────────────────────────────────────────────
 
 const LANGUAGES = [
-  'TypeScript', 'JavaScript', 'Python', 'Go', 'Rust',
-  'Java', 'C++', 'C', 'Ruby', 'PHP', 'Kotlin', 'Swift',
+  'TypeScript',
+  'JavaScript',
+  'Python',
+  'Go',
+  'Rust',
+  'Java',
+  'C++',
+  'C',
+  'Ruby',
+  'PHP',
+  'Kotlin',
+  'Swift',
 ];
 
 const FRAMEWORKS = [
-  'React', 'Next.js', 'Vue', 'Svelte', 'Angular',
-  'FastAPI', 'Django', 'Flask', 'Rails', 'Express', 'NestJS', 'Spring',
+  'React',
+  'Next.js',
+  'Vue',
+  'Svelte',
+  'Angular',
+  'FastAPI',
+  'Django',
+  'Flask',
+  'Rails',
+  'Express',
+  'NestJS',
+  'Spring',
 ];
 
 const DOMAINS = [
-  'AI/ML', 'DevTools', 'Web3', 'CLI', 'Infrastructure',
-  'Mobile', 'Databases', 'Security', 'Compilers', 'Networking',
+  'AI/ML',
+  'DevTools',
+  'Web3',
+  'CLI',
+  'Infrastructure',
+  'Mobile',
+  'Databases',
+  'Security',
+  'Compilers',
+  'Networking',
 ];
 
 export type ExperienceLevel = 'Beginner' | 'Intermediate' | 'Senior';
@@ -37,6 +65,7 @@ interface SkillsProps {
   onBack: () => void;
   onComplete: () => void;
   bio: string;
+  githubHandle: string;
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -86,7 +115,7 @@ function ChipGroup({
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export function Skills({ onBack, onComplete, bio }: SkillsProps) {
+export function Skills({ onBack, onComplete, bio, githubHandle }: SkillsProps) {
   const { user } = useAuth();
 
   const [languages, setLanguages] = useState<string[]>([]);
@@ -102,9 +131,7 @@ export function Skills({ onBack, onComplete, bio }: SkillsProps) {
     setList: React.Dispatch<React.SetStateAction<string[]>>,
     val: string,
   ) => {
-    setList((prev) =>
-      prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val],
-    );
+    setList((prev) => (prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]));
     // Clear language error on interaction
     if (list === languages || setList === setLanguages) {
       setErrors((e) => ({ ...e, languages: undefined }));
@@ -131,6 +158,7 @@ export function Skills({ onBack, onComplete, bio }: SkillsProps) {
       const { error } = await supabase.from('users').upsert({
         id: user.id,
         bio,
+        github_handle: githubHandle,
         skills: allSkills,
         experience_level: experience,
         updated_at: new Date().toISOString(),
@@ -258,11 +286,7 @@ export function Skills({ onBack, onComplete, bio }: SkillsProps) {
           disabled={isLoading}
           className="bg-emerald-500 text-white font-bold py-3 px-8 shadow-[4px_4px_0px_#18181b] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <ArrowRight size={16} />
-          )}
+          {isLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
           {isLoading ? 'Saving...' : 'Finish Setup'}
         </button>
       </div>

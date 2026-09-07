@@ -35,7 +35,43 @@ serve(async (req) => {
     if (action === 'save') {
       const { issueData } = body
       if (!issueData) throw new Error('Missing issueData payload')
-      const tracked = await trackingService.saveIssue(authHeader, userId, issueData)
+      const tracked = await trackingService.saveIssue(authHeader as string, userId, issueData)
+      return new Response(
+        JSON.stringify({ data: tracked }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (action === 'fetch_and_save') {
+      const { github_url } = body
+      if (!github_url) throw new Error('Missing github_url')
+      
+      const urlPattern = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+)$/
+      const match = github_url.match(urlPattern)
+      if (!match) throw new Error('Invalid GitHub issue URL format. Must be https://github.com/owner/repo/issues/number')
+      
+      const [, owner, repo, numStr] = match
+      const number = parseInt(numStr, 10)
+      
+      const { githubAdapter } = await import('../_shared/github.ts')
+      const rawIssue = await githubAdapter.fetchIssue(owner, repo, number)
+      if (!rawIssue) throw new Error('Could not fetch issue from GitHub.')
+
+      const existing = await trackingService.getTrackedIssues(authHeader as string, userId, undefined, 1000)
+      if (existing.some((i: any) => i.github_issue_url === rawIssue.html_url)) {
+        throw new Error('This issue is already in your Scout pipeline.')
+      }
+
+      const issueData = {
+        github_issue_url: rawIssue.html_url,
+        title: rawIssue.title,
+        repo_name: `${owner}/${repo}`,
+        match_score: null,
+        claimed_via: 'EXTERNAL',
+        initial_state: 'ENGAGED'
+      }
+      
+      const tracked = await trackingService.saveIssue(authHeader as string, userId, issueData)
       return new Response(
         JSON.stringify({ data: tracked }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
