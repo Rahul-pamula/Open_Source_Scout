@@ -223,8 +223,6 @@ export function MissionControl() {
           number: parseInt(number),
           draft: defaultMessage,
           intent: 'REQUEST_ASSIGNMENT',
-          skipRateLimit: true, // Manual claims bypass automation rate limiter
-          skipIdempotency: true, // Manual claims bypass duplicate-check so retries work
         },
       });
 
@@ -398,8 +396,6 @@ export function MissionControl() {
             number: parseInt(number),
             draft: autoMessage,
             intent: 'REQUEST_ASSIGNMENT',
-            skipRateLimit: true,
-            skipIdempotency: true,
           },
         });
 
