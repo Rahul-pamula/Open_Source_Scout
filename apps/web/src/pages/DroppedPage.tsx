@@ -3,7 +3,15 @@ import { ArchiveX, ExternalLink, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { TrackedIssue } from '../types';
 
-function DroppedCard({ issue }: { issue: TrackedIssue }) {
+function DroppedCard({
+  issue,
+  isPending,
+  onRestore,
+}: {
+  issue: TrackedIssue;
+  isPending?: boolean;
+  onRestore: () => void;
+}) {
   const issueNumber = issue.github_issue_url.split('/').pop();
 
   return (
@@ -38,6 +46,14 @@ function DroppedCard({ issue }: { issue: TrackedIssue }) {
         >
           View Issue <ExternalLink size={14} className="ml-2" />
         </a>
+        <button
+          onClick={onRestore}
+          disabled={isPending}
+          className="bg-emerald-500 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#059669] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+        >
+          {isPending ? <Loader2 size={14} className="animate-spin" /> : '♻️'}
+          {isPending ? 'Restoring...' : 'Restore'}
+        </button>
       </div>
     </div>
   );
@@ -75,7 +91,12 @@ export function DroppedPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {droppedIssues.map((issue) => (
-            <DroppedCard key={issue.id} issue={issue} />
+            <DroppedCard
+              key={issue.id}
+              issue={issue}
+              isPending={!!ctx.pendingIssues[issue.id]}
+              onRestore={() => ctx.handleUpdateState(issue.id, 'ENGAGED')}
+            />
           ))}
         </div>
       )}
