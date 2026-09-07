@@ -54,9 +54,16 @@ export function Connect() {
                 <Database size={16} className="mr-2 text-emerald-600" />
                 Supabase Connection
               </h3>
-              <p className="text-xs text-zinc-500">
-                These are your public routing keys. They are safely stored in your browser's
-                localStorage.
+              <p className="text-xs text-zinc-500 mt-2">
+                <strong>What is BYOB?</strong> Open Source Scout uses a "Bring Your Own Backend"
+                architecture. There are no central servers. You own 100% of your data and API
+                execution. You must provide your own Supabase project to use Scout.
+              </p>
+              <p className="text-xs text-zinc-500 mt-2">
+                <strong>Where to find these:</strong> Go to your Supabase Project Settings → API.
+                These are your public routing keys. They are safely stored only in your browser's
+                localStorage and are used to connect the frontend to your database and edge
+                functions.
               </p>
             </div>
 
@@ -106,12 +113,14 @@ export function Connect() {
                     <button
                       onClick={() => window.open(buildAuthorizeUrl(stored.url), '_blank')}
                       className="px-3 py-1 bg-emerald-600 text-white rounded text-sm"
+                      title="Test the OAuth connection"
                     >
                       Open Test OAuth
                     </button>
                     <button
                       onClick={() => copyToClipboard(buildAuthorizeUrl(stored.url))}
                       className="px-3 py-1 bg-zinc-100 border text-zinc-800 rounded text-sm"
+                      title="Copy the connection URL to test manually"
                     >
                       Copy Test URL
                     </button>
@@ -123,8 +132,14 @@ export function Connect() {
                   </div>
                 )}
                 <div className="mt-3 text-xs text-zinc-500">
-                  Reminder: enable GitHub under Supabase → Authentication → Providers and add the
-                  GitHub Client ID/Secret.
+                  <p>
+                    <strong>How the test URL works:</strong> This URL directs your browser to your
+                    Supabase Auth instance, which then redirects to GitHub for authentication.
+                  </p>
+                  <p className="mt-1">
+                    <strong>Reminder:</strong> Enable GitHub under Supabase → Authentication →
+                    Providers and add the GitHub Client ID/Secret before testing.
+                  </p>
                 </div>
               </div>
             </div>
