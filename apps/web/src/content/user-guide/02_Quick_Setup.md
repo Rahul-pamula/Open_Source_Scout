@@ -7,6 +7,7 @@ Follow these simple steps to get started!
 ## Prerequisites
 
 Before you begin, make sure you have:
+
 1. A free [Supabase account](https://supabase.com).
 2. A [GitHub Personal Access Token](https://github.com/settings/tokens) (Fine-grained).
 3. A [Groq API Key](https://console.groq.com/keys) (for the AI analysis).
@@ -30,15 +31,17 @@ This automated wizard will securely connect to your new Supabase project, set up
 ## Step 3: Enable GitHub Authentication
 
 For security, Supabase needs to know it's allowed to log you in via the Scout Web App.
+
 1. In your Supabase Dashboard, go to **Authentication** -> **URL Configuration**.
 2. Under **Redirect URLs**, click "Add URL".
-3. Enter the exact URL of the Scout Web App: `https://Rahul-pamula.github.io/Open_Source_Scout/*` (Don't forget the `/*` wildcard!)
+3. Enter the exact URL of your Scout Web App deployment (e.g. `https://<your-username>.github.io/Open_Source_Scout/*`) (Don't forget the `/*` wildcard!)
 4. Go to **Authentication** -> **Providers**.
 5. Enable **GitHub** (you can leave the default settings or provide your own OAuth app details).
 
 ## Step 4: Connect the Web App
 
 Once the setup tool finishes successfully:
+
 1. Open the Open Source Scout web app.
 2. Enter your **Supabase Project URL** and **Anon Key** into the Connect screen.
 3. Click "Connect".

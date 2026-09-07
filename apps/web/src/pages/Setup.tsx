@@ -10,8 +10,18 @@ import {
   Copy,
 } from 'lucide-react';
 import { SetupNotepad } from '../components/SetupNotepad';
+import { getSupabaseConfig } from '../services/supabase';
 
 export function Setup() {
+  const frontendUrl = `${window.location.origin}${import.meta.env.BASE_URL}`;
+  const frontendUrlNoTrailing = frontendUrl.replace(/\/$/, '');
+  const config = getSupabaseConfig();
+  const supabaseCallbackUrl = config?.url
+    ? `${config.url.replace(/\/$/, '')}/auth/v1/callback`
+    : `https://<YOUR_PROJECT>.supabase.co/auth/v1/callback`;
+  const supabaseAuthorizeUrl = config?.url
+    ? `${config.url.replace(/\/$/, '')}/auth/v1/authorize?provider=github&redirect_to=${encodeURIComponent(frontendUrl)}`
+    : `https://<YOUR_PROJECT>.supabase.co/auth/v1/authorize?provider=github&redirect_to=${encodeURIComponent(frontendUrl)}`;
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col items-center py-12 px-4 font-sans">
       <div className="mb-10 text-center max-w-3xl">
@@ -180,20 +190,16 @@ export function Setup() {
                     </li>
                     <li>
                       <strong>Homepage URL / Site URL:</strong>{' '}
-                      <code className="bg-zinc-100 px-1 rounded">
-                        https://rahul-pamula.github.io/Open_Source_Scout/
-                      </code>
+                      <code className="bg-zinc-100 px-1 rounded">{frontendUrl}</code>
                     </li>
                     <li>
                       <strong>Authorization callback URL:</strong>{' '}
                       <code
-                        onClick={() =>
-                          navigator.clipboard.writeText(window.location.origin + '/auth/callback')
-                        }
+                        onClick={() => navigator.clipboard.writeText(supabaseCallbackUrl)}
                         className="bg-zinc-100 px-1 rounded cursor-pointer"
                         title="Click to copy"
                       >
-                        https://&lt;YOUR_PROJECT&gt;.supabase.co/auth/v1/callback
+                        {supabaseCallbackUrl}
                       </code>
                     </li>
                   </ul>
@@ -211,27 +217,19 @@ export function Setup() {
                   In Supabase → <strong>Authentication → URL Configuration</strong> set:
                   <div className="mt-2 text-xs text-zinc-600">
                     <div>
-                      Site URL:{' '}
-                      <code className="bg-zinc-100 px-1 rounded">
-                        https://rahul-pamula.github.io/Open_Source_Scout/
-                      </code>
+                      Site URL: <code className="bg-zinc-100 px-1 rounded">{frontendUrl}</code>
                     </div>
                     <div className="mt-1">
-                      Redirect URLs:{' '}
-                      <code className="bg-zinc-100 px-1 rounded">
-                        https://rahul-pamula.github.io/Open_Source_Scout/
-                      </code>{' '}
+                      Redirect URLs: <code className="bg-zinc-100 px-1 rounded">{frontendUrl}</code>{' '}
                       and{' '}
-                      <code className="bg-zinc-100 px-1 rounded">
-                        https://rahul-pamula.github.io/Open_Source_Scout/*
-                      </code>
+                      <code className="bg-zinc-100 px-1 rounded">{frontendUrlNoTrailing}/*</code>
                     </div>
                   </div>
                 </li>
                 <li>
                   Test by opening:
                   <div className="mt-2 font-mono text-xs bg-zinc-100 p-2 rounded">
-                    https://&lt;YOUR_PROJECT&gt;.supabase.co/auth/v1/authorize?provider=github&redirect_to=https%3A%2F%2Frahul-pamula.github.io%2FOpen_Source_Scout%2F
+                    {supabaseAuthorizeUrl}
                   </div>
                 </li>
               </ol>
@@ -260,30 +258,22 @@ export function Setup() {
                 <li>
                   Set the <strong>Site URL</strong> exactly to:{' '}
                   <code
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        'https://Rahul-pamula.github.io/Open_Source_Scout',
-                      )
-                    }
+                    onClick={() => navigator.clipboard.writeText(frontendUrlNoTrailing)}
                     className="bg-orange-100 text-orange-900 px-2 py-1 rounded cursor-pointer hover:bg-orange-200 transition-colors inline-flex items-center gap-1 group"
                     title="Click to copy"
                   >
-                    https://Rahul-pamula.github.io/Open_Source_Scout
+                    {frontendUrlNoTrailing}
                     <Copy className="h-3 w-3 opacity-50 group-hover:opacity-100" />
                   </code>
                 </li>
                 <li>
                   Add the exact URL with a wildcard to the <strong>Redirect URLs</strong>:{' '}
                   <code
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        'https://Rahul-pamula.github.io/Open_Source_Scout/*',
-                      )
-                    }
+                    onClick={() => navigator.clipboard.writeText(`${frontendUrlNoTrailing}/*`)}
                     className="bg-orange-100 text-orange-900 px-2 py-1 rounded cursor-pointer hover:bg-orange-200 transition-colors inline-flex items-center gap-1 group"
                     title="Click to copy"
                   >
-                    https://Rahul-pamula.github.io/Open_Source_Scout/*
+                    {frontendUrlNoTrailing}/*
                     <Copy className="h-3 w-3 opacity-50 group-hover:opacity-100" />
                   </code>
                 </li>

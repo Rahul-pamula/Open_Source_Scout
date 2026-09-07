@@ -12,7 +12,7 @@ export function Connect() {
   const stored = getSupabaseConfig();
 
   const buildAuthorizeUrl = (projectUrl: string) => {
-    const redirect = encodeURIComponent('https://rahul-pamula.github.io/Open_Source_Scout/');
+    const redirect = encodeURIComponent(`${window.location.origin}${import.meta.env.BASE_URL}`);
     const base = projectUrl.replace(/\/$/, '');
     return `${base}/auth/v1/authorize?provider=github&redirect_to=${redirect}`;
   };

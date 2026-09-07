@@ -198,7 +198,7 @@ async function run() {
   console.log(chalk.bold.green('\n✅ Deployment Complete!'));
   console.log(chalk.gray('\nYour backend is now fully operational on Supabase.'));
   console.log(chalk.gray('You can now log in to the Open Source Scout web app using your GitHub account!'));
-  console.log(chalk.cyan.bold('\n👉 https://rahul-pamula.github.io/Open_Source_Scout/'));
+  console.log(chalk.cyan.bold('\n👉 Open the web app at your deployment URL (or https://rahul-pamula.github.io/Open_Source_Scout/ if using the official deployment)'));
   
   console.log(chalk.bold('\nHappy Open Sourcing! 🚀\n'));
   } finally {
