@@ -1,123 +1,125 @@
 # Open Source Scout 🎯
 
-## What is Open Source Scout?
+Find the issues worth solving. Understand them faster. Contribute with confidence.
 
-Open Source Scout is an autonomous open-source contribution discovery and engagement agent. Instead of aimlessly browsing GitHub for issues you can solve, you configure your intent, and Scout's Mission Control takes over to find and help you engage with open-source opportunities.
+**[Try the Hosted App](https://rahul-pamula.github.io/Open_Source_Scout/)**  
+_(You do not need to deploy the frontend yourself to use Scout)_
 
-## Why does it exist?
+## What is Scout?
 
-Finding high-quality, relevant open source issues that match your skill set is incredibly time-consuming and often discouraging. Scout solves this by acting as a filter and engagement layer, automating the tedious discovery phase and streamlining the communication process, so you can focus exclusively on writing code.
+Open Source Scout is an AI-assisted workflow that helps you discover, understand, claim, and manage open-source contributions. Instead of aimlessly browsing GitHub for issues you can solve, you configure your intent, and Scout's Mission Control pipeline helps you evaluate and engage with the right opportunities.
 
-## Features
+## Why Scout?
 
-- **Client-Driven Automation:** Automate discovery and initial engagement (like asking to be assigned) with full control over the pace.
-- **Context-Aware AI Drafts:** Generates draft comments based on issue context, using Groq (LLaMa3-8B).
-- **Tabbed Pipeline UI (Mission Control):** A clear state machine to track your contributions (Discovery, Claimed, Assigned, Review, Dropped).
-- **Contribution Checklists:** Built-in checklists to track execution steps (PR Sent, Merged, etc.) for assigned issues.
-- **Optimistic UI:** Fast, responsive UI that immediately reflects state changes while syncing asynchronously with the backend.
+Developers waste hours scrolling through irrelevant GitHub issues, guessing true difficulty, and checking if issues are secretly claimed by someone else. Scout brings discovery, AI evaluation, and contribution tracking into one unified workflow so you can focus exclusively on writing code.
+
+## How it works
+
+1. **Discovery:** Aggressively filters GitHub to find issues matching your exact skills.
+2. **AI Dossier:** Groq LLMs analyze issue context, estimate difficulty, and assign a match score.
+3. **Claim & Assignment:** Generate context-aware draft comments to request assignment.
+4. **Contribution Tracking:** Manage PRs, assignments, and reviews in a tabbed pipeline.
 
 ## Architecture
 
 ```text
-Browser
-  |
-  +--> React/Vite Application (Frontend)
-  |
-  +--> Supabase Auth (Authentication)
-  |
-  +--> Supabase Edge Functions (Serverless Backend)
-  |       |
-  |       +--> GitHub API (Fetch issues, post comments)
-  |       +--> AI/Groq (Evaluate intent, draft comments)
-  |
-  +--> Supabase Database (State and rate limit tracking)
+Your Browser
+      │
+React/Vite Application (Hosted Frontend)
+      │
+Your Supabase (PostgreSQL + Auth)
+      │
+Your Edge Functions (Serverless Backend)
+      │
+GitHub & Groq APIs
 ```
 
-## BYOS (Bring Your Own Supabase) Architecture
+## Why Bring Your Own Backend (BYOB)?
 
-Every deployment of Open Source Scout is fully decentralized. **Each developer uses their own Supabase project and GitHub OAuth App.** There is no central database storing everyone's data. You own 100% of your data and API execution costs.
+Every deployment of Open Source Scout is **100% decentralized**.
 
-## Authentication
+There is no central Scout server storing everyone's data. **Each developer uses their own Supabase project.**
+You own your database, your infrastructure, your API execution costs, and your credentials. This ensures complete privacy and prevents rate limits from being shared across users.
 
-Scout uses **GitHub OAuth** orchestrated through **Supabase Auth**.
+## Required Services
 
-- The frontend initiates the OAuth flow via Supabase Auth.
-- Supabase Auth redirects you to GitHub.
-- GitHub redirects back to your Supabase Auth callback.
-- Supabase Auth redirects you back to your deployed frontend.
+| Service      | Why Scout needs it                                                    | Where configured                                 |
+| ------------ | --------------------------------------------------------------------- | ------------------------------------------------ |
+| **Supabase** | To host your database, Edge Functions, and manage authentication.     | You create a free project at supabase.com.       |
+| **GitHub**   | To fetch issues, post claim comments, and authenticate you.           | You generate a PAT and an OAuth App.             |
+| **Groq**     | To power the AI evaluation and generate context-aware draft comments. | You generate a free API key at console.groq.com. |
 
-## Setup
+---
 
-### 1. Create a Supabase Project
+# 🚀 Path A: Using Scout
 
-Go to [supabase.com](https://supabase.com), create an account, and start a new project.
+You do NOT need to clone this repository to use Scout. Just follow these 3 steps:
 
-### 2. Configure GitHub OAuth App
+### 1. Open the App
 
-In GitHub, create an OAuth App (Settings -> Developer Settings -> OAuth Apps):
+Go to the **[Hosted Scout App](https://rahul-pamula.github.io/Open_Source_Scout/)** and click "Sign Up (New Setup)".
 
-- **Homepage URL:** The URL of your frontend deployment (e.g. `https://<your-username>.github.io/<your-repo>/`)
-- **Authorization callback URL:** `https://<your-project>.supabase.co/auth/v1/callback`
+### 2. Get Your Keys
 
-### 3. Configure Supabase Auth
+The setup guide in the app will ask you to gather 4 keys:
 
-In your Supabase Dashboard, go to **Authentication -> Providers -> GitHub** and paste your GitHub Client ID and Client Secret.
-Then go to **Authentication -> URL Configuration**:
+- A Supabase project ID & access token
+- A Groq API key
+- A GitHub Personal Access Token
+- A GitHub OAuth App Client ID/Secret
 
-- **Site URL:** The URL of your frontend deployment (e.g. `https://<your-username>.github.io/<your-repo>`)
-- **Redirect URLs:** Add a wildcard URL (e.g. `https://<your-username>.github.io/<your-repo>/*`)
+### 3. Run the Setup CLI
 
-### 4. Deploy Database & Edge Functions
-
-Use the Supabase CLI to push the schema and Edge Functions to your project:
+Once you have your keys, run this command anywhere in your terminal:
 
 ```bash
-supabase link --project-ref <your-project-id>
-supabase db push
-supabase functions deploy
+npx open-source-scout setup
 ```
 
-Set your secrets (like `GITHUB_TOKEN` and `GROQ_API_KEY`) using `supabase secrets set`.
+This CLI securely pushes the database schema, edge functions, and API keys directly into your Supabase project.
 
-### 5. Frontend Setup
+Once finished, return to the hosted app, enter your Supabase Connection URL, and sign in!
 
-Run the frontend locally:
+---
+
+# 🛠 Path B: Developing Scout
+
+_Only follow these instructions if you want to modify Scout's source code and contribute to the project itself._
+
+## Local Development Setup
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/Rahul-pamula/Open_Source_Scout.git
+   cd Open_Source_Scout
+   ```
+
+2. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+3. **Run the frontend:**
+
+   ```bash
+   npm run dev --workspace=apps/web
+   ```
+
+   The app will run at `http://localhost:5173`.
+
+4. **Connect a backend:**
+   You must still use `npx open-source-scout setup` to deploy a backend to your Supabase project, then connect your `localhost:5173` frontend to that backend.
+
+## CLI Development
+
+To test the CLI locally:
 
 ```bash
-npm install
-npm run dev --workspace=apps/web
+npm run start --workspace=packages/cli
 ```
 
-When you open the frontend, click "Connect Backend" and paste your Supabase Project URL and Anon Key.
+## Data & Privacy
 
-## Mission Control
-
-The Mission Control UI organizes your issues into a tabbed pipeline:
-
-- **Discovery:** Newly scouted issues ready for evaluation.
-- **Claimed/Engaged:** Issues you have asked to be assigned to.
-- **Assigned:** Issues the maintainer has assigned to you. Unlocks the contribution checklist.
-- **Review:** Issues where you have submitted a PR.
-- **Completed / Dropped:** Archived issues.
-
-## Automation & Rate Limits
-
-Automation is **client-driven**. From the Automation tab, you can instruct your browser to batch process discovered issues.
-
-- **Rate Limit:** To prevent spamming open source repositories, automation is strictly limited to **25 issues per day** globally across your account.
-- **Enforcement:** Rate limits are enforced at the Edge Function level (`engage`) and tracked in the `users` database table.
-
-## Manual Claims
-
-For issues you want to handle personally, you can use **Context-Aware AI Drafts**. The backend will generate a tailored draft comment, which you can review, edit, and post directly from the UI.
-
-## Troubleshooting
-
-- **"The redirect_uri is not associated with this application" (GitHub OAuth error):** You pasted your frontend URL into the GitHub OAuth App's "Authorization callback URL" field instead of your Supabase callback URL. Update it to `https://<your-project>.supabase.co/auth/v1/callback`.
-- **Silent Redirect to the Wrong Frontend:** You configured your Supabase Site URL or Redirect URLs incorrectly. Make sure they point to _your_ deployment (e.g., `https://<your-username>.github.io/...`).
-- **Edge Function HTTP 500 Errors:** Ensure you have deployed all edge functions (`supabase functions deploy`) and set the required secrets in the Supabase Vault.
-- **Database Errors (e.g., Column Does Not Exist):** You forgot to run `supabase db push`. Ensure your database schema matches the latest migrations.
-
-## Deployment
-
-To deploy the frontend to GitHub Pages, you can use the included `.github/workflows/deploy.yml` workflow. Ensure your repository settings allow GitHub Actions to deploy to Pages. You will configure your Supabase URL/Key through the UI on first load.
+Because of the BYOB architecture, the developers of Open Source Scout have zero access to your data, your GitHub connection, or your database. All interactions happen directly between your browser, your Supabase project, and GitHub/Groq APIs.
