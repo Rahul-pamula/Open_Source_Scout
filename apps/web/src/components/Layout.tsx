@@ -6,8 +6,8 @@ export function Layout() {
   const { user, signOut } = useAuth();
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-zinc-50 text-zinc-900 flex flex-col md:flex-row">
-      <nav className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-zinc-200 flex flex-col p-4 flex-shrink-0 md:overflow-y-auto">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 flex flex-col md:flex-row">
+      <nav className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-zinc-200 flex flex-col p-4 flex-shrink-0">
         <div className="font-bold text-lg mb-8 tracking-tight">Open Source Scout</div>
 
         <div className="flex flex-col space-y-2 flex-1">
@@ -51,7 +51,7 @@ export function Layout() {
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col min-h-0 p-4 md:p-8">
+      <main className="flex-1 p-4 md:p-8">
         <Outlet />
       </main>
     </div>
