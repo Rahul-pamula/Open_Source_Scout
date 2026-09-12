@@ -8,10 +8,12 @@ function ReviewCard({
   issue,
   isPending,
   onMarkMerged,
+  onMarkDropped,
 }: {
   issue: TrackedIssue;
   isPending?: boolean;
   onMarkMerged: () => void;
+  onMarkDropped: () => void;
 }) {
   const issueNumber = issue.github_issue_url.split('/').pop();
 
@@ -36,22 +38,31 @@ function ReviewCard({
         </a>
       </div>
 
-      <div className="mt-auto flex items-center gap-2 pt-3 border-t border-zinc-100">
-        <a
-          href={issue.github_issue_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-zinc-900 text-white font-bold py-1.5 px-4 shadow-[2px_2px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#10b981] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center"
-        >
-          View PR / Issue <ExternalLink size={12} className="ml-1.5" />
-        </a>
+      <div className="mt-auto flex items-center justify-between pt-3 border-t border-zinc-100">
+        <div className="flex gap-2">
+          <a
+            href={issue.github_issue_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-zinc-900 text-white font-bold py-1.5 px-4 shadow-[2px_2px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#10b981] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center"
+          >
+            View PR / Issue <ExternalLink size={12} className="ml-1.5" />
+          </a>
+          <button
+            onClick={onMarkMerged}
+            disabled={isPending}
+            className="bg-emerald-500 text-white font-bold py-1.5 px-3 shadow-[2px_2px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-px hover:shadow-[3px_3px_0px_#059669] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
+          >
+            {isPending ? <Loader2 size={12} className="animate-spin" /> : '🎉'}
+            {isPending ? 'Updating...' : 'Mark Merged'}
+          </button>
+        </div>
         <button
-          onClick={onMarkMerged}
+          onClick={onMarkDropped}
           disabled={isPending}
-          className="bg-emerald-500 text-white font-bold py-1.5 px-3 shadow-[2px_2px_0px_#059669] border-2 border-emerald-600 hover:-translate-y-px hover:shadow-[3px_3px_0px_#059669] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
+          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center disabled:opacity-50 disabled:pointer-events-none"
         >
-          {isPending ? <Loader2 size={12} className="animate-spin" /> : '🎉'}
-          {isPending ? 'Updating...' : 'Mark Merged'}
+          {isPending ? 'Updating...' : 'Drop / Close'}
         </button>
       </div>
     </div>
@@ -95,6 +106,7 @@ export function ReviewPage() {
               issue={issue}
               isPending={!!ctx.pendingIssues[issue.id]}
               onMarkMerged={() => ctx.handleUpdateState(issue.id, 'COMPLETED')}
+              onMarkDropped={() => ctx.handleUpdateState(issue.id, 'REJECTED')}
             />
           ))}
         </div>
