@@ -111,8 +111,16 @@ export class AutonomousWorker {
     }
 
     // 3. Draft
-    const draftResult = await groqEvaluator.generateCommentDraft(liveIssue, comments, profile, evaluation.intent as EngagementIntent);
+    const defaultComment = "Hey! I'm interested in working on this issue. Could you please assign it to me?";
+    const draftText = (profile.custom_comment_enabled && profile.custom_comment_text) 
+      ? profile.custom_comment_text 
+      : defaultComment;
 
+    const draftResult = {
+      intent: evaluation.intent as EngagementIntent,
+      draft: draftText,
+      reasoning: "Static engagement comment"
+    };
     // 4. Safety Gate
     const safety = safetyGateService.isSafeToEngage(liveIssue, policy, evaluation, claim, draftResult);
 

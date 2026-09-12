@@ -26,6 +26,10 @@ export function Identity() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState('');
 
+  // Custom Comment State
+  const [customCommentEnabled, setCustomCommentEnabled] = useState(false);
+  const [customCommentText, setCustomCommentText] = useState('');
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -37,6 +41,8 @@ export function Identity() {
       setBio(userProfile.bio || '');
       setGithubHandle(userProfile.github_handle || '');
       setSelectedSkills(userProfile.skills || []);
+      setCustomCommentEnabled(userProfile.custom_comment_enabled || false);
+      setCustomCommentText(userProfile.custom_comment_text || '');
     }
   }, [userProfile]);
 
@@ -68,6 +74,8 @@ export function Identity() {
       bio,
       github_handle: githubHandle,
       skills: selectedSkills,
+      custom_comment_enabled: customCommentEnabled,
+      custom_comment_text: customCommentText,
     });
 
     if (error) {
@@ -183,6 +191,83 @@ export function Identity() {
                   {!isSaving && !saveSuccess && <ArrowRight className="w-4 h-4 ml-2" />}
                 </button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Engagement Strategy Section */}
+        <section>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-900 mb-4 font-mono">
+            Engagement Strategy
+          </h2>
+          <div className="bg-white border-2 border-zinc-200 p-6 shadow-sm flex flex-col gap-6">
+            <p className="text-zinc-600 font-mono text-sm leading-relaxed mb-2">
+              Configure the comment Scout will post on GitHub when claiming an issue.
+            </p>
+
+            <div className="flex flex-col gap-4">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="mt-1 flex items-center justify-center w-5 h-5 border-2 border-zinc-300 rounded-full group-hover:border-zinc-500 transition-colors">
+                  {!customCommentEnabled && (
+                    <div className="w-2.5 h-2.5 bg-zinc-900 rounded-full" />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-zinc-900 text-sm">Use Default Comment</span>
+                  <div className="mt-2 bg-zinc-50 border border-zinc-200 p-3 text-xs font-mono text-zinc-500 rounded">
+                    Hey! I'm interested in working on this issue. Could you please assign it to me?
+                  </div>
+                </div>
+                <input
+                  type="radio"
+                  className="hidden"
+                  checked={!customCommentEnabled}
+                  onChange={() => setCustomCommentEnabled(false)}
+                />
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="mt-1 flex items-center justify-center w-5 h-5 border-2 border-zinc-300 rounded-full group-hover:border-zinc-500 transition-colors">
+                  {customCommentEnabled && <div className="w-2.5 h-2.5 bg-zinc-900 rounded-full" />}
+                </div>
+                <div className="flex flex-col w-full">
+                  <span className="font-bold text-zinc-900 text-sm">Use Custom Comment</span>
+                  <span className="text-zinc-500 text-xs font-mono mb-2">
+                    Write your own static message to use for all automated claims.
+                  </span>
+                  {customCommentEnabled && (
+                    <textarea
+                      className="w-full border-2 border-zinc-200 p-3 min-h-[80px] font-mono text-sm focus:border-zinc-900 focus:ring-0 outline-none transition-colors resize-y mt-2"
+                      placeholder="Hey, I'd love to take a stab at this..."
+                      value={customCommentText}
+                      onChange={(e) => setCustomCommentText(e.target.value)}
+                      onClick={(e) => e.preventDefault()} // Prevent clicking textarea from toggling radio
+                    />
+                  )}
+                </div>
+                <input
+                  type="radio"
+                  className="hidden"
+                  checked={customCommentEnabled}
+                  onChange={() => setCustomCommentEnabled(true)}
+                />
+              </label>
+            </div>
+
+            <div className="pt-6 mt-2 border-t-2 border-zinc-100">
+              <button
+                onClick={handleSave}
+                disabled={isSaving || saveSuccess}
+                className={`px-6 py-2.5 font-bold flex items-center transition-all border-2 ${
+                  saveSuccess
+                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-[4px_4px_0px_#064e3b]'
+                    : 'bg-zinc-900 text-white border-zinc-900 shadow-[4px_4px_0px_#18181b] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none'
+                } disabled:opacity-50`}
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {saveSuccess ? 'Saved' : 'Save Strategy'}
+                {!isSaving && !saveSuccess && <ArrowRight className="w-4 h-4 ml-2" />}
+              </button>
             </div>
           </div>
         </section>

@@ -1,9 +1,8 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import { requireAuth } from '../_shared/auth.ts'
 import { trackingService } from '../_shared/tracking.ts'
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }

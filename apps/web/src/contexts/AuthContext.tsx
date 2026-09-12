@@ -8,6 +8,8 @@ export interface UserProfile {
   github_handle: string;
   automation_count_today: number;
   last_automation_date: string;
+  custom_comment_enabled: boolean;
+  custom_comment_text: string | null;
 }
 
 interface AuthContextType {
@@ -32,7 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data } = await supabase
         .from('users')
-        .select('bio, skills, github_handle, automation_count_today, last_automation_date')
+        .select(
+          'bio, skills, github_handle, automation_count_today, last_automation_date, custom_comment_enabled, custom_comment_text',
+        )
         .eq('id', userId)
         .maybeSingle();
       setUserProfile(data || null);
