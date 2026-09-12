@@ -58,14 +58,14 @@ serve(async (req) => {
       if (!rawIssue) throw new Error('Could not fetch issue from GitHub.')
 
       const existing = await trackingService.getTrackedIssues(authHeader as string, userId, undefined, 1000)
-      if (existing.some((i: any) => i.github_issue_url === rawIssue.html_url)) {
+      if (existing.some((i: any) => i.github_issue_url === rawIssue.url)) {
         throw new Error('This issue is already in your Scout pipeline.')
       }
 
       const issueData = {
-        github_issue_url: rawIssue.html_url,
+        github_issue_url: rawIssue.url,          // NormalizedIssue uses .url, not .html_url
         title: rawIssue.title,
-        repo_name: `${owner}/${repo}`,
+        repo_name: rawIssue.repoName,             // NormalizedIssue uses .repoName, not repo_name
         match_score: null,
         claimed_via: 'EXTERNAL',
         initial_state: 'ENGAGED'
