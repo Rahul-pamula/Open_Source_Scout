@@ -1,4 +1,7 @@
 {
+  "name": "open-source-scout-monorepo",
+  "version": "0.1.0",
+  "license": "MIT",
   "workspaces": [
     "apps/*",
     "supabase/functions/*",
