@@ -116,8 +116,12 @@ export async function getUserIdFromJwt(jwt: string): Promise<string> {
     const payloadBase64 = jwt.split('.')[1];
     const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
     const payload = JSON.parse(payloadJson);
+    if (!payload.sub) {
+      throw new Error('Authentication Failed: SCOUT_USER_JWT has no sub claim');
+    }
     return payload.sub;
-  } catch (e) {
+  } catch (e: any) {
+    if (e.message.startsWith('Authentication Failed:')) throw e;
     throw new Error('Authentication Failed: Malformed SCOUT_USER_JWT token');
   }
 }
