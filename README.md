@@ -9,117 +9,81 @@ _(You do not need to deploy the frontend yourself to use Scout)_
 
 Open Source Scout is an AI-assisted workflow that helps you discover, understand, claim, and manage open-source contributions. Instead of aimlessly browsing GitHub for issues you can solve, you configure your intent, and Scout's Mission Control pipeline helps you evaluate and engage with the right opportunities.
 
-## Why Scout?
+---
 
-Developers waste hours scrolling through irrelevant GitHub issues, guessing true difficulty, and checking if issues are secretly claimed by someone else. Scout brings discovery, AI evaluation, and contribution tracking into one unified workflow so you can focus exclusively on writing code.
+## 🚀 Current Capabilities (v0.1.0)
 
-## How it works
+Scout currently operates as a **Bring-Your-Own-Backend (BYOB)** application.
+Every deployment of Open Source Scout is **100% decentralized**. There is no central Scout server storing everyone's data. **Each developer uses their own Supabase project.**
 
-1. **Discovery:** Aggressively filters GitHub to find issues matching your exact skills.
+### Features Available Now
+
+1. **Discovery:** Filters GitHub to find issues matching your exact skills.
 2. **AI Dossier:** Groq LLMs analyze issue context, estimate difficulty, and assign a match score.
 3. **Claim & Assignment:** Generate context-aware draft comments to request assignment.
 4. **Contribution Tracking:** Manage PRs, assignments, and reviews in a tabbed pipeline.
+5. **Strict State Guards:** PostgreSQL-level defense-in-depth ensures valid issue state transitions.
 
-## Architecture
+### Required Services
 
-```text
-Your Browser
-      │
-React/Vite Application (Hosted Frontend)
-      │
-Your Supabase (PostgreSQL + Auth)
-      │
-Your Edge Functions (Serverless Backend)
-      │
-GitHub & Groq APIs
-```
+- **Supabase**: To host your database, Edge Functions, and manage authentication.
+- **GitHub**: To fetch issues, post claim comments, and authenticate you.
+- **Groq**: To power the AI evaluation and generate context-aware draft comments.
 
-## Why Bring Your Own Backend (BYOB)?
+### How to use v0.1.0
 
-Every deployment of Open Source Scout is **100% decentralized**.
-
-There is no central Scout server storing everyone's data. **Each developer uses their own Supabase project.**
-You own your database, your infrastructure, your API execution costs, and your credentials. This ensures complete privacy and prevents rate limits from being shared across users.
-
-## Required Services
-
-| Service      | Why Scout needs it                                                    | Where configured                                 |
-| ------------ | --------------------------------------------------------------------- | ------------------------------------------------ |
-| **Supabase** | To host your database, Edge Functions, and manage authentication.     | You create a free project at supabase.com.       |
-| **GitHub**   | To fetch issues, post claim comments, and authenticate you.           | You generate a PAT and an OAuth App.             |
-| **Groq**     | To power the AI evaluation and generate context-aware draft comments. | You generate a free API key at console.groq.com. |
+1. Go to the **[Hosted Scout App](https://rahul-pamula.github.io/Open_Source_Scout/)** and click "Sign Up (New Setup)".
+2. Gather your Supabase, Groq, and GitHub keys.
+3. Run the setup wizard in your terminal: `npx open-source-scout setup`
+4. Return to the hosted app, enter your Supabase Connection URL, and sign in!
 
 ---
 
-# 🚀 Path A: Using Scout
+## 🏗 Planned Architecture (Scout 2.0)
 
-You do NOT need to clone this repository to use Scout. Just follow these 3 steps:
+We are pivoting Scout from a simple issue tracker into a platform-agnostic **Agentic Context Engine**.
 
-### 1. Open the App
+### The Hybrid Architecture Pivot
 
-Go to the **[Hosted Scout App](https://rahul-pamula.github.io/Open_Source_Scout/)** and click "Sign Up (New Setup)".
+Scout 2.0 will use a strictly separated architecture:
 
-### 2. Get Your Keys
+1. **Supabase / PostgreSQL (Authority & Security):** Handles authentication, state, and rate limiting (Already in v0.1.0).
+2. **GitHub CI (Code Quality Enforcement):** The only layer that mechanically enforces test passage via branch protection.
+3. **Scout MCP (Orchestration):** A future Model Context Protocol server that connects your local IDE AI to Scout's state. It will deliver context, load `.scout/skills/`, and provide local _advisory_ validation (git diff/npm test). It will NOT be an enforcement boundary.
+4. **Skills (`.scout/skills/`):** Declarative markdown workflows providing context and helper guides to the AI.
 
-The setup guide in the app will ask you to gather 4 keys:
-
-- A Supabase project ID & access token
-- A Groq API key
-- A GitHub Personal Access Token
-- A GitHub OAuth App Client ID/Secret
-
-### 3. Run the Setup CLI
-
-Once you have your keys, run this command anywhere in your terminal:
-
-```bash
-npx open-source-scout setup
-```
-
-This CLI securely pushes the database schema, edge functions, and API keys directly into your Supabase project.
-
-Once finished, return to the hosted app, enter your Supabase Connection URL, and sign in!
+_Note: The MCP Server and Skills features are currently under development in Phase 2 and are not yet available._
 
 ---
 
-# 🛠 Path B: Developing Scout
+## 🛠 Developing Scout
 
 _Only follow these instructions if you want to modify Scout's source code and contribute to the project itself._
 
-## Local Development Setup
+Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request. We use a **risk-based PR workflow** where high-risk changes (DB, MCP, Auth) require strict review, while low-risk changes (Docs) use a lightweight path.
+
+### Local Development Setup
 
 1. **Clone the repository:**
-
    ```bash
    git clone https://github.com/Rahul-pamula/Open_Source_Scout.git
    cd Open_Source_Scout
    ```
-
 2. **Install dependencies:**
-
    ```bash
-   npm install
+   npm install --workspace=apps/web
+   npm install --workspace=packages/cli
    ```
-
 3. **Run the frontend:**
-
    ```bash
    npm run dev --workspace=apps/web
    ```
-
    The app will run at `http://localhost:5173`.
 
-4. **Connect a backend:**
-   You must still use `npx open-source-scout setup` to deploy a backend to your Supabase project, then connect your `localhost:5173` frontend to that backend.
+### Security Vulnerabilities
 
-## CLI Development
+If you discover a security vulnerability, please refer to our [Security Policy](SECURITY.md) for reporting instructions.
 
-To test the CLI locally:
+### License
 
-```bash
-npm run start --workspace=packages/cli
-```
-
-## Data & Privacy
-
-Because of the BYOB architecture, the developers of Open Source Scout have zero access to your data, your GitHub connection, or your database. All interactions happen directly between your browser, your Supabase project, and GitHub/Groq APIs.
+This project is licensed under the [MIT License](LICENSE).

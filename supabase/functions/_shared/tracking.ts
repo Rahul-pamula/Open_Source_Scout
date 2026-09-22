@@ -73,28 +73,37 @@ export class TrackingService {
   async updateIssueState(authHeader: string, id: string, newState: IssueState): Promise<TrackedIssue> {
     const supabase = this.getClient(authHeader);
     
-    // First fetch current state to validate transition
-    const { data: currentIssue, error: fetchError } = await supabase
-      .from('tracked_issues')
-      .select('state')
-      .eq('id', id)
-      .single();
-      
-    if (fetchError) throw new Error(`Supabase Select Error: ${fetchError.message}`);
-    if (!currentIssue) throw new Error('Issue not found');
+    const transitions: Record<IssueState, IssueState[]> = {
+      'DISCOVERED': ['EVALUATED', 'REJECTED'],
+      'EVALUATED': ['DRAFTED', 'ENGAGED', 'REJECTED'],
+      'DRAFTED': ['ENGAGED', 'REJECTED'],
+      'ENGAGED': ['ASSIGNED', 'REJECTED'],
+      'ASSIGNED': ['COMPLETED', 'REJECTED'],
+      'COMPLETED': [],
+      'REJECTED': ['ENGAGED']
+    };
 
-    if (!this.isValidTransition(currentIssue.state as IssueState, newState)) {
-      throw new Error(`Invalid state transition from ${currentIssue.state} to ${newState}`);
+    const allowedCurrentStates: IssueState[] = [];
+    for (const [key, allowedNextStates] of Object.entries(transitions)) {
+      if (allowedNextStates.includes(newState) || key === newState) {
+        allowedCurrentStates.push(key as IssueState);
+      }
     }
 
     const { data, error: updateError } = await supabase
       .from('tracked_issues')
       .update({ state: newState })
       .eq('id', id)
+      .in('state', allowedCurrentStates)
       .select()
       .single();
 
-    if (updateError) throw new Error(`Supabase Update Error: ${updateError.message}`);
+    if (updateError) {
+      if (updateError.code === 'PGRST116') {
+        throw new Error(`Invalid state transition or issue not found. Target state ${newState} not allowed from current state.`);
+      }
+      throw new Error(`Supabase Update Error: ${updateError.message}`);
+    }
     return data;
   }
 
