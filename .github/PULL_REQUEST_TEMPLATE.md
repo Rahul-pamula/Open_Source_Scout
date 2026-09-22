@@ -1,37 +1,46 @@
-## Summary
+## What changed?
 
-<!-- One-line description of the change -->
+<!-- Briefly summarize the change and the files/components touched. -->
 
-## What it does
+## Why?
 
-- Briefly summarize the change and the files/components touched.
+<!-- Explain the rationale: bugfix, feature, documentation, refactor, etc. -->
 
-## Why this change
+## Related Issue
 
-- Explain the rationale: bugfix, feature, documentation, refactor, etc.
+<!-- e.g. Fixes #123 -->
 
-## Steps to test
+## Risk Level
 
-1. Build and run the web app: `cd apps/web && npm install && npm run dev`
-2. Visit the Setup page and confirm the new GitHub OAuth instructions appear.
-3. Visit the Connect page and confirm the Connection helper displays stored project and offers Test OAuth / Copy Test URL actions.
+<!-- Please select one. This determines the review path. -->
 
-## Migration / Deployment notes
+- [ ] **Low-Risk** (README, docs, typos, templates)
+- [ ] **High-Risk** (DB migrations, RLS, Auth, Edge Functions, MCP, `.scout/skills/`, GitHub CI, CODEOWNERS, release files)
 
-- No database migrations.
-- Frontend change only; deploy static site after merge to make instructions live.
+## Security Implications
 
-## Security considerations
+<!-- Does this change impact authentication, authorization, RLS, or introduce new dependencies? -->
 
-- Do not include any secrets in the PR. The GitHub Client Secret and Supabase service_role key must never be committed.
+- [ ] Yes
+- [ ] No
+
+## Breaking Changes
+
+<!-- Does this require users to update their local database, environment variables, or CLI? -->
+
+- [ ] Yes
+- [ ] No
+
+## Testing Performed
+
+<!-- How did you test this change? -->
+
+1.
+2.
+3.
 
 ## Checklist
 
-- [ ] Code compiles and tests pass
-- [ ] Changes documented (Setup/Connect pages updated)
+- [ ] Code compiles and tests pass locally
+- [ ] Documentation updated (if applicable)
 - [ ] No secrets committed
-- [ ] Manual smoke test completed
-
-## PR Notes
-
-- This PR adds UI guidance and helper flows to make it simpler for users to register a GitHub OAuth App and configure Supabase. It does not change backend logic or secret handling.
