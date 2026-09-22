@@ -31,7 +31,7 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
   // 1. Try to fetch existing active session
   const { data: existing, error: fetchError } = await supabase
     .from('task_sessions')
-    .select('id')
+    .select('id, starting_commit_hash')
     .eq('task_id', taskId)
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -42,6 +42,9 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
   }
 
   if (existing) {
+    if (existing.starting_commit_hash !== commitHash) {
+      throw new Error(`Stale session detected. Active session exists with commit ${existing.starting_commit_hash}, but current HEAD is ${commitHash}.`);
+    }
     return existing.id;
   }
 
@@ -64,13 +67,18 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
       // Retry fetch
       const { data: retryExisting } = await supabase
         .from('task_sessions')
-        .select('id')
+        .select('id, starting_commit_hash')
         .eq('task_id', taskId)
         .eq('user_id', userId)
         .eq('status', 'active')
         .single();
         
-      if (retryExisting) return retryExisting.id;
+      if (retryExisting) {
+        if (retryExisting.starting_commit_hash !== commitHash) {
+          throw new Error(`Stale session detected. Active session exists with commit ${retryExisting.starting_commit_hash}, but current HEAD is ${commitHash}.`);
+        }
+        return retryExisting.id;
+      }
     }
     throw new Error(`Failed to create task session: ${insertError.message}`);
   }
