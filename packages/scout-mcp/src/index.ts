@@ -4,7 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { checkDirtyWorkingTree, getGitInfo } from './git.js';
 import { loadSkills } from './skills.js';
-import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, processSubmitForReview, processMarkBlocked, getUserIdFromJwt } from './supabase.js';
+import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked, getUserIdFromJwt } from './supabase.js';
 import { runAdvisoryValidation } from './validation.js';
 
 const server = new Server({
@@ -110,11 +110,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'submit_for_review': {
-        const { session_id } = SubmitForReviewSchema.parse(request.params.arguments);
+        const { session_id, pr_url } = SubmitForReviewSchema.parse(request.params.arguments);
         
-        const { idempotent } = await processSubmitForReview(supabase, session_id, userId);
+        const isIdempotent = await checkSubmitIdempotency(supabase, session_id, userId);
 
-        if (idempotent) {
+        if (isIdempotent) {
           return {
             content: [{
               type: 'text',
@@ -125,8 +125,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
 
-        // Run advisory local checks
+        // Run advisory local checks BEFORE state transition
         const validationResult = await runAdvisoryValidation();
+
+        // Perform optimistic DB update to SUBMITTED
+        // We include pr_url to be saved on the tasks table
+        await updateSessionStatus(supabase, session_id, userId, 'submitted', 'active', pr_url);
 
         return {
           content: [{

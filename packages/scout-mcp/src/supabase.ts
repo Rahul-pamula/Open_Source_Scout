@@ -123,14 +123,14 @@ export async function getSessionStatus(supabase: SupabaseClient, sessionId: stri
   return data.status;
 }
 
-export async function updateSessionStatus(supabase: SupabaseClient, sessionId: string, userId: string, newStatus: string, expectedOldStatus: string) {
+export async function updateSessionStatus(supabase: SupabaseClient, sessionId: string, userId: string, newStatus: string, expectedOldStatus: string, prUrl?: string) {
   const { data, error } = await supabase
     .from('task_sessions')
     .update({ status: newStatus })
     .eq('id', sessionId)
     .eq('user_id', userId)
     .eq('status', expectedOldStatus)
-    .select('id');
+    .select('id, task_id');
     
   if (error) {
     throw new Error(`Failed to update session status: ${error.message}`);
@@ -139,21 +139,25 @@ export async function updateSessionStatus(supabase: SupabaseClient, sessionId: s
   if (!data || data.length === 0) {
     throw new Error(`State transition rejected: session not found, wrong user, or state changed concurrently`);
   }
+
+  if (prUrl) {
+    const taskId = data[0].task_id;
+    await supabase
+      .from('tasks')
+      .update({ pr_url: prUrl })
+      .eq('id', taskId)
+      .eq('user_id', userId);
+  }
 }
 
-export async function processSubmitForReview(supabase: SupabaseClient, sessionId: string, userId: string): Promise<{ idempotent: boolean }> {
+export async function checkSubmitIdempotency(supabase: SupabaseClient, sessionId: string, userId: string): Promise<boolean> {
   const currentStatus = await getSessionStatus(supabase, sessionId, userId);
   
   if (currentStatus === 'blocked') {
     throw new Error('State transition rejected: cannot submit a blocked session');
   }
 
-  if (currentStatus === 'submitted') {
-    return { idempotent: true };
-  }
-
-  await updateSessionStatus(supabase, sessionId, userId, 'submitted', 'active');
-  return { idempotent: false };
+  return currentStatus === 'submitted';
 }
 
 export async function processMarkBlocked(supabase: SupabaseClient, sessionId: string, userId: string): Promise<{ idempotent: boolean }> {
