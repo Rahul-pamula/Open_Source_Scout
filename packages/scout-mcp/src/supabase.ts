@@ -43,12 +43,12 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
   }
 
   if (latest) {
-    if (latest.status === 'submitted') {
+    if (latest.status === 'SUBMITTED') {
       throw new Error('Task is already submitted / awaiting external review');
     }
-    if (latest.status === 'blocked') {
+    if (latest.status === 'BLOCKED') {
       // Option A: Blocked session is terminal, allow falling through to create a new active session.
-    } else if (latest.status === 'active') {
+    } else if (latest.status === 'ACTIVE') {
       if (latest.starting_commit_hash !== commitHash) {
         throw new Error(`Stale session detected. Active session exists with commit ${latest.starting_commit_hash}, but current HEAD is ${commitHash}.`);
       }
@@ -64,7 +64,7 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
       task_id: taskId,
       user_id: userId,
       starting_commit_hash: commitHash,
-      status: 'active'
+      status: 'ACTIVE'
     })
     .select('id')
     .single();
@@ -78,7 +78,7 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
         .select('id, starting_commit_hash, status')
         .eq('task_id', taskId)
         .eq('user_id', userId)
-        .eq('status', 'active')
+        .eq('status', 'ACTIVE')
         .single();
         
       if (retryExisting) {
@@ -152,25 +152,25 @@ export async function updateSessionStatus(supabase: SupabaseClient, sessionId: s
 export async function checkSubmitIdempotency(supabase: SupabaseClient, sessionId: string, userId: string): Promise<boolean> {
   const currentStatus = await getSessionStatus(supabase, sessionId, userId);
   
-  if (currentStatus === 'blocked') {
+  if (currentStatus === 'BLOCKED') {
     throw new Error('State transition rejected: cannot submit a blocked session');
   }
 
-  return currentStatus === 'submitted';
+  return currentStatus === 'SUBMITTED';
 }
 
 export async function processMarkBlocked(supabase: SupabaseClient, sessionId: string, userId: string): Promise<{ idempotent: boolean }> {
   const currentStatus = await getSessionStatus(supabase, sessionId, userId);
 
-  if (currentStatus === 'submitted') {
+  if (currentStatus === 'SUBMITTED') {
     throw new Error('State transition rejected: cannot block an already submitted session');
   }
 
-  if (currentStatus === 'blocked') {
+  if (currentStatus === 'BLOCKED') {
     return { idempotent: true };
   }
 
-  await updateSessionStatus(supabase, sessionId, userId, 'blocked', 'active');
+  await updateSessionStatus(supabase, sessionId, userId, 'BLOCKED', 'ACTIVE');
   return { idempotent: false };
 }
 

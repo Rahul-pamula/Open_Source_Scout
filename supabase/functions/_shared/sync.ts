@@ -41,7 +41,7 @@ export class SyncService {
         .from('tasks')
         .select('*')
         .eq('user_id', userId)
-        .in('state', ['ENGAGED', 'ASSIGNED']);
+        .in('state', ['ACTIVE']);
 
       if (fetchError) throw fetchError;
       
@@ -51,7 +51,7 @@ export class SyncService {
       for (const issue of issues) {
         try {
           issuesChecked++;
-          const [owner, repo] = issue.repo_name.split('/');
+          const [owner, repo] = (issue.repo_name || '').split('/');
           const issueNumber = parseInt(issue.external_url.split('/').pop() || '0');
           
           if (!owner || !repo || !issueNumber) {

@@ -38,7 +38,7 @@ export interface ClaimResult {
   evidence?: string;
 }
 
-export type IssueState = 'DISCOVERED' | 'EVALUATED' | 'DRAFTED' | 'ENGAGED' | 'ASSIGNED' | 'COMPLETED' | 'REJECTED';
+export type IssueState = 'QUEUED' | 'ACTIVE' | 'PAUSED' | 'CANCEL_REQUESTED' | 'STOPPING' | 'CANCELLED' | 'BLOCKED' | 'FAILED' | 'COMPLETED' | 'SUBMITTED';
 
 export type TaskPlatform = 'github' | 'jira' | 'linear' | 'manual';
 
@@ -56,6 +56,7 @@ export interface Task {
   labels?: string[];
   state: IssueState;
   match_score?: number;
+  needs_attention?: boolean;
   agent_status?: string;
   agent_ide?: string;
   pr_url?: string;
@@ -132,7 +133,7 @@ export type MilestoneType =
   | 'STARTED' 
   | 'FORKED' 
   | 'COMMENTED' 
-  | 'ASSIGNED' 
+  | 'ACTIVE' 
   | 'PR_OPENED' 
   | 'PR_REVIEWED' 
   | 'PR_MERGED' 

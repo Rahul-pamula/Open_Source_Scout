@@ -24,10 +24,10 @@ export class ReconciliationService {
     const events: { type: ReconciliationEventType, previous: string, next: string, meta: any }[] = [];
 
     // 1. Assignment Detection
-    if (newState === 'ENGAGED') {
+    if (newState === 'ACTIVE') {
       const isAssigned = snapshot.assignees.some(a => a.toLowerCase() === githubUsername.toLowerCase());
       if (isAssigned) {
-        newState = 'ASSIGNED';
+        newState = 'ACTIVE';
         events.push({
           type: 'ISSUE_ASSIGNED',
           previous: issue.state,
@@ -53,8 +53,8 @@ export class ReconciliationService {
              console.error('[Reconciliation] AI Reply Analysis failed:', e);
           }
 
-          if (aiAnalysis?.isApproval && newState === 'ENGAGED') {
-             newState = 'ASSIGNED'; // We interpret approval as an assignment
+          if (aiAnalysis?.isApproval && newState === 'ACTIVE') {
+             newState = 'ACTIVE'; // We interpret approval as an assignment
              events.push({
                type: 'ISSUE_ASSIGNED',
                previous: issue.state,
@@ -76,8 +76,8 @@ export class ReconciliationService {
     // 3. Completion Detection
     if (snapshot.state === 'closed') {
       if (snapshot.stateReason === 'not_planned') {
-        if (newState !== 'REJECTED') {
-          newState = 'REJECTED';
+        if (newState !== 'CANCELLED') {
+          newState = 'CANCELLED';
           events.push({
             type: 'ISSUE_REJECTED',
             previous: issue.state,
@@ -142,7 +142,7 @@ export class ReconciliationService {
 
     // ASSIGNED
     if (snapshot.assignees.some(a => a.toLowerCase() === githubUsername.toLowerCase())) {
-      milestonesToInsert.push({ tracked_issue_id: issue.id, milestone_type: 'ASSIGNED', source: 'github' });
+      milestonesToInsert.push({ tracked_issue_id: issue.id, milestone_type: 'ACTIVE', source: 'github' });
     }
 
     // COMMENTED

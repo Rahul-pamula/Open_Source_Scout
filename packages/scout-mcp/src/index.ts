@@ -130,7 +130,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Perform optimistic DB update to SUBMITTED
         // We include pr_url to be saved on the tasks table
-        await updateSessionStatus(supabase, session_id, userId, 'submitted', 'active', pr_url);
+        await updateSessionStatus(supabase, session_id, userId, 'SUBMITTED', 'ACTIVE', pr_url);
 
         return {
           content: [{
