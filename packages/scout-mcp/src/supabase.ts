@@ -47,9 +47,8 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
       throw new Error('Task is already submitted / awaiting external review');
     }
     if (latest.status === 'blocked') {
-      throw new Error('Task is already marked as blocked');
-    }
-    if (latest.status === 'active') {
+      // Option A: Blocked session is terminal, allow falling through to create a new active session.
+    } else if (latest.status === 'active') {
       if (latest.starting_commit_hash !== commitHash) {
         throw new Error(`Stale session detected. Active session exists with commit ${latest.starting_commit_hash}, but current HEAD is ${commitHash}.`);
       }

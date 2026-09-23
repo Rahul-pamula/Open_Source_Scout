@@ -206,13 +206,18 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
     );
   });
 
-  await t.test('2h get_task_blueprint rejects an already BLOCKED task', async () => {
+  await t.test('2h get_task_blueprint recovers from BLOCKED task (Option A)', async () => {
     const existing = { id: 'session-blk', starting_commit_hash: 'abc123', status: 'blocked' };
-    const supabase = { from: () => ({ select: mockSelect(existing) }) };
-    await assert.rejects(
-      () => getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123'),
-      /Task is already marked as blocked/
-    );
+    let insertCalled = false;
+    const supabase = {
+      from: () => ({
+        select: mockSelect(existing),
+        insert: () => { insertCalled = true; return mockInsert({ data: { id: 'session-new' }, error: null })(); },
+      })
+    };
+    const id = await getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123');
+    assert.strictEqual(id, 'session-new');
+    assert.strictEqual(insertCalled, true);
   });
   
   await t.test('2i get_task_blueprint does not create a second ACTIVE session (reuses)', async () => {
