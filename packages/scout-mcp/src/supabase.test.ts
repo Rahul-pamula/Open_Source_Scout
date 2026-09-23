@@ -31,8 +31,10 @@ test('Supabase Adapter', async (t) => {
           select: () => ({
             eq: () => ({
               eq: () => ({
-                eq: () => ({
-                  maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A' }, error: null })
+                order: () => ({
+                  limit: () => ({
+                    maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A', status: 'active' }, error: null })
+                  })
                 })
               })
             })
@@ -50,8 +52,10 @@ test('Supabase Adapter', async (t) => {
           select: () => ({
             eq: () => ({
               eq: () => ({
-                eq: () => ({
-                  maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A' }, error: null })
+                order: () => ({
+                  limit: () => ({
+                    maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A', status: 'active' }, error: null })
+                  })
                 })
               })
             })
@@ -72,9 +76,7 @@ test('Supabase Adapter', async (t) => {
           select: () => ({
             eq: () => ({
               eq: () => ({
-                eq: () => ({
-                  maybeSingle: async () => ({ data: null, error: null })
-                })
+                order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) })
               })
             })
           }),
