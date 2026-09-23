@@ -61,6 +61,13 @@ async function run() {
     required: true
   })).projectId;
 
+  const dbPassword = process.env.SUPABASE_DB_PASSWORD || (await prompt({
+    type: 'password',
+    name: 'dbPassword',
+    message: 'Enter your Supabase Database Password (created when you made the project):',
+    required: true
+  })).dbPassword;
+
   const tempDir = path.resolve(process.cwd(), '.scout-tmp');
   const originalCwd = process.cwd();
 
@@ -81,7 +88,10 @@ async function run() {
   try {
     await execa('supabase', ['link', '--project-ref', projectId], { 
       stdio: 'inherit',
-      env: { SUPABASE_ACCESS_TOKEN: accessToken }
+      env: { 
+        SUPABASE_ACCESS_TOKEN: accessToken,
+        SUPABASE_DB_PASSWORD: dbPassword
+      }
     });
     console.log(chalk.green('✅ Linked Supabase project.'));
   } catch (e) {
@@ -95,7 +105,10 @@ async function run() {
   console.log(chalk.bold('\n📦 Pushing Database Schema'));
   try {
     const dbPush = execa('supabase', ['db', 'push'], { 
-      env: { SUPABASE_ACCESS_TOKEN: accessToken }
+      env: { 
+        SUPABASE_ACCESS_TOKEN: accessToken,
+        SUPABASE_DB_PASSWORD: dbPassword
+      }
     });
     if (dbPush.stdout) dbPush.stdout.pipe(process.stdout);
     if (dbPush.stderr) dbPush.stderr.pipe(process.stderr);
