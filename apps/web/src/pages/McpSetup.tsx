@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { getSupabaseConfig } from '../../services/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { getSupabaseConfig } from '../services/supabase';
 import { Terminal, Check, Copy } from 'lucide-react';
 
 export default function SetupPage() {
