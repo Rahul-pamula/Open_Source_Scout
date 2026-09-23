@@ -11,7 +11,7 @@ import { runAdvisoryValidation } from './validation.js';
 import { validatePathBoundary } from './guardrails.js';
 import fs from 'fs/promises';
 import { randomUUID } from 'crypto';
-import { getLocalState, saveLocalState, getOrCreateLocalSession, processLocalSubmit, processLocalMarkBlocked } from './localState.js';
+import { getOrCreateLocalSession, processLocalSubmit, processLocalMarkBlocked, updateLocalHeartbeat, checkStaleSessions, findStaleSession } from './localState.js';
 
 const server = new Server({
   name: 'scout-mcp',
@@ -209,12 +209,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
       case 'initialize_execution': {
         const { task_description, task_id, source } = InitializeExecutionSchema.parse(request.params.arguments);
-        
+
         const gitInfo = await getGitInfo();
-        
+
+        // Run stale-session detection before creating anything new.
+        await checkStaleSessions();
+        const staleSessionId = await findStaleSession();
+        if (staleSessionId) {
+          console.error(`[lifecycle] Detected stale session ${staleSessionId}. Creating a fresh session.`);
+        }
+
         const sessionId = randomUUID();
 
-        // Save local state
+        // Save local state (new session always gets a fresh heartbeat timestamp).
         await getOrCreateLocalSession(sessionId, gitInfo.commitHash, task_description, source, task_id);
 
         const worktreePath = await createWorktree(sessionId);
@@ -229,6 +236,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               starting_commit_hash: gitInfo.commitHash,
               skills: skills,
               worktree_path: worktreePath,
+              recovered_from_stale_session: staleSessionId ?? undefined,
               system_instructions: "IMPORTANT: You must use the 'read_file', 'write_file', 'edit_file', and 'run_command' MCP tools provided by scout-mcp to interact with the codebase. Do not use host IDE tools."
             }, null, 2)
           }]
@@ -385,12 +393,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'session_heartbeat': {
         const { session_id } = SessionHeartbeatSchema.parse(request.params.arguments);
-        
-        const state = await getLocalState();
-        const session = state.sessions[session_id];
-        if (session) {
-            session.last_heartbeat_at = new Date().toISOString();
-            await saveLocalState(state);
+
+        // Update heartbeat in local state first (works even without cloud connectivity).
+        const found = await updateLocalHeartbeat(session_id);
+        if (!found) {
+          console.error(`[lifecycle] session_heartbeat called for unknown session ${session_id}`);
         }
 
         if (supabase && process.env.SCOUT_USER_JWT) {
