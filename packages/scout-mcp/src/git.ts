@@ -91,3 +91,8 @@ export async function checkDirtyWorkingTree(cwd: string = process.cwd()) {
     throw new Error('Working tree is dirty. Commit or stash changes before starting.');
   }
 }
+
+export async function getWorktreePath(sessionId: string, cwd: string = process.cwd()): Promise<string> {
+  const { stdout } = await execAsync('git rev-parse --show-toplevel', { cwd });
+  return join(stdout.trim(), '.scout-tmp', sessionId);
+}

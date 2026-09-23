@@ -2,7 +2,8 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { createWorktree, getGitInfo, removeWorktree } from './git.js';
+import { createWorktree, getGitInfo, removeWorktree, getWorktreePath } from './git.js';
+import { processManager } from './harness.js';
 import { loadSkills } from './skills.js';
 import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked, getUserIdFromJwt, updateSessionHeartbeat } from './supabase.js';
 import { runAdvisoryValidation } from './validation.js';
@@ -30,6 +31,15 @@ const MarkBlockedSchema = z.object({
   reason: z.string(),
 });
 
+const RunCommandSchema = z.object({
+  session_id: z.string().uuid(),
+  command: z.string(),
+});
+
+const CancelSessionSchema = z.object({
+  session_id: z.string().uuid(),
+});
+
 const SessionHeartbeatSchema = z.object({
   session_id: z.string().uuid(),
 });
@@ -37,6 +47,29 @@ const SessionHeartbeatSchema = z.object({
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
+      {
+        name: 'run_command',
+        description: 'Execute a shell command inside the session\'s worktree.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            session_id: { type: 'string', description: 'The UUID of the active session.' },
+            command: { type: 'string', description: 'The shell command to execute.' },
+          },
+          required: ['session_id', 'command'],
+        },
+      },
+      {
+        name: 'cancel_session',
+        description: 'Cleanly terminate all running processes for a session.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            session_id: { type: 'string', description: 'The UUID of the session.' },
+          },
+          required: ['session_id'],
+        },
+      },
       {
         name: 'get_task_blueprint',
         description: 'Return the structured context required for the AI to begin a task.',
@@ -136,19 +169,50 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+
+      case 'run_command': {
+        const { session_id, command } = RunCommandSchema.parse(request.params.arguments);
+        const worktreePath = await getWorktreePath(session_id);
+        
+        const result = await processManager.runCommand(session_id, command, worktreePath);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+
+      case 'cancel_session': {
+        const { session_id } = CancelSessionSchema.parse(request.params.arguments);
+        
+        await processManager.cancelSession(session_id);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              message: 'Successfully cancelled session processes.',
+            }, null, 2)
+          }]
+        };
+      }
+
       case 'cleanup_session': {
         const CleanupSessionSchema = z.object({
           session_id: z.string().uuid(),
         });
         const { session_id } = CleanupSessionSchema.parse(request.params.arguments);
         
+        await processManager.cancelSession(session_id);
         await removeWorktree(session_id);
 
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
-              message: 'Successfully cleaned up session worktree.',
+              message: 'Successfully cleaned up session processes and worktree.',
             }, null, 2)
           }]
         };
