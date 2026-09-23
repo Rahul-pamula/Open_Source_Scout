@@ -28,24 +28,33 @@ export function getSupabaseClient(): SupabaseClient {
  * Otherwise, it creates a new active session with the provided commit hash.
  */
 export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: string, userId: string, commitHash: string): Promise<string> {
-  // 1. Try to fetch existing active session
-  const { data: existing, error: fetchError } = await supabase
+  // 1. Try to fetch existing latest session
+  const { data: latest, error: fetchError } = await supabase
     .from('task_sessions')
-    .select('id, starting_commit_hash')
+    .select('id, starting_commit_hash, status')
     .eq('task_id', taskId)
     .eq('user_id', userId)
-    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (fetchError) {
     throw new Error(`Failed to query sessions: ${fetchError.message}`);
   }
 
-  if (existing) {
-    if (existing.starting_commit_hash !== commitHash) {
-      throw new Error(`Stale session detected. Active session exists with commit ${existing.starting_commit_hash}, but current HEAD is ${commitHash}.`);
+  if (latest) {
+    if (latest.status === 'submitted') {
+      throw new Error('Task is already submitted / awaiting external review');
     }
-    return existing.id;
+    if (latest.status === 'blocked') {
+      throw new Error('Task is already marked as blocked');
+    }
+    if (latest.status === 'active') {
+      if (latest.starting_commit_hash !== commitHash) {
+        throw new Error(`Stale session detected. Active session exists with commit ${latest.starting_commit_hash}, but current HEAD is ${commitHash}.`);
+      }
+      return latest.id;
+    }
   }
 
   // 2. Insert new session.
@@ -67,7 +76,7 @@ export async function getOrCreateTaskSession(supabase: SupabaseClient, taskId: s
       // Retry fetch
       const { data: retryExisting } = await supabase
         .from('task_sessions')
-        .select('id, starting_commit_hash')
+        .select('id, starting_commit_hash, status')
         .eq('task_id', taskId)
         .eq('user_id', userId)
         .eq('status', 'active')
@@ -99,15 +108,67 @@ export async function fetchTaskInfo(supabase: SupabaseClient, taskId: string) {
   return data;
 }
 
-export async function updateSessionStatus(supabase: SupabaseClient, sessionId: string, status: string) {
-  const { error } = await supabase
+export async function getSessionStatus(supabase: SupabaseClient, sessionId: string, userId: string): Promise<string> {
+  const { data, error } = await supabase
     .from('task_sessions')
-    .update({ status })
-    .eq('id', sessionId);
+    .select('status')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to fetch session: ${error?.message || 'Not found'}`);
+  }
+
+  return data.status;
+}
+
+export async function updateSessionStatus(supabase: SupabaseClient, sessionId: string, userId: string, newStatus: string, expectedOldStatus: string) {
+  const { data, error } = await supabase
+    .from('task_sessions')
+    .update({ status: newStatus })
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .eq('status', expectedOldStatus)
+    .select('id');
     
   if (error) {
     throw new Error(`Failed to update session status: ${error.message}`);
   }
+
+  if (!data || data.length === 0) {
+    throw new Error(`State transition rejected: session not found, wrong user, or state changed concurrently`);
+  }
+}
+
+export async function processSubmitForReview(supabase: SupabaseClient, sessionId: string, userId: string): Promise<{ idempotent: boolean }> {
+  const currentStatus = await getSessionStatus(supabase, sessionId, userId);
+  
+  if (currentStatus === 'blocked') {
+    throw new Error('State transition rejected: cannot submit a blocked session');
+  }
+
+  if (currentStatus === 'submitted') {
+    return { idempotent: true };
+  }
+
+  await updateSessionStatus(supabase, sessionId, userId, 'submitted', 'active');
+  return { idempotent: false };
+}
+
+export async function processMarkBlocked(supabase: SupabaseClient, sessionId: string, userId: string): Promise<{ idempotent: boolean }> {
+  const currentStatus = await getSessionStatus(supabase, sessionId, userId);
+
+  if (currentStatus === 'submitted') {
+    throw new Error('State transition rejected: cannot block an already submitted session');
+  }
+
+  if (currentStatus === 'blocked') {
+    return { idempotent: true };
+  }
+
+  await updateSessionStatus(supabase, sessionId, userId, 'blocked', 'active');
+  return { idempotent: false };
 }
 
 export async function getUserIdFromJwt(jwt: string): Promise<string> {
