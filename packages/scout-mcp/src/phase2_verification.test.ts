@@ -19,7 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 
-import { getUserIdFromJwt, getOrCreateTaskSession, updateSessionStatus, getSessionStatus, processSubmitForReview, processMarkBlocked } from './supabase.js';
+import { getUserIdFromJwt, getOrCreateTaskSession, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked } from './supabase.js';
 import { getGitInfo, checkDirtyWorkingTree } from './git.js';
 import { loadSkills } from './skills.js';
 import { runAdvisoryValidation } from './validation.js';
@@ -382,43 +382,25 @@ test('4. Skills Loader — loadSkills', async (t) => {
 
 // ─── 5. SUBMIT FOR REVIEW ──────────────────────────────────────────────────
 
-test('5. submit_for_review — processSubmitForReview (mocked)', async (t) => {
-  await t.test('5a ACTIVE → SUBMITTED — valid submission', async () => {
-    let updateCalled = false;
-    let expectedOldStatusChecked = '';
+test('5. submit_for_review — checkSubmitIdempotency and updateSessionStatus (mocked)', async (t) => {
+  await t.test('5a ACTIVE → SUBMITTED — checkSubmitIdempotency returns false', async () => {
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'active' }),
-        update: (fields: Record<string, string>) => {
-          updateCalled = true;
-          const chain: any = {
-            eq: (k: string, v: string) => {
-              if (k === 'status') expectedOldStatusChecked = v;
-              return chain;
-            },
-            select: async () => ({ data: [{ id: 'session-abc' }], error: null })
-          };
-          return chain;
-        },
+        select: mockSelect({ status: 'active' })
       }),
     };
-    const { idempotent } = await processSubmitForReview(supabase as any, 'session-abc', 'user-1');
-    assert.strictEqual(idempotent, false);
-    assert.strictEqual(updateCalled, true);
-    assert.strictEqual(expectedOldStatusChecked, 'active');
+    const isIdempotent = await checkSubmitIdempotency(supabase as any, 'session-abc', 'user-1');
+    assert.strictEqual(isIdempotent, false);
   });
 
   await t.test('5b SUBMITTED → SUBMITTED — idempotent', async () => {
-    let updateCalled = false;
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'submitted' }),
-        update: () => { updateCalled = true; return {}; }
+        select: mockSelect({ status: 'submitted' })
       }),
     };
-    const { idempotent } = await processSubmitForReview(supabase as any, 'session-abc', 'user-1');
-    assert.strictEqual(idempotent, true);
-    assert.strictEqual(updateCalled, false, 'Does not rerun update/advisory when idempotent');
+    const isIdempotent = await checkSubmitIdempotency(supabase as any, 'session-abc', 'user-1');
+    assert.strictEqual(isIdempotent, true);
   });
 
   await t.test('5c BLOCKED → SUBMITTED rejection', async () => {
@@ -428,16 +410,14 @@ test('5. submit_for_review — processSubmitForReview (mocked)', async (t) => {
       }),
     };
     await assert.rejects(
-      () => processSubmitForReview(supabase as any, 'session-abc', 'user-1'),
+      () => checkSubmitIdempotency(supabase as any, 'session-abc', 'user-1'),
       /State transition rejected: cannot submit a blocked session/
     );
   });
 
   await t.test('5d optimistic concurrency prevents stale ACTIVE state from overwriting a newer state', async () => {
-    // Simulate getting 'active' from select, but by the time update runs, the row doesn't match 'active'
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'active' }),
         update: () => {
           const chain: any = {
             eq: () => chain,
@@ -448,29 +428,42 @@ test('5. submit_for_review — processSubmitForReview (mocked)', async (t) => {
       }),
     };
     await assert.rejects(
-      () => processSubmitForReview(supabase as any, 'session-abc', 'user-1'),
+      () => updateSessionStatus(supabase as any, 'session-abc', 'user-1', 'submitted', 'active'),
       /State transition rejected: session not found, wrong user, or state changed concurrently/
     );
   });
-  
-  await t.test('5e wrong-user session update is rejected', async () => {
-    // RLS handles this mostly, but our optimistic concurrency handles it at the app layer if 0 rows returned
+
+  await t.test('5e pr_url persistence when provided', async () => {
+    let tasksUpdated = false;
+    let tasksPrUrl = '';
     const supabase = {
-      from: () => ({
-        select: mockSelect({ status: 'active' }),
-        update: () => {
-          const chain: any = {
-            eq: () => chain,
-            select: async () => ({ data: [], error: null }) // 0 rows affected simulating wrong user
+      from: (table: string) => {
+        if (table === 'task_sessions') {
+          return {
+            update: () => {
+              const chain: any = {
+                eq: () => chain,
+                select: async () => ({ data: [{ id: 'session-abc', task_id: 'task-123' }], error: null })
+              };
+              return chain;
+            }
           };
-          return chain;
-        },
-      }),
+        }
+        if (table === 'tasks') {
+          return {
+            update: (fields: any) => {
+              tasksUpdated = true;
+              tasksPrUrl = fields.pr_url;
+              const chain: any = { eq: () => chain };
+              return chain;
+            }
+          };
+        }
+      }
     };
-    await assert.rejects(
-      () => processSubmitForReview(supabase as any, 'session-wrong-user', 'user-1'),
-      /State transition rejected: session not found, wrong user, or state changed concurrently/
-    );
+    await updateSessionStatus(supabase as any, 'session-abc', 'user-1', 'submitted', 'active', 'https://github.com/pr/1');
+    assert.strictEqual(tasksUpdated, true);
+    assert.strictEqual(tasksPrUrl, 'https://github.com/pr/1');
   });
 });
 
@@ -536,52 +529,76 @@ test('7. Advisory Validation — runAdvisoryValidation', async (t) => {
   const setup = () => fs.mkdirSync(testDir, { recursive: true });
   const teardown = () => fs.rmSync(testDir, { recursive: true, force: true });
 
-  await t.test('7a no package.json — skips, success:true', async () => {
+  await t.test('7a no package.json — skips, validation_passed:true', async () => {
     setup();
     try {
       const result = await runAdvisoryValidation(testDir);
-      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.validation_ran, false);
+      assert.strictEqual(result.validation_passed, true);
+      assert.strictEqual(result.exit_code, null);
       assert.match(result.stdout, /No scout:validate script found/);
     } finally {
       teardown();
     }
   });
 
-  await t.test('7b package.json without scout:validate — skips, success:true', async () => {
+  await t.test('7b package.json without scout:validate — skips, validation_passed:true', async () => {
     setup();
     fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({ scripts: { test: 'jest' } }));
     try {
       const result = await runAdvisoryValidation(testDir);
-      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.validation_ran, false);
+      assert.strictEqual(result.validation_passed, true);
+      assert.strictEqual(result.exit_code, null);
       assert.match(result.stdout, /No scout:validate script found/);
     } finally {
       teardown();
     }
   });
 
-  await t.test('7c configured scout:validate exits 0 — success:true, stdout captured', async () => {
+  await t.test('7c configured scout:validate exits 0 — passes, stdout captured', async () => {
     setup();
     fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({
       scripts: { 'scout:validate': 'echo "VALIDATION_OK"' }
     }));
     try {
       const result = await runAdvisoryValidation(testDir);
-      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.validation_ran, true);
+      assert.strictEqual(result.validation_passed, true);
+      assert.strictEqual(result.exit_code, 0);
       assert.match(result.stdout, /VALIDATION_OK/);
     } finally {
       teardown();
     }
   });
 
-  await t.test('7d configured scout:validate exits 1 — success:false (advisory), stdout/stderr captured', async () => {
+  await t.test('7d configured scout:validate exits 1 — fails (advisory), stdout/stderr captured', async () => {
     setup();
     fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({
       scripts: { 'scout:validate': 'echo "VALIDATION_ERR" >&2 && exit 1' }
     }));
     try {
       const result = await runAdvisoryValidation(testDir);
-      assert.strictEqual(result.success, false);
+      assert.strictEqual(result.validation_ran, true);
+      assert.strictEqual(result.validation_passed, false);
+      assert.strictEqual(result.exit_code, 1);
       // advisory: still returns a result, does not throw
+    } finally {
+      teardown();
+    }
+  });
+
+  await t.test('7e validation execution failure — fails (advisory), recovers without crash', async () => {
+    setup();
+    fs.writeFileSync(path.join(testDir, 'package.json'), JSON.stringify({
+      scripts: { 'scout:validate': 'command_does_not_exist_12345' }
+    }));
+    try {
+      const result = await runAdvisoryValidation(testDir);
+      assert.strictEqual(result.validation_ran, true);
+      assert.strictEqual(result.validation_passed, false);
+      assert.notStrictEqual(result.exit_code, 0);
+      assert.match(result.stderr, /command_does_not_exist_12345/);
     } finally {
       teardown();
     }

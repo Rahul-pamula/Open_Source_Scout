@@ -16,27 +16,36 @@ export async function runAdvisoryValidation(cwd: string = process.cwd()) {
     }
   }
 
-  if (!command) {
-    return {
-      success: true,
-      stdout: 'No scout:validate script found in package.json. Skipping validation.',
-      stderr: ''
-    };
-  }
+    if (!command) {
+      return {
+        validation_ran: false,
+        validation_passed: true,
+        stdout: 'No scout:validate script found in package.json. Skipping validation.',
+        stderr: '',
+        exit_code: null
+      };
+    }
 
-  try {
-    // 5-minute timeout for validation commands
-    const { stdout, stderr } = await execAsync(command, { cwd, timeout: 300000 });
-    return {
-      success: true,
-      stdout,
-      stderr
-    };
-  } catch (e: any) {
-    return {
-      success: false,
-      stdout: e.stdout || '',
-      stderr: e.stderr || e.message || 'Unknown error'
-    };
-  }
+    try {
+      // 5-minute timeout for validation commands
+      const { stdout, stderr } = await execAsync(command, { cwd, timeout: 300000 });
+      return {
+        validation_ran: true,
+        validation_passed: true,
+        stdout,
+        stderr,
+        exit_code: 0
+      };
+    } catch (e: any) {
+      const exitCode = typeof e.code === 'number' ? e.code : null;
+      const timedOut = e.killed && e.signal === 'SIGTERM';
+
+      return {
+        validation_ran: true,
+        validation_passed: false,
+        stdout: e.stdout || '',
+        stderr: timedOut ? `Validation timed out after 5 minutes.\n${e.stderr || ''}` : (e.stderr || e.message || 'Unknown error'),
+        exit_code: exitCode
+      };
+    }
 }
