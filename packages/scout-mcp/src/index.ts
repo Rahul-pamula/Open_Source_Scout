@@ -1,8 +1,9 @@
+import { recordChangedFiles, recordGitDiff, recordValidationResults } from './evidence.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { createWorktree, getGitInfo, removeWorktree, getWorktreePath } from './git.js';
+import { createWorktree, getGitInfo, removeWorktree, getWorktreePath  , getGitDiff, getChangedFiles } from './git.js';
 import { processManager } from './harness.js';
 import { loadSkills } from './skills.js';
 import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked, getUserIdFromJwt, updateSessionHeartbeat } from './supabase.js';
@@ -350,7 +351,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
         
+        const worktreePath = await getWorktreePath(session_id);
+        const diff = await getGitDiff(worktreePath);
+        const changedFiles = await getChangedFiles(worktreePath);
+        
+        await recordGitDiff(session_id, diff);
+        await recordChangedFiles(session_id, changedFiles);
+
         const validationResult = await runAdvisoryValidation();
+        await recordValidationResults(session_id, validationResult);
         
         if (supabase && process.env.SCOUT_USER_JWT) {
            try {
