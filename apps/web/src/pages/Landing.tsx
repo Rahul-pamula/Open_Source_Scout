@@ -58,10 +58,10 @@ export function Landing() {
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
           <Link
-            to="/connect"
+            to="/mcp-setup"
             className="w-full sm:w-auto bg-white text-zinc-900 font-bold py-3.5 px-8 border-2 border-zinc-200 shadow-[4px_4px_0px_#e4e4e7] hover:-translate-y-px hover:shadow-[5px_5px_0px_#e4e4e7] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Sign In (Connect)
+            Connect MCP
             <Server className="ml-2 h-5 w-5 text-zinc-400" />
           </Link>
         </div>
@@ -205,6 +205,40 @@ export function Landing() {
             <p className="text-sm text-zinc-600 mb-4">
               Open the hosted frontend, paste your Supabase connection URL, and sign in.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* MCP Reality */}
+      <div className="max-w-6xl w-full px-6 mb-24 relative z-10 text-center">
+        <h2 className="text-3xl font-black text-zinc-900 tracking-tight mb-4">
+          Execute safely with MCP.
+        </h2>
+        <p className="text-zinc-600 leading-relaxed max-w-2xl mx-auto mb-12">
+          Don't give your AI raw shell access. Connect your IDE via the Model Context Protocol to
+          execute code in isolated Git worktrees with enforced boundaries.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-6 text-left">
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+            <h3 className="font-bold text-zinc-900 mb-2">Cursor Configuration</h3>
+            <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
+              <pre>{`"scout-v2": {
+  "command": "npx",
+  "args": ["-y", "@scout/mcp"]
+}`}</pre>
+            </div>
+            <p className="text-sm text-zinc-600">Add this to your Cursor MCP settings.</p>
+          </div>
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+            <h3 className="font-bold text-zinc-900 mb-2">Claude Desktop</h3>
+            <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
+              <pre>{`"scout-v2": {
+  "command": "npx",
+  "args": ["-y", "@scout/mcp"]
+}`}</pre>
+            </div>
+            <p className="text-sm text-zinc-600">Add this to your claude_desktop_config.json.</p>
           </div>
         </div>
       </div>
