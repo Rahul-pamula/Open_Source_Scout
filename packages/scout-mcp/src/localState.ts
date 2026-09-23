@@ -7,6 +7,9 @@ const LOCAL_STATE_FILE = path.join(LOCAL_STATE_DIR, 'state.json');
 export interface SessionState {
   status: string;
   starting_commit_hash: string;
+  task_description: string;
+  source: string;
+  task_id?: string;
   pr_url?: string;
   blocked_reason?: string;
   last_heartbeat_at?: string;
@@ -32,7 +35,7 @@ export async function saveLocalState(state: StateFile): Promise<void> {
   await fs.rename(tmpFile, LOCAL_STATE_FILE);
 }
 
-export async function getOrCreateLocalSession(sessionId: string, commitHash: string): Promise<string> {
+export async function getOrCreateLocalSession(sessionId: string, commitHash: string, taskDescription: string, source: string, taskId?: string): Promise<string> {
   const state = await getLocalState();
   if (state.sessions[sessionId]) {
       const session = state.sessions[sessionId];
@@ -46,7 +49,10 @@ export async function getOrCreateLocalSession(sessionId: string, commitHash: str
   }
   state.sessions[sessionId] = {
       status: 'ACTIVE',
-      starting_commit_hash: commitHash
+      starting_commit_hash: commitHash,
+      task_description: taskDescription,
+      source,
+      ...(taskId ? { task_id: taskId } : {})
   };
   await saveLocalState(state);
   return sessionId;
