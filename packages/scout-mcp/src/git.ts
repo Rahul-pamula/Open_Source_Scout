@@ -1,5 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { join } from 'path';
+import { rm } from 'fs/promises';
 
 const execAsync = promisify(exec);
 
@@ -39,6 +41,47 @@ export async function getGitInfo(cwd: string = process.cwd()) {
     };
   } catch (e: any) {
     throw new Error(`Git error: ${e.message}`);
+  }
+}
+
+export async function createWorktree(sessionId: string, cwd: string = process.cwd()): Promise<string> {
+  const repoRootOut = await execAsync('git rev-parse --show-toplevel', { cwd });
+  const repoRoot = repoRootOut.stdout.trim();
+  
+  const worktreePath = join(repoRoot, '.scout-tmp', sessionId);
+  const branchName = `scout-session-${sessionId}`;
+  
+  try {
+    await execAsync(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
+  } catch (e: any) {
+    if (e.message.includes('already exists')) {
+      // Ignore if it already exists
+    } else {
+      throw new Error(`Failed to create worktree: ${e.message}`);
+    }
+  }
+  
+  return worktreePath;
+}
+
+export async function removeWorktree(sessionId: string, cwd: string = process.cwd()): Promise<void> {
+  const repoRootOut = await execAsync('git rev-parse --show-toplevel', { cwd });
+  const repoRoot = repoRootOut.stdout.trim();
+  
+  const worktreePath = join(repoRoot, '.scout-tmp', sessionId);
+  const branchName = `scout-session-${sessionId}`;
+
+  try {
+    await execAsync(`git worktree remove --force ${worktreePath}`, { cwd });
+  } catch (e) {
+    await rm(worktreePath, { recursive: true, force: true }).catch(() => {});
+    await execAsync(`git worktree prune`, { cwd }).catch(() => {});
+  }
+
+  try {
+    await execAsync(`git branch -D ${branchName}`, { cwd });
+  } catch (e) {
+    // Ignore
   }
 }
 

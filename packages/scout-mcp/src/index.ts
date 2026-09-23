@@ -2,7 +2,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { checkDirtyWorkingTree, getGitInfo } from './git.js';
+import { createWorktree, getGitInfo, removeWorktree } from './git.js';
 import { loadSkills } from './skills.js';
 import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked, getUserIdFromJwt } from './supabase.js';
 import { runAdvisoryValidation } from './validation.js';
@@ -45,6 +45,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: 'cleanup_session',
+        description: 'Clean up the git worktree for a given session.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            session_id: { type: 'string', description: 'The UUID of the session to clean up.' },
+          },
+          required: ['session_id'],
+        },
+      },
+      {
         name: 'submit_for_review',
         description: 'Tell Scout the AI submitted its work for external review, perform advisory local checks.',
         inputSchema: {
@@ -84,11 +95,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // 1. Resolve Identity
         const gitInfo = await getGitInfo();
         
-        // 2. Enforce clean working tree
-        await checkDirtyWorkingTree();
-
-        // 3. Create or retrieve active session idempotently
+        // 2. Create or retrieve active session idempotently
         const sessionId = await getOrCreateTaskSession(supabase, task_id, userId, gitInfo.commitHash);
+
+        // 3. Create unique git worktree for this session
+        const worktreePath = await createWorktree(sessionId);
 
         // 4. Fetch task metadata
         const taskInfo = await fetchTaskInfo(supabase, task_id);
@@ -103,7 +114,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               task: taskInfo,
               session_id: sessionId,
               starting_commit_hash: gitInfo.commitHash,
-              skills: skills
+              skills: skills,
+              worktree_path: worktreePath
+            }, null, 2)
+          }]
+        };
+      }
+
+      case 'cleanup_session': {
+        const CleanupSessionSchema = z.object({
+          session_id: z.string().uuid(),
+        });
+        const { session_id } = CleanupSessionSchema.parse(request.params.arguments);
+        
+        await removeWorktree(session_id);
+
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              message: 'Successfully cleaned up session worktree.',
             }, null, 2)
           }]
         };
