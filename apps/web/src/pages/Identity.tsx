@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowRight, ShieldCheck, Database, GitMerge } from 'lucide-react';
+import {
+  Loader2,
+  ArrowRight,
+  ShieldCheck,
+  Database,
+  GitMerge,
+  Briefcase,
+  Layers,
+} from 'lucide-react';
 
 const PREDEFINED_SKILLS = [
   'javascript',
@@ -307,6 +315,30 @@ export function Identity() {
               <span className="bg-emerald-100 text-emerald-800 border-2 border-emerald-200 px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-widest">
                 Operational
               </span>
+            </div>
+            <div className="flex items-center justify-between border-t-2 border-zinc-100 pb-4 pt-4">
+              <div className="flex items-center gap-3">
+                <Briefcase className="text-zinc-400" size={20} />
+                <span className="font-bold text-zinc-900">Jira OAuth</span>
+              </div>
+              <button
+                onClick={() => (window.location.href = '/oauth/callback/jira?code=dummy_code')}
+                className="bg-zinc-100 text-zinc-900 border-2 border-zinc-200 hover:border-zinc-900 hover:bg-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-widest transition-colors"
+              >
+                Connect
+              </button>
+            </div>
+            <div className="flex items-center justify-between border-t-2 border-zinc-100 pb-4 pt-4">
+              <div className="flex items-center gap-3">
+                <Layers className="text-zinc-400" size={20} />
+                <span className="font-bold text-zinc-900">Linear OAuth</span>
+              </div>
+              <button
+                onClick={() => (window.location.href = '/oauth/callback/linear?code=dummy_code')}
+                className="bg-zinc-100 text-zinc-900 border-2 border-zinc-200 hover:border-zinc-900 hover:bg-white px-3 py-1 font-mono text-xs font-bold uppercase tracking-widest transition-colors"
+              >
+                Connect
+              </button>
             </div>
           </div>
         </section>

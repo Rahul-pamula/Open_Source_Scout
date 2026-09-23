@@ -13,6 +13,7 @@ import { DroppedPage } from './pages/DroppedPage';
 import { Identity } from './pages/Identity';
 import { Onboarding } from './pages/Onboarding';
 import { Docs } from './pages/Docs';
+import { OAuthCallback } from './pages/OAuthCallback';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasSupabaseConfig } from './services/supabase';
 
@@ -56,6 +57,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/setup" element={<Setup />} />
           <Route path="/connect" element={<Connect />} />
+          <Route path="/oauth/callback/:provider" element={<OAuthCallback />} />
 
           <Route path="/docs" element={<Docs />}>
             <Route index element={<Navigate to="01_welcome_to_scout" replace />} />
