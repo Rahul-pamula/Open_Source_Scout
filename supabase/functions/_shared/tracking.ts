@@ -18,13 +18,16 @@ export class TrackingService {
     if (currentState === nextState) return true;
 
     const transitions: Record<IssueState, IssueState[]> = {
-      'DISCOVERED': ['EVALUATED', 'REJECTED'],
-      'EVALUATED': ['DRAFTED', 'ENGAGED', 'REJECTED'],
-      'DRAFTED': ['ENGAGED', 'REJECTED'],
-      'ENGAGED': ['ASSIGNED', 'REJECTED'],
-      'ASSIGNED': ['COMPLETED', 'REJECTED'],
+      'QUEUED': ['ACTIVE', 'CANCELLED'],
+      'ACTIVE': ['PAUSED', 'CANCEL_REQUESTED', 'BLOCKED', 'FAILED', 'COMPLETED', 'SUBMITTED'],
+      'PAUSED': ['ACTIVE', 'CANCEL_REQUESTED'],
+      'CANCEL_REQUESTED': ['STOPPING', 'CANCELLED'],
+      'STOPPING': ['CANCELLED', 'FAILED'],
+      'BLOCKED': ['ACTIVE', 'CANCEL_REQUESTED', 'FAILED'],
+      'CANCELLED': [],
+      'FAILED': [],
       'COMPLETED': [],
-      'REJECTED': ['ENGAGED']
+      'SUBMITTED': []
     };
 
     return transitions[currentState].includes(nextState);
@@ -34,7 +37,7 @@ export class TrackingService {
     const supabase = this.getClient(authHeader);
     
     // Allow caller to specify initial state (e.g. ENGAGED for manual claims)
-    const initialState: IssueState = issueData.initial_state || (issueData.match_score ? 'EVALUATED' : 'DISCOVERED');
+    const initialState: IssueState = issueData.initial_state || 'QUEUED';
 
     const { data, error } = await supabase
       .from('tasks')
@@ -76,13 +79,16 @@ export class TrackingService {
     const supabase = this.getClient(authHeader);
     
     const transitions: Record<IssueState, IssueState[]> = {
-      'DISCOVERED': ['EVALUATED', 'REJECTED'],
-      'EVALUATED': ['DRAFTED', 'ENGAGED', 'REJECTED'],
-      'DRAFTED': ['ENGAGED', 'REJECTED'],
-      'ENGAGED': ['ASSIGNED', 'REJECTED'],
-      'ASSIGNED': ['COMPLETED', 'REJECTED'],
+      'QUEUED': ['ACTIVE', 'CANCELLED'],
+      'ACTIVE': ['PAUSED', 'CANCEL_REQUESTED', 'BLOCKED', 'FAILED', 'COMPLETED', 'SUBMITTED'],
+      'PAUSED': ['ACTIVE', 'CANCEL_REQUESTED'],
+      'CANCEL_REQUESTED': ['STOPPING', 'CANCELLED'],
+      'STOPPING': ['CANCELLED', 'FAILED'],
+      'BLOCKED': ['ACTIVE', 'CANCEL_REQUESTED', 'FAILED'],
+      'CANCELLED': [],
+      'FAILED': [],
       'COMPLETED': [],
-      'REJECTED': ['ENGAGED']
+      'SUBMITTED': []
     };
 
     const allowedCurrentStates: IssueState[] = [];

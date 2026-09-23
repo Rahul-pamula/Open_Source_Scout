@@ -53,7 +53,7 @@ export class AutonomousWorker {
     
     // 2. Fetch Discovered Issues — use service client to bypass RLS issues
     const issues = await trackingService.getTasks(authHeader || '');
-    const discoveredIssues = issues.filter(i => i.state === 'DISCOVERED');
+    const discoveredIssues = issues.filter(i => i.state === 'QUEUED');
     
     console.log(`[Worker] Found ${discoveredIssues.length} DISCOVERED issues to process`);
     
@@ -76,7 +76,7 @@ export class AutonomousWorker {
       } catch (error: any) {
         console.error(`[Worker] Error processing ${trackedIssue.repo_name}:`, error);
         await auditService.logEvent({
-          repoName: trackedIssue.repo_name,
+          repoName: trackedIssue.repo_name || '',
           issueNumber: parseInt(trackedIssue.external_url.split('/').pop() || '0'),
           intent: 'UNKNOWN',
           autonomyLevel: policy.level,
@@ -106,7 +106,7 @@ export class AutonomousWorker {
     
     // Quick early exit if score too low to save tokens on drafting
     if (evaluation.matchScore < policy.minimumMatchScore) {
-      await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'REJECTED');
+      await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'CANCELLED');
       return false;
     }
 
@@ -126,7 +126,7 @@ export class AutonomousWorker {
 
     if (!safety.allowed) {
       await auditService.logEvent({
-        repoName: trackedIssue.repo_name,
+        repoName: trackedIssue.repo_name || '',
         issueNumber,
         intent: draftResult.intent,
         draft: draftResult.draft,
@@ -142,7 +142,7 @@ export class AutonomousWorker {
     if (policy.level === 'L2') {
       // Auto-Draft only. Store draft somewhere (in real app, update tasks with draft).
       // For now, just mark state as DRAFTED.
-      await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'DRAFTED');
+      await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'QUEUED');
       return false;
     }
 
@@ -166,9 +166,9 @@ export class AutonomousWorker {
       await idempotencyService.recordSuccessfulEngagement(authHeader, idempotencyKey, postResult.commentId);
       
       // 8. Update State & Audit
-      await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'ENGAGED');
+      await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'ACTIVE');
       await auditService.logEvent({
-        repoName: trackedIssue.repo_name,
+        repoName: trackedIssue.repo_name || '',
         issueNumber,
         intent: draftResult.intent,
         draft: draftResult.draft,

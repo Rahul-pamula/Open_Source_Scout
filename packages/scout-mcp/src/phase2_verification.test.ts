@@ -123,7 +123,7 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
 
   await t.test('2b repeated blueprint — same commit → returns existing, no INSERT', async () => {
     let insertCalled = false;
-    const existing = { id: 'session-existing', starting_commit_hash: 'deadbeef', status: 'active' };
+    const existing = { id: 'session-existing', starting_commit_hash: 'deadbeef', status: 'ACTIVE' };
     const supabase = {
       from: () => ({
         select: mockSelect(existing),
@@ -136,14 +136,14 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
   });
 
   await t.test('2c active session, same commit — explicitly reusable', async () => {
-    const existing = { id: 'session-reuse', starting_commit_hash: 'abc123', status: 'active' };
+    const existing = { id: 'session-reuse', starting_commit_hash: 'abc123', status: 'ACTIVE' };
     const supabase = { from: () => ({ select: mockSelect(existing) }) };
     const id = await getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123');
     assert.strictEqual(id, 'session-reuse');
   });
 
   await t.test('2d active session, DIFFERENT commit — deterministic stale-session error', async () => {
-    const existing = { id: 'session-stale', starting_commit_hash: 'old-commit', status: 'active' };
+    const existing = { id: 'session-stale', starting_commit_hash: 'old-commit', status: 'ACTIVE' };
     const supabase = { from: () => ({ select: mockSelect(existing) }) };
     await assert.rejects(
       () => getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'new-commit'),
@@ -153,7 +153,7 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
 
   await t.test('2e concurrent INSERT — unique-index violation (23505) → retry SELECT returns winner', async () => {
     let insertCalled = false;
-    const winner = { id: 'session-winner', starting_commit_hash: 'deadbeef', status: 'active' };
+    const winner = { id: 'session-winner', starting_commit_hash: 'deadbeef', status: 'ACTIVE' };
 
     // First SELECT returns null → we try to INSERT → DB rejects with 23505
     // → code retries SELECT → returns the concurrently-created session
@@ -198,7 +198,7 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
   });
 
   await t.test('2g get_task_blueprint rejects an already SUBMITTED task', async () => {
-    const existing = { id: 'session-sub', starting_commit_hash: 'abc123', status: 'submitted' };
+    const existing = { id: 'session-sub', starting_commit_hash: 'abc123', status: 'SUBMITTED' };
     const supabase = { from: () => ({ select: mockSelect(existing) }) };
     await assert.rejects(
       () => getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123'),
@@ -207,7 +207,7 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
   });
 
   await t.test('2h get_task_blueprint recovers from BLOCKED task (Option A)', async () => {
-    const existing = { id: 'session-blk', starting_commit_hash: 'abc123', status: 'blocked' };
+    const existing = { id: 'session-blk', starting_commit_hash: 'abc123', status: 'BLOCKED' };
     let insertCalled = false;
     const supabase = {
       from: () => ({
@@ -222,7 +222,7 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
   
   await t.test('2i get_task_blueprint does not create a second ACTIVE session (reuses)', async () => {
     let insertCalled = false;
-    const existing = { id: 'session-act', starting_commit_hash: 'abc123', status: 'active' };
+    const existing = { id: 'session-act', starting_commit_hash: 'abc123', status: 'ACTIVE' };
     const supabase = {
       from: () => ({
         select: mockSelect(existing),
@@ -391,7 +391,7 @@ test('5. submit_for_review — checkSubmitIdempotency and updateSessionStatus (m
   await t.test('5a ACTIVE → SUBMITTED — checkSubmitIdempotency returns false', async () => {
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'active' })
+        select: mockSelect({ status: 'ACTIVE' })
       }),
     };
     const isIdempotent = await checkSubmitIdempotency(supabase as any, 'session-abc', 'user-1');
@@ -401,7 +401,7 @@ test('5. submit_for_review — checkSubmitIdempotency and updateSessionStatus (m
   await t.test('5b SUBMITTED → SUBMITTED — idempotent', async () => {
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'submitted' })
+        select: mockSelect({ status: 'SUBMITTED' })
       }),
     };
     const isIdempotent = await checkSubmitIdempotency(supabase as any, 'session-abc', 'user-1');
@@ -411,7 +411,7 @@ test('5. submit_for_review — checkSubmitIdempotency and updateSessionStatus (m
   await t.test('5c BLOCKED → SUBMITTED rejection', async () => {
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'blocked' })
+        select: mockSelect({ status: 'BLOCKED' })
       }),
     };
     await assert.rejects(
@@ -433,7 +433,7 @@ test('5. submit_for_review — checkSubmitIdempotency and updateSessionStatus (m
       }),
     };
     await assert.rejects(
-      () => updateSessionStatus(supabase as any, 'session-abc', 'user-1', 'submitted', 'active'),
+      () => updateSessionStatus(supabase as any, 'session-abc', 'user-1', 'SUBMITTED', 'ACTIVE'),
       /State transition rejected: session not found, wrong user, or state changed concurrently/
     );
   });
@@ -466,7 +466,7 @@ test('5. submit_for_review — checkSubmitIdempotency and updateSessionStatus (m
         }
       }
     };
-    await updateSessionStatus(supabase as any, 'session-abc', 'user-1', 'submitted', 'active', 'https://github.com/pr/1');
+    await updateSessionStatus(supabase as any, 'session-abc', 'user-1', 'SUBMITTED', 'ACTIVE', 'https://github.com/pr/1');
     assert.strictEqual(tasksUpdated, true);
     assert.strictEqual(tasksPrUrl, 'https://github.com/pr/1');
   });
@@ -480,7 +480,7 @@ test('6. mark_blocked — processMarkBlocked (mocked)', async (t) => {
     let expectedOldStatusChecked = '';
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'active' }),
+        select: mockSelect({ status: 'ACTIVE' }),
         update: (fields: Record<string, string>) => {
           updateCalled = true;
           const chain: any = {
@@ -497,14 +497,14 @@ test('6. mark_blocked — processMarkBlocked (mocked)', async (t) => {
     const { idempotent } = await processMarkBlocked(supabase as any, 'session-xyz', 'user-1');
     assert.strictEqual(idempotent, false);
     assert.strictEqual(updateCalled, true);
-    assert.strictEqual(expectedOldStatusChecked, 'active');
+    assert.strictEqual(expectedOldStatusChecked, 'ACTIVE');
   });
 
   await t.test('6b BLOCKED → BLOCKED — idempotent', async () => {
     let updateCalled = false;
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'blocked' }),
+        select: mockSelect({ status: 'BLOCKED' }),
         update: () => { updateCalled = true; return {}; }
       }),
     };
@@ -516,7 +516,7 @@ test('6. mark_blocked — processMarkBlocked (mocked)', async (t) => {
   await t.test('6c SUBMITTED → BLOCKED rejection', async () => {
     const supabase = {
       from: () => ({
-        select: mockSelect({ status: 'submitted' })
+        select: mockSelect({ status: 'SUBMITTED' })
       }),
     };
     await assert.rejects(
@@ -621,7 +621,7 @@ test('8. Database unique partial index — structural verification', async () =>
   const sql = fs.readFileSync(migrationPath, 'utf-8');
   assert.match(sql, /CREATE UNIQUE INDEX/i);
   assert.match(sql, /task_id.*user_id|user_id.*task_id/);
-  assert.match(sql, /WHERE status = 'active'/i);
+  assert.match(sql, /WHERE status = 'ACTIVE'/i);
   // Concurrent-insert enforcement: Not executed — Supabase environment unavailable.
   // The unique partial index prevents two concurrent INSERTs from both succeeding.
 });

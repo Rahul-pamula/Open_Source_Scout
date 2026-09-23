@@ -33,7 +33,7 @@ test('Supabase Adapter', async (t) => {
               eq: () => ({
                 order: () => ({
                   limit: () => ({
-                    maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A', status: 'active' }, error: null })
+                    maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A', status: 'ACTIVE' }, error: null })
                   })
                 })
               })
@@ -54,7 +54,7 @@ test('Supabase Adapter', async (t) => {
               eq: () => ({
                 order: () => ({
                   limit: () => ({
-                    maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A', status: 'active' }, error: null })
+                    maybeSingle: async () => ({ data: { id: 'session-123', starting_commit_hash: 'A', status: 'ACTIVE' }, error: null })
                   })
                 })
               })
