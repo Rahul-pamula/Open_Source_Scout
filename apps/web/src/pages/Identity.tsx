@@ -91,7 +91,7 @@ export function Identity() {
   return (
     <div className="max-w-4xl mx-auto pb-12">
       <div className="mb-8 border-b border-zinc-200 pb-4">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Integrations</h1>
         <p className="text-zinc-500 font-mono text-sm">
           Manage your Scout identity and connections.
         </p>
