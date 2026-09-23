@@ -740,9 +740,7 @@ export function MissionControl() {
         {/* Header */}
         <div className="flex justify-between items-end mb-6 border-b border-zinc-200 pb-4 pt-2">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">
-              Mission Control
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Dashboard</h1>
             <p className="text-zinc-600 font-mono text-sm">
               Central dashboard for discovery and autonomous engagement.
             </p>

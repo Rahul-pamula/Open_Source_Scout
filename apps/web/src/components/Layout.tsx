@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
-import { Target, Settings, LogOut, LogIn } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout() {
@@ -15,15 +15,15 @@ export function Layout() {
             to="/app"
             className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md text-emerald-600 font-medium"
           >
-            <Target size={20} />
-            <span>Mission Control</span>
+            <LayoutDashboard size={20} />
+            <span>Dashboard</span>
           </Link>
           <Link
             to="/app/identity"
             className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md"
           >
             <Settings size={20} />
-            <span>Settings</span>
+            <span>Integrations</span>
           </Link>
         </div>
 
