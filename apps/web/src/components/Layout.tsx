@@ -12,14 +12,14 @@ export function Layout() {
 
         <div className="flex flex-col space-y-2 flex-1">
           <Link
-            to="/app"
+            to="/app/dashboard"
             className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md text-emerald-600 font-medium"
           >
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </Link>
           <Link
-            to="/app/identity"
+            to="/app/integrations"
             className="flex items-center space-x-2 p-2 hover:bg-zinc-100 rounded-md"
           >
             <Settings size={20} />
