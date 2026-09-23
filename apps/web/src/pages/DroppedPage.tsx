@@ -2,18 +2,18 @@ import { useOutletContext } from 'react-router-dom';
 import { ArchiveX, ExternalLink, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
-import type { TrackedIssue } from '../types';
+import type { Task } from '../types';
 
 function DroppedCard({
   issue,
   isPending,
   onRestore,
 }: {
-  issue: TrackedIssue;
+  issue: Task;
   isPending?: boolean;
   onRestore: () => void;
 }) {
-  const issueNumber = issue.github_issue_url.split('/').pop();
+  const issueNumber = issue.external_url.split('/').pop();
 
   return (
     <div className="bg-white border border-red-200 p-4 flex flex-col transition-shadow hover:shadow-md opacity-75 grayscale-[0.3] h-full">
@@ -28,7 +28,7 @@ function DroppedCard({
           {issue.title}
         </h3>
         <a
-          href={issue.github_issue_url}
+          href={issue.external_url}
           target="_blank"
           rel="noopener noreferrer"
           className="text-zinc-500 font-mono text-xs hover:text-red-600 transition-colors inline-flex items-center"
@@ -40,7 +40,7 @@ function DroppedCard({
 
       <div className="mt-auto flex items-center gap-2 pt-3 border-t border-zinc-100">
         <a
-          href={issue.github_issue_url}
+          href={issue.external_url}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-zinc-100 text-zinc-700 font-bold py-1.5 px-4 shadow-[2px_2px_0px_#fca5a5] border-2 border-zinc-300 hover:-translate-y-px hover:shadow-[3px_3px_0px_#fca5a5] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center"

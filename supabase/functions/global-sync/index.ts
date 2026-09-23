@@ -26,7 +26,7 @@ serve(async (req: Request) => {
   try {
     // 1. Get all unique users who have active tracked issues
     const { data: activeIssues, error: fetchError } = await supabase
-      .from('tracked_issues')
+      .from('tasks')
       .select('user_id')
       .in('state', ['ENGAGED', 'ASSIGNED'])
     

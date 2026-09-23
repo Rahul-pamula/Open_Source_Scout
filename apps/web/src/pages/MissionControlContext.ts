@@ -1,4 +1,4 @@
-import type { ScoutedIssue, TrackedIssue } from '../types';
+import type { ScoutedIssue, Task } from '../types';
 
 export interface MissionControlContextType {
   userProfile: { bio: string; skills: string[] } | null;
@@ -12,7 +12,7 @@ export interface MissionControlContextType {
   handleDiscover: () => Promise<void>;
 
   // Pipeline
-  trackedIssues: TrackedIssue[];
+  trackedIssues: Task[];
   isTrackingLoading: boolean;
   trackingError: string | null;
   pendingIssues: Record<string, number>;

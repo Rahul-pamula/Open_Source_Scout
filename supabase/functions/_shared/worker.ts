@@ -52,7 +52,7 @@ export class AutonomousWorker {
       : await autonomyPolicyService.getPolicy(userId, authHeader);
     
     // 2. Fetch Discovered Issues — use service client to bypass RLS issues
-    const issues = await trackingService.getTrackedIssues(authHeader || '');
+    const issues = await trackingService.getTasks(authHeader || '');
     const discoveredIssues = issues.filter(i => i.state === 'DISCOVERED');
     
     console.log(`[Worker] Found ${discoveredIssues.length} DISCOVERED issues to process`);
@@ -77,7 +77,7 @@ export class AutonomousWorker {
         console.error(`[Worker] Error processing ${trackedIssue.repo_name}:`, error);
         await auditService.logEvent({
           repoName: trackedIssue.repo_name,
-          issueNumber: parseInt(trackedIssue.github_issue_url.split('/').pop() || '0'),
+          issueNumber: parseInt(trackedIssue.external_url.split('/').pop() || '0'),
           intent: 'UNKNOWN',
           autonomyLevel: policy.level,
           safetyDecision: {},
@@ -94,7 +94,7 @@ export class AutonomousWorker {
 
   private async processIssue(authHeader: string | undefined, userId: string, profile: any, trackedIssue: any, policy: any): Promise<boolean> {
     const [owner, repo] = trackedIssue.repo_name.split('/');
-    const issueNumber = parseInt(trackedIssue.github_issue_url.split('/').pop());
+    const issueNumber = parseInt(trackedIssue.external_url.split('/').pop());
 
     // 1. Fetch Live Data
     const liveIssue = await githubAdapter.fetchIssue(owner, repo, issueNumber);
@@ -140,7 +140,7 @@ export class AutonomousWorker {
     }
 
     if (policy.level === 'L2') {
-      // Auto-Draft only. Store draft somewhere (in real app, update tracked_issues with draft).
+      // Auto-Draft only. Store draft somewhere (in real app, update tasks with draft).
       // For now, just mark state as DRAFTED.
       await trackingService.updateIssueState(authHeader || '', trackedIssue.id, 'DRAFTED');
       return false;

@@ -40,17 +40,30 @@ export interface ClaimResult {
 
 export type IssueState = 'DISCOVERED' | 'EVALUATED' | 'DRAFTED' | 'ENGAGED' | 'ASSIGNED' | 'COMPLETED' | 'REJECTED';
 
-export interface TrackedIssue {
+export type TaskPlatform = 'github' | 'jira' | 'linear' | 'manual';
+
+export interface Task {
   id: string;
   user_id: string;
-  github_issue_url: string;
+  platform: TaskPlatform;
+  external_id: string;
+  external_url: string;
   title: string;
-  repo_name: string;
+  description?: string;
+  repo_name?: string;
+  repo_clone_url?: string;
+  priority?: string;
+  labels?: string[];
   state: IssueState;
   match_score?: number;
-  needs_attention: boolean;
+  agent_status?: string;
+  agent_ide?: string;
+  pr_url?: string;
+  integration_id?: string;
   created_at: string;
   updated_at: string;
+  // retained for frontend backwards compatibility
+  contribution_checklist?: any;
 }
 
 export type EngagementIntent = 'REQUEST_ASSIGNMENT' | 'PROPOSE_SOLUTION' | 'ASK_CLARIFICATION' | 'EXPRESS_INTEREST';
