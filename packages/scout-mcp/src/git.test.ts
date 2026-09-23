@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import { getGitInfo, checkDirtyWorkingTree } from './git.js';
+import { getGitInfo, createWorktree, removeWorktree } from './git.js';
 
 test('Git Adapter', async (t) => {
   const testDir = path.join(process.cwd(), '.test-scout-git');
@@ -51,14 +51,58 @@ test('Git Adapter', async (t) => {
     assert.ok(info.commitHash.length > 0);
   });
 
-  await t.test('clean working tree', async () => {
+  await t.test('creates and removes worktree safely', async () => {
     execSync('git init', { cwd: testDir });
-    await assert.doesNotReject(() => checkDirtyWorkingTree(testDir));
+    execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
+
+    const sessionId = 'test-session-123';
+    const wtPath = await createWorktree(sessionId, testDir);
+    
+    assert.ok(fs.existsSync(wtPath));
+    assert.ok(fs.existsSync(path.join(wtPath, '.git')));
+    
+    await removeWorktree(sessionId, testDir);
+    
+    assert.ok(!fs.existsSync(wtPath));
   });
 
-  await t.test('dirty working tree', async () => {
+  await t.test('cleans up dirty worktrees safely', async () => {
     execSync('git init', { cwd: testDir });
-    fs.writeFileSync(path.join(testDir, 'dirty.txt'), 'dirty');
-    await assert.rejects(() => checkDirtyWorkingTree(testDir), /Working tree is dirty/);
+    execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
+
+    const sessionId = 'test-session-dirty';
+    const wtPath = await createWorktree(sessionId, testDir);
+    
+    fs.writeFileSync(path.join(wtPath, 'dirty.txt'), 'dirty');
+    
+    await removeWorktree(sessionId, testDir);
+    
+    assert.ok(!fs.existsSync(wtPath));
+  });
+
+  await t.test('concurrent worktree creation', async () => {
+    execSync('git init', { cwd: testDir });
+    execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
+
+    const sessions = ['session-1', 'session-2', 'session-3'];
+    
+    // Create concurrently
+    const paths = await Promise.all(
+      sessions.map(id => createWorktree(id, testDir))
+    );
+    
+    for (const p of paths) {
+      assert.ok(fs.existsSync(p));
+      assert.ok(fs.existsSync(path.join(p, '.git')));
+    }
+    
+    // Cleanup concurrently
+    await Promise.all(
+      sessions.map(id => removeWorktree(id, testDir))
+    );
+    
+    for (const p of paths) {
+      assert.ok(!fs.existsSync(p));
+    }
   });
 });
