@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'list') {
       const { state, limit = 50 } = body
-      const issues = await trackingService.getTrackedIssues(authHeader, userId, state, limit)
+      const issues = await trackingService.getTasks(authHeader, userId, state, limit)
       return new Response(
         JSON.stringify({ data: issues }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -56,13 +56,15 @@ Deno.serve(async (req: Request) => {
       const rawIssue = await githubAdapter.fetchIssue(owner, repo, number)
       if (!rawIssue) throw new Error('Could not fetch issue from GitHub.')
 
-      const existing = await trackingService.getTrackedIssues(authHeader as string, userId, undefined, 1000)
-      if (existing.some((i: any) => i.github_issue_url === rawIssue.url)) {
+      const existing = await trackingService.getTasks(authHeader as string, userId, undefined, 1000)
+      if (existing.some((i: any) => i.external_url === rawIssue.url)) {
         throw new Error('This issue is already in your Scout pipeline.')
       }
 
       const issueData = {
-        github_issue_url: rawIssue.url,          // NormalizedIssue uses .url, not .html_url
+        external_url: rawIssue.url,
+        external_id: rawIssue.id.toString(),
+        platform: 'github',          // NormalizedIssue uses .url, not .html_url
         title: rawIssue.title,
         repo_name: rawIssue.repoName,             // NormalizedIssue uses .repoName, not repo_name
         match_score: null,

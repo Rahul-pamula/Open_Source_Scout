@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
-import type { ScoutedIssue, TrackedIssue, NormalizedIssue } from '../types';
+import type { ScoutedIssue, Task, NormalizedIssue } from '../types';
 import {
   Loader2,
   Activity,
@@ -48,7 +48,7 @@ export function MissionControl() {
     },
   );
 
-  const [trackedIssues, setTrackedIssues] = useState<TrackedIssue[]>([]);
+  const [trackedIssues, setTasks] = useState<Task[]>([]);
   const [isTrackingLoading, setIsTrackingLoading] = useState(true);
   const [trackingError, setTrackingError] = useState<string | null>(null);
 
@@ -187,7 +187,7 @@ export function MissionControl() {
       setDiscoveryStatus('Filtering candidates...');
 
       // Filter out issues already in the pipeline
-      const currentTrackedUrls = new Set(trackedIssues.map((t) => t.github_issue_url));
+      const currentTrackedUrls = new Set(trackedIssues.map((t) => t.external_url));
       const untrackedIssues = rawEligibleIssues.filter(
         (issue) => !currentTrackedUrls.has(issue.url),
       );
@@ -241,7 +241,7 @@ export function MissionControl() {
           body: {
             action: 'save',
             issueData: {
-              github_issue_url: githubUrl,
+              external_url: githubUrl,
               title: scoutedIssues.find((i) => i.url === githubUrl)?.title || '',
               repo_name: `${owner}/${repo}`,
               match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
@@ -343,7 +343,7 @@ export function MissionControl() {
         return;
       }
 
-      setTrackedIssues(resData.data);
+      setTasks(resData.data);
     } catch (err: any) {
       console.error('Failed to load tracking:', err);
       setTrackingError('Failed to load tracking data');
@@ -423,7 +423,9 @@ export function MissionControl() {
           body: {
             action: 'save',
             issueData: {
-              github_issue_url: issue.url,
+              external_url: issue.url,
+              external_id: issue.id.toString(),
+              platform: 'github',
               title: issue.title,
               repo_name: issue.repoName,
               match_score: issue.evaluation?.matchScore,
@@ -537,7 +539,9 @@ export function MissionControl() {
         body: {
           action: 'save',
           issueData: {
-            github_issue_url: issueToSave.url,
+            external_url: issueToSave.url,
+            external_id: issueToSave.id.toString(),
+            platform: 'github',
             title: issueToSave.title,
             repo_name: issueToSave.repoName,
             match_score: issueToSave.evaluation?.matchScore,
@@ -566,9 +570,7 @@ export function MissionControl() {
     const reqId = Date.now();
 
     // 1. Optimistically update local state immediately
-    setTrackedIssues((prev) =>
-      prev.map((i) => (i.id === trackedId ? { ...i, state: newState } : i)),
-    );
+    setTasks((prev) => prev.map((i) => (i.id === trackedId ? { ...i, state: newState } : i)));
     setIssuePending(trackedId, reqId);
 
     try {
@@ -582,7 +584,7 @@ export function MissionControl() {
       console.error('State update failed:', err);
       // 3. Rollback on failure ONLY if this request is still the active one
       if (pendingIssuesRef.current[trackedId] === reqId) {
-        setTrackedIssues((prev) =>
+        setTasks((prev) =>
           prev.map((i) => (i.id === trackedId ? { ...i, state: previousState } : i)),
         );
         showToast('error', 'Failed to update state: ' + err.message);
@@ -606,7 +608,7 @@ export function MissionControl() {
     const reqId = Date.now();
 
     // 1. Optimistically update local state immediately
-    setTrackedIssues((prev) =>
+    setTasks((prev) =>
       prev.map((i) => (i.id === trackedId ? { ...i, contribution_checklist: checklist } : i)),
     );
     setIssuePending(trackedId, reqId);
@@ -621,7 +623,7 @@ export function MissionControl() {
       console.error('Checklist update failed:', err);
       // 3. Rollback on failure ONLY if this request is still the active one
       if (pendingIssuesRef.current[trackedId] === reqId) {
-        setTrackedIssues((prev) =>
+        setTasks((prev) =>
           prev.map((i) =>
             i.id === trackedId ? { ...i, contribution_checklist: previousChecklist } : i,
           ),

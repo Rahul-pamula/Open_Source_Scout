@@ -3,7 +3,7 @@ import { useOutletContext, Link } from 'react-router-dom';
 import { Activity, AlertTriangle, ExternalLink, Loader2, Zap, Plus } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
-import type { TrackedIssue } from '../types';
+import type { Task } from '../types';
 import { supabase } from '../services/supabase';
 
 function ClaimedCard({
@@ -12,12 +12,12 @@ function ClaimedCard({
   onMakeAssigned,
   onMarkNotAssigned,
 }: {
-  issue: TrackedIssue;
+  issue: Task;
   isPending?: boolean;
   onMakeAssigned: () => void;
   onMarkNotAssigned: () => void;
 }) {
-  const issueNumber = issue.github_issue_url.split('/').pop();
+  const issueNumber = issue.external_url.split('/').pop();
   const claimedVia = (issue as any).claimed_via || 'AUTO';
   const isManual = claimedVia === 'MANUAL';
   const isExternal = claimedVia === 'EXTERNAL';
@@ -56,7 +56,7 @@ function ClaimedCard({
       <div className="mb-4">
         <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2">{issue.title}</h3>
         <a
-          href={issue.github_issue_url}
+          href={issue.external_url}
           target="_blank"
           rel="noopener noreferrer"
           className="text-zinc-500 font-mono text-sm hover:text-emerald-600 transition-colors inline-flex items-center"
@@ -70,7 +70,7 @@ function ClaimedCard({
       <div className="mt-auto flex items-center justify-between pt-4">
         <div className="flex gap-2">
           <a
-            href={issue.github_issue_url}
+            href={issue.external_url}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-zinc-900 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"

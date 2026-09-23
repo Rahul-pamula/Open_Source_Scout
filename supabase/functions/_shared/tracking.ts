@@ -1,6 +1,6 @@
 import { getSecret } from './secrets.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import type { IssueState, TrackedIssue } from './types.ts';
+import type { IssueState, Task } from './types.ts';
 
 const SUPABASE_URL = getSecret('SUPABASE_URL') || '';
 const SUPABASE_ANON_KEY = getSecret('SUPABASE_ANON_KEY') || '';
@@ -30,17 +30,19 @@ export class TrackingService {
     return transitions[currentState].includes(nextState);
   }
 
-  async saveIssue(authHeader: string, userId: string, issueData: any): Promise<TrackedIssue> {
+  async saveIssue(authHeader: string, userId: string, issueData: any): Promise<Task> {
     const supabase = this.getClient(authHeader);
     
     // Allow caller to specify initial state (e.g. ENGAGED for manual claims)
     const initialState: IssueState = issueData.initial_state || (issueData.match_score ? 'EVALUATED' : 'DISCOVERED');
 
     const { data, error } = await supabase
-      .from('tracked_issues')
+      .from('tasks')
       .insert({
         user_id: userId,
-        github_issue_url: issueData.github_issue_url,
+        external_url: issueData.external_url,
+        external_id: issueData.external_id,
+        platform: issueData.platform || 'github',
         title: issueData.title,
         repo_name: issueData.repo_name,
         state: initialState,
@@ -54,10 +56,10 @@ export class TrackingService {
     return data;
   }
 
-  async getTrackedIssues(authHeader: string, userId?: string, state?: string, limit = 50): Promise<TrackedIssue[]> {
+  async getTasks(authHeader: string, userId?: string, state?: string, limit = 50): Promise<Task[]> {
     const supabase = this.getClient(authHeader);
     let query = supabase
-      .from('tracked_issues')
+      .from('tasks')
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(limit);
@@ -70,7 +72,7 @@ export class TrackingService {
     return data || [];
   }
 
-  async updateIssueState(authHeader: string, id: string, newState: IssueState): Promise<TrackedIssue> {
+  async updateIssueState(authHeader: string, id: string, newState: IssueState): Promise<Task> {
     const supabase = this.getClient(authHeader);
     
     const transitions: Record<IssueState, IssueState[]> = {
@@ -91,7 +93,7 @@ export class TrackingService {
     }
 
     const { data, error: updateError } = await supabase
-      .from('tracked_issues')
+      .from('tasks')
       .update({ state: newState })
       .eq('id', id)
       .in('state', allowedCurrentStates)
@@ -111,7 +113,7 @@ export class TrackingService {
     const supabase = this.getClient(authHeader);
     
     const { error } = await supabase
-      .from('tracked_issues')
+      .from('tasks')
       .update({ contribution_checklist: checklist })
       .eq('id', id);
       

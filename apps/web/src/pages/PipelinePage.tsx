@@ -138,7 +138,7 @@ export function PipelinePage() {
             .map((issue) => {
               const isExpanded = expandedPipelineId === issue.id;
               const transitions = getAvailableTransitions(issue.state);
-              const issueNumber = issue.github_issue_url.split('/').pop() || '';
+              const issueNumber = issue.external_url.split('/').pop() || '';
 
               return (
                 <div
@@ -201,14 +201,14 @@ export function PipelinePage() {
                     {/* Actions */}
                     <div className="col-span-3 flex items-center justify-end gap-2">
                       <button
-                        onClick={() => ctx.openDossier(issue.github_issue_url)}
+                        onClick={() => ctx.openDossier(issue.external_url)}
                         className="text-zinc-400 hover:text-zinc-900 transition-colors"
                         title="Open Dossier"
                       >
                         <Search size={14} />
                       </button>
                       <a
-                        href={issue.github_issue_url}
+                        href={issue.external_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-zinc-400 hover:text-emerald-600 transition-colors"

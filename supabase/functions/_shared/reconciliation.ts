@@ -1,6 +1,6 @@
 import { getSecret } from './secrets.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import type { TrackedIssue, GitHubSnapshot, ReconciliationEventType, IssueState } from './types.ts';
+import type { Task, GitHubSnapshot, ReconciliationEventType, IssueState } from './types.ts';
 import { groqEvaluator } from './groq.ts';
 
 const SUPABASE_URL = getSecret('SUPABASE_URL') || '';
@@ -17,7 +17,7 @@ export class ReconciliationService {
   /**
    * Compare previous state with current GitHub Snapshot and transition.
    */
-  async reconcile(issue: TrackedIssue, snapshot: GitHubSnapshot, githubUsername: string): Promise<void> {
+  async reconcile(issue: Task, snapshot: GitHubSnapshot, githubUsername: string): Promise<void> {
     const supabase = this.getClient();
     let newState = issue.state;
     let needsAttention = issue.needs_attention;
@@ -106,7 +106,7 @@ export class ReconciliationService {
     // 4. Persist Changes if any
     if (newState !== issue.state || needsAttention !== issue.needs_attention) {
       const { error: updateError } = await supabase
-        .from('tracked_issues')
+        .from('tasks')
         .update({ 
           state: newState, 
           needs_attention: needsAttention,

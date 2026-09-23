@@ -2,7 +2,7 @@ import { getSecret } from './secrets.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { githubAdapter } from './github.ts';
 import { trackingService } from './tracking.ts';
-import type { GitHubSnapshot, SyncHealth, TrackedIssue } from './types.ts';
+import type { GitHubSnapshot, SyncHealth, Task } from './types.ts';
 
 const SUPABASE_URL = getSecret('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = getSecret('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -38,21 +38,21 @@ export class SyncService {
     try {
       // 1. Fetch monitored issues for the user
       const { data: monitoredIssues, error: fetchError } = await supabase
-        .from('tracked_issues')
+        .from('tasks')
         .select('*')
         .eq('user_id', userId)
         .in('state', ['ENGAGED', 'ASSIGNED']);
 
       if (fetchError) throw fetchError;
       
-      const issues = (monitoredIssues || []) as TrackedIssue[];
+      const issues = (monitoredIssues || []) as Task[];
 
       // 2. Query GitHub and Reconcile
       for (const issue of issues) {
         try {
           issuesChecked++;
           const [owner, repo] = issue.repo_name.split('/');
-          const issueNumber = parseInt(issue.github_issue_url.split('/').pop() || '0');
+          const issueNumber = parseInt(issue.external_url.split('/').pop() || '0');
           
           if (!owner || !repo || !issueNumber) {
             throw new Error(`Invalid GitHub URL format for tracked issue ${issue.id}`);

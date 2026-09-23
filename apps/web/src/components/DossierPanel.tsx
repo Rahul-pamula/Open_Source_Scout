@@ -41,7 +41,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
   const [draftError, setDraftError] = useState<string | null>(null);
 
   // Sync State
-  const [trackedIssue, setTrackedIssue] = useState<any | null>(null);
+  const [trackedIssue, setTask] = useState<any | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -85,10 +85,10 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
         });
         if (mounted && trackingData?.data) {
           const matched = trackingData.data.find((i: any) =>
-            i.github_issue_url.endsWith(`${owner}/${repo}/issues/${number}`),
+            i.external_url.endsWith(`${owner}/${repo}/issues/${number}`),
           );
           if (matched) {
-            setTrackedIssue(matched);
+            setTask(matched);
           }
         }
 
@@ -249,7 +249,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
           body: { action: 'list' },
         });
         if (trackingData?.data) {
-          const tracked = trackingData.data.find((i: any) => i.github_issue_url === issue?.url);
+          const tracked = trackingData.data.find((i: any) => i.external_url === issue?.url);
           if (tracked) {
             const { error: trackErr } = await supabase.functions.invoke('tracking', {
               body: { action: 'update_state', id: tracked.id, state: 'ENGAGED' },
@@ -579,7 +579,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                                   ...trackedIssue.contribution_checklist,
                                   [key]: e.target.checked,
                                 };
-                                setTrackedIssue({
+                                setTask({
                                   ...trackedIssue,
                                   contribution_checklist: updated,
                                 });
@@ -600,7 +600,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                                         state: 'COMPLETED',
                                       },
                                     });
-                                    setTrackedIssue({
+                                    setTask({
                                       ...trackedIssue,
                                       state: 'COMPLETED',
                                       contribution_checklist: updated,
