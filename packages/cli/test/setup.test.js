@@ -37,7 +37,8 @@ exit 0
         SCOUT_ACCESS_TOKEN: 'fake_access_token',
         SCOUT_PROJECT_ID: 'fake_project_id',
         SCOUT_GITHUB_TOKEN: 'fake_github_token',
-        SCOUT_GROQ_KEY: 'fake_groq_key'
+        SCOUT_GROQ_KEY: 'fake_groq_key',
+        SUPABASE_DB_PASSWORD: 'fake_password'
       }
     });
 
