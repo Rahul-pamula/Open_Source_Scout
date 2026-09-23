@@ -70,6 +70,34 @@ export function Landing() {
         </p>
       </div>
 
+      {/* Evolution Section */}
+      <div className="max-w-4xl w-full px-6 mb-24 relative z-10 mx-auto">
+        <div className="flex flex-col md:flex-row gap-12 pt-12 border-t border-zinc-200 text-left">
+          <div className="flex-1">
+            <h3 className="text-zinc-400 font-mono text-xs tracking-widest uppercase mb-3">
+              Part 1: The Cloud Monolith
+            </h3>
+            <h4 className="text-lg font-bold text-zinc-900 mb-2">Scout v1.0 (Dashboard)</h4>
+            <p className="text-zinc-500 leading-relaxed text-sm">
+              The original web dashboard built to solve the open-source contributor's dilemma. Uses
+              automated GitHub webhooks and Edge Functions to sync issues seamlessly without manual
+              data entry.
+            </p>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-emerald-600 font-mono text-xs tracking-widest uppercase mb-3">
+              Part 2: The AI Pivot
+            </h3>
+            <h4 className="text-lg font-bold text-zinc-900 mb-2">Scout v2.0 (MCP Harness)</h4>
+            <p className="text-zinc-500 leading-relaxed text-sm">
+              An invisible local orchestrator for the AI era. Provisions isolated git worktrees,
+              manages contextual memory, and safely executes code in your IDE to solve the manual
+              copy-paste problem.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* The Problem & Workflow */}
       <div className="max-w-6xl w-full px-6 mb-24 relative z-10">
         <div className="bg-white border border-zinc-200 p-8 shadow-sm">
