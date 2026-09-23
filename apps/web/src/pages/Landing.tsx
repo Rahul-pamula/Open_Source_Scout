@@ -15,7 +15,7 @@ export function Landing() {
       <header className="w-full max-w-6xl px-6 py-6 flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-2 font-black text-xl text-zinc-900 tracking-tight">
           <div className="bg-zinc-900 text-white p-1.5 rounded text-sm">🎯</div>
-          Scout
+          Scout 2.0
         </div>
         <nav className="flex items-center gap-6">
           <Link
@@ -45,8 +45,8 @@ export function Landing() {
         </h1>
 
         <p className="text-lg md:text-xl text-zinc-600 mb-12 font-medium max-w-2xl mx-auto leading-relaxed">
-          Scout is an AI-assisted workflow that helps you discover, understand, claim, and manage
-          open-source contributions. Your backend. Your GitHub. Your data.
+          Scout 2.0 is an AI-assisted workflow that helps you discover, understand, claim, and
+          manage open-source contributions. Your backend. Your GitHub. Your data.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -54,7 +54,7 @@ export function Landing() {
             to="/setup"
             className="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3.5 px-8 border-2 border-zinc-900 shadow-[4px_4px_0px_#27272a] hover:-translate-y-px hover:shadow-[5px_5px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Start with Scout
+            Start with Scout 2.0
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
           <Link
@@ -80,8 +80,8 @@ export function Landing() {
               </h2>
               <p className="text-zinc-600 leading-relaxed mb-6">
                 Developers waste hours scrolling through irrelevant GitHub issues, guessing
-                difficulty, and checking if issues are already claimed. Scout replaces this friction
-                with a focused Mission Control pipeline.
+                difficulty, and checking if issues are already claimed. Scout 2.0 replaces this
+                friction with a focused Mission Control pipeline.
               </p>
               <div className="flex flex-col gap-3 font-mono text-sm text-zinc-600">
                 <div className="flex items-center gap-3">
@@ -118,8 +118,8 @@ export function Landing() {
               100% Decentralized.
             </h2>
             <p className="text-zinc-400 leading-relaxed mb-6">
-              Scout doesn't route your data through a shared server. You own the backend, the API
-              keys, and the GitHub connection. The hosted frontend connects directly to your
+              Scout 2.0 doesn't route your data through a shared server. You own the backend, the
+              API keys, and the GitHub connection. The hosted frontend connects directly to your
               personal infrastructure.
             </p>
             <div className="flex flex-col gap-4 mt-8">
@@ -179,8 +179,8 @@ export function Landing() {
           Setup takes a few minutes.
         </h2>
         <p className="text-zinc-600 leading-relaxed max-w-2xl mx-auto mb-12">
-          Because the infrastructure belongs to you, Scout requires several credentials. We don't
-          hide the complexity, we structure it into a clear onboarding journey.
+          Because the infrastructure belongs to you, Scout 2.0 requires several credentials. We
+          don't hide the complexity, we structure it into a clear onboarding journey.
         </p>
 
         <div className="grid md:grid-cols-3 gap-6 text-left">
@@ -219,7 +219,7 @@ export function Landing() {
             to="/setup"
             className="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3.5 px-10 border-2 border-zinc-900 shadow-[4px_4px_0px_#27272a] hover:-translate-y-px hover:shadow-[5px_5px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Start with Scout
+            Start with Scout 2.0
           </Link>
           <a
             href="https://github.com/Rahul-pamula/Open_Source_Scout"
