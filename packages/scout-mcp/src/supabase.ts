@@ -189,3 +189,16 @@ export async function getUserIdFromJwt(jwt: string): Promise<string> {
     throw new Error('Authentication Failed: Malformed SCOUT_USER_JWT token');
   }
 }
+
+export async function updateSessionHeartbeat(supabase: SupabaseClient, sessionId: string, userId: string) {
+  const { error } = await supabase
+    .from('task_sessions')
+    .update({ last_heartbeat_at: new Date().toISOString() })
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .eq('status', 'ACTIVE');
+    
+  if (error) {
+    throw new Error(`Failed to update session heartbeat: ${error.message}`);
+  }
+}

@@ -4,7 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { checkDirtyWorkingTree, getGitInfo } from './git.js';
 import { loadSkills } from './skills.js';
-import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked, getUserIdFromJwt } from './supabase.js';
+import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked, getUserIdFromJwt, updateSessionHeartbeat } from './supabase.js';
 import { runAdvisoryValidation } from './validation.js';
 
 const server = new Server({
@@ -30,6 +30,10 @@ const MarkBlockedSchema = z.object({
   reason: z.string(),
 });
 
+const SessionHeartbeatSchema = z.object({
+  session_id: z.string().uuid(),
+});
+
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -52,6 +56,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             session_id: { type: 'string', description: 'The UUID of the active session.' },
             pr_url: { type: 'string', description: 'Optional PR URL if available.' },
+          },
+          required: ['session_id'],
+        },
+      },
+      {
+        name: 'session_heartbeat',
+        description: 'Send a periodic heartbeat to indicate the session is still active.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            session_id: { type: 'string', description: 'The UUID of the active session.' },
           },
           required: ['session_id'],
         },
@@ -138,6 +153,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify({
               message: 'Successfully recorded submission attempt.',
               advisory_validation: validationResult
+            }, null, 2)
+          }]
+        };
+      }
+
+      case 'session_heartbeat': {
+        const { session_id } = SessionHeartbeatSchema.parse(request.params.arguments);
+        await updateSessionHeartbeat(supabase, session_id, userId);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              message: 'Heartbeat recorded successfully.'
             }, null, 2)
           }]
         };
