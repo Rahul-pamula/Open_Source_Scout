@@ -3,7 +3,8 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
-import { getGitInfo, createWorktree, removeWorktree } from './git.js';
+import { getGitInfo, createWorktree, removeWorktree, cleanupOrphanedWorktrees } from './git.js';
+import { saveLocalState } from './localState.js';
 
 test('Git Adapter', async (t) => {
   const testDir = path.join(process.cwd(), '.test-scout-git');
@@ -104,5 +105,38 @@ test('Git Adapter', async (t) => {
     for (const p of paths) {
       assert.ok(!fs.existsSync(p));
     }
+  });
+
+  await t.test('cleans up orphaned worktrees safely', async () => {
+    execSync('git init', { cwd: testDir });
+    execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
+
+    const sessionActive = 'session-active';
+    const sessionOrphaned = 'session-orphaned';
+    const sessionOrphanedBranch = 'session-orphaned-branch';
+
+    const activePath = await createWorktree(sessionActive, testDir);
+    const orphanedPath = await createWorktree(sessionOrphaned, testDir);
+    
+    execSync('git branch scout-session-' + sessionOrphanedBranch, { cwd: testDir });
+
+    await saveLocalState({
+      sessions: {
+        [sessionActive]: {
+          status: 'ACTIVE',
+          starting_commit_hash: 'abc',
+          task_description: 'test',
+          source: 'manual'
+        }
+      }
+    }, testDir);
+
+    await cleanupOrphanedWorktrees(testDir);
+
+    assert.ok(fs.existsSync(activePath));
+    assert.ok(!fs.existsSync(orphanedPath));
+    
+    const branchOut = execSync('git branch --list "scout-session-*"', { cwd: testDir }).toString();
+    assert.ok(!branchOut.includes(sessionOrphanedBranch));
   });
 });

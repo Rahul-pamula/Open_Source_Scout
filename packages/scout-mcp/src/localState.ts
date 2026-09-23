@@ -1,8 +1,13 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-const LOCAL_STATE_DIR = path.join(process.cwd(), '.scout-tmp');
-const LOCAL_STATE_FILE = path.join(LOCAL_STATE_DIR, 'state.json');
+function getLocalStateDir(cwd: string = process.cwd()) {
+  return path.join(cwd, '.scout-tmp');
+}
+
+function getLocalStateFile(cwd: string = process.cwd()) {
+  return path.join(getLocalStateDir(cwd), 'state.json');
+}
 
 export interface SessionState {
   status: string;
@@ -19,20 +24,22 @@ export interface StateFile {
   sessions: Record<string, SessionState>;
 }
 
-export async function getLocalState(): Promise<StateFile> {
+export async function getLocalState(cwd: string = process.cwd()): Promise<StateFile> {
   try {
-    const data = await fs.readFile(LOCAL_STATE_FILE, 'utf8');
+    const data = await fs.readFile(getLocalStateFile(cwd), 'utf8');
     return JSON.parse(data);
   } catch (err) {
     return { sessions: {} };
   }
 }
 
-export async function saveLocalState(state: StateFile): Promise<void> {
-  await fs.mkdir(LOCAL_STATE_DIR, { recursive: true });
-  const tmpFile = `${LOCAL_STATE_FILE}.tmp`;
+export async function saveLocalState(state: StateFile, cwd: string = process.cwd()): Promise<void> {
+  const dir = getLocalStateDir(cwd);
+  const file = getLocalStateFile(cwd);
+  await fs.mkdir(dir, { recursive: true });
+  const tmpFile = `${file}.tmp`;
   await fs.writeFile(tmpFile, JSON.stringify(state, null, 2), 'utf8');
-  await fs.rename(tmpFile, LOCAL_STATE_FILE);
+  await fs.rename(tmpFile, file);
 }
 
 export async function getOrCreateLocalSession(sessionId: string, commitHash: string, taskDescription: string, source: string, taskId?: string): Promise<string> {
