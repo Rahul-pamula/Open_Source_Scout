@@ -30,6 +30,9 @@ export class ProcessManager {
 
       const onExit = (code: number | null) => {
         this.removeProcess(sessionId, child);
+        import('./evidence.js').then(({ recordCommand }) => {
+          recordCommand(sessionId, command, code, new Date().toISOString()).catch(console.error);
+        });
         resolve({ stdout, stderr, exitCode: code });
       };
 
@@ -37,6 +40,9 @@ export class ProcessManager {
 
       child.on('error', (err) => {
         this.removeProcess(sessionId, child);
+        import('./evidence.js').then(({ recordCommand }) => {
+          recordCommand(sessionId, command, null, new Date().toISOString()).catch(console.error);
+        });
         reject(err);
       });
     });

@@ -96,3 +96,22 @@ export async function getWorktreePath(sessionId: string, cwd: string = process.c
   const { stdout } = await execAsync('git rev-parse --show-toplevel', { cwd });
   return join(stdout.trim(), '.scout-tmp', sessionId);
 }
+
+
+export async function getGitDiff(cwd: string = process.cwd()): Promise<string> {
+  try {
+    const { stdout } = await execAsync('git diff HEAD', { cwd });
+    return stdout;
+  } catch (e: any) {
+    return '';
+  }
+}
+
+export async function getChangedFiles(cwd: string = process.cwd()): Promise<string[]> {
+  try {
+    const { stdout } = await execAsync('git diff --name-only HEAD', { cwd });
+    return stdout.trim().split('\n').filter(Boolean);
+  } catch (e: any) {
+    return [];
+  }
+}
