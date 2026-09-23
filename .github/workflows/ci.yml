@@ -40,5 +40,8 @@ jobs:
       - name: Test CLI
         run: npm run test --workspace=packages/cli
 
+      - name: Test MCP
+        run: npm run test --workspace=packages/scout-mcp
+
       - name: Security Audit
         run: node scripts/security-audit.js
