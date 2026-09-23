@@ -1,80 +1,78 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Terminal, Database, Layers, GitBranch, Shield, Workflow, Cpu, Code2 } from 'lucide-react';
-import { hasSupabaseConfig } from '../services/supabase';
+import { Link, Navigate } from 'react-router-dom';
+import { Terminal, Database, Server, GitBranch, ArrowRight, BookOpen, Layers } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Landing() {
-  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  if (!loading && user) {
+    return <Navigate to="/app" replace />;
+  }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] flex flex-col items-center selection:bg-emerald-200">
-      {/* Decorative background pattern */}
-      <div
-        className="fixed inset-0 z-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)',
-          backgroundSize: '32px 32px',
-        }}
-      />
-
-      {/* Navigation */}
-      <nav className="w-full max-w-6xl mx-auto px-6 py-6 flex justify-between items-center relative z-10">
-        <div className="font-black text-xl tracking-tighter flex items-center gap-2">
-          <div className="bg-zinc-900 text-white p-1.5 rounded-sm">
-            <Terminal size={18} strokeWidth={3} />
-          </div>
+    <div className="min-h-screen bg-zinc-50 flex flex-col items-center font-sans overflow-x-hidden selection:bg-emerald-500/30">
+      {/* Top Navigation */}
+      <header className="w-full max-w-6xl px-6 py-6 flex items-center justify-between z-10 relative">
+        <div className="flex items-center gap-2 font-black text-xl text-zinc-900 tracking-tight">
+          <div className="bg-zinc-900 text-white p-1.5 rounded text-sm">🎯</div>
           Scout 2.0
         </div>
-        <div className="flex gap-6 font-mono text-sm items-center">
-          <Link to="/docs" className="text-zinc-500 hover:text-zinc-900 transition-colors">
+        <nav className="flex items-center gap-6">
+          <Link
+            to="/docs"
+            className="text-zinc-600 hover:text-zinc-900 font-bold text-sm flex items-center gap-2 transition-colors"
+          >
+            <BookOpen size={16} />
             Documentation
           </Link>
           <a
             href="https://github.com/Rahul-pamula/Open_Source_Scout"
             target="_blank"
             rel="noreferrer"
-            className="text-zinc-500 hover:text-zinc-900 transition-colors"
+            className="text-zinc-600 hover:text-zinc-900 font-bold text-sm flex items-center gap-2 transition-colors"
           >
             GitHub
           </a>
-        </div>
-      </nav>
+        </nav>
+      </header>
 
       {/* Hero Section */}
-      <div className="max-w-4xl w-full px-6 pt-32 pb-24 text-center relative z-10">
-        <h1 className="text-5xl md:text-7xl font-black text-zinc-900 tracking-tight leading-[1.1] mb-6">
-          Find the issues worth solving. <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-300">
-            Contribute with confidence.
-          </span>
+      <div className="max-w-4xl w-full text-center px-4 pt-20 pb-24 relative z-10">
+        <h1 className="text-5xl md:text-7xl font-black text-zinc-900 tracking-tighter mb-6 leading-[1.1]">
+          Find the issues worth solving.
+          <br />
+          <span className="text-zinc-400">Contribute with confidence.</span>
         </h1>
+
         <p className="text-lg md:text-xl text-zinc-600 mb-12 font-medium max-w-2xl mx-auto leading-relaxed">
           Scout 2.0 is an AI-assisted workflow that helps you discover, understand, claim, and
           manage open-source contributions. Your backend. Your GitHub. Your data.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
-            onClick={() => navigate('/setup')}
+          <Link
+            to="/setup"
             className="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3.5 px-8 border-2 border-zinc-900 shadow-[4px_4px_0px_#27272a] hover:-translate-y-px hover:shadow-[5px_5px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Start with Scout 2.0 <span className="ml-2">→</span>
-          </button>
-          <button
-            onClick={() => navigate('/mcp-setup')}
+            Start with Scout 2.0
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Link>
+          <Link
+            to="/connect"
             className="w-full sm:w-auto bg-white text-zinc-900 font-bold py-3.5 px-8 border-2 border-zinc-200 shadow-[4px_4px_0px_#e4e4e7] hover:-translate-y-px hover:shadow-[5px_5px_0px_#e4e4e7] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Connect MCP <Terminal className="ml-2 h-4 w-4 text-zinc-400" />
-          </button>
+            Sign In (Connect)
+            <Server className="ml-2 h-5 w-5 text-zinc-400" />
+          </Link>
         </div>
-        <div className="mt-6 font-mono text-xs text-zinc-400">
+        <p className="text-xs font-mono text-zinc-400 mt-6">
           Use the hosted interface. Bring your own backend.
-        </div>
+        </p>
       </div>
 
-      {/* Value Prop 1: Pipeline */}
+      {/* The Problem & Workflow */}
       <div className="max-w-6xl w-full px-6 mb-24 relative z-10">
-        <div className="bg-white border border-zinc-200 shadow-xl p-8 md:p-12">
+        <div className="bg-white border border-zinc-200 p-8 shadow-sm">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-black text-zinc-900 tracking-tight mb-4">
@@ -107,71 +105,6 @@ export function Landing() {
               <div>[DIFF] Estimated difficulty: Intermediate.</div>
               <div>[STATUS] No competing claims detected.</div>
               <div className="text-emerald-600 mt-4 font-bold">READY FOR ENGAGEMENT</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* NEW SECTION: The AI Execution Harness (MCP) */}
-      <div className="max-w-6xl w-full px-6 mb-24 relative z-10">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          <div className="order-2 md:order-1 bg-zinc-900 p-6 font-mono text-xs text-zinc-400 leading-loose rounded shadow-xl border border-zinc-800">
-            <div className="text-zinc-500 mb-4">// Scout v2 MCP Harness</div>
-            <div>
-              <span className="text-blue-400">Developer</span> → Triggers execution in IDE
-            </div>
-            <div>
-              <span className="text-purple-400">AI Agent</span> → Plans the implementation
-            </div>
-            <div>
-              <span className="text-emerald-400">Scout MCP</span> → Orchestrates safely:
-            </div>
-            <div className="pl-4">↳ Spins up isolated git worktree</div>
-            <div className="pl-4">↳ Spawns managed shell process</div>
-            <div className="pl-4">↳ Enforces strictly bound I/O</div>
-            <div className="pl-4">↳ Detects dropped heartbeats</div>
-            <div>
-              <span className="text-zinc-300">Result</span> → Code executed. Zero host damage.
-            </div>
-          </div>
-          <div className="order-1 md:order-2">
-            <h2 className="text-3xl font-black text-zinc-900 tracking-tight mb-6">
-              Safe, Local-First AI Execution.
-            </h2>
-            <p className="text-zinc-600 leading-relaxed mb-6">
-              Giving an AI direct shell access to your computer is dangerous and chaotic. Scout 2.0
-              introduces a strict <strong>Model Context Protocol (MCP) Harness</strong> that acts as
-              a secure layer between your IDE and your filesystem.
-            </p>
-            <div className="flex flex-col gap-4 font-mono text-sm text-zinc-600">
-              <div className="flex items-center gap-3">
-                <Shield className="text-emerald-500 h-5 w-5" /> Enforced Path Boundaries
-              </div>
-              <div className="flex items-center gap-3">
-                <GitBranch className="text-emerald-500 h-5 w-5" /> Isolated Git Worktrees
-              </div>
-              <div className="flex items-center gap-3">
-                <Cpu className="text-emerald-500 h-5 w-5" /> Zombie Process Prevention
-              </div>
-              <div className="flex items-center gap-3">
-                <Workflow className="text-emerald-500 h-5 w-5" /> Stale Session Heartbeats
-              </div>
-            </div>
-
-            <div className="mt-8 border-t border-zinc-200 pt-6">
-              <h3 className="font-bold text-zinc-900 mb-2">Connect in seconds:</h3>
-              <p className="text-sm text-zinc-500 mb-3">
-                Add this to your Cursor or Claude Desktop config to sync your local IDE with your
-                Supabase backend.
-              </p>
-              <div className="bg-zinc-900 p-3 font-mono text-xs text-zinc-300 rounded border border-zinc-800 overflow-x-auto">
-                <pre>
-                  {`"scout-v2": {
-  "command": "npx",
-  "args": ["-y", "@scout/mcp"]
-}`}
-                </pre>
-              </div>
             </div>
           </div>
         </div>
@@ -222,7 +155,7 @@ export function Landing() {
           <div className="bg-black/50 border border-zinc-800 p-8 font-mono text-sm text-zinc-300 rounded">
             <div className="text-zinc-500 mb-4">// Architecture Flow</div>
             <div className="flex items-center justify-between mb-2">
-              <span>Your Browser / MCP</span>
+              <span>Your Browser</span>
               <span className="text-zinc-600">----→</span>
             </div>
             <div className="flex items-center justify-between mb-2">
@@ -282,12 +215,12 @@ export function Landing() {
           Stop scrolling. Start contributing.
         </h2>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
-            onClick={() => navigate('/setup')}
+          <Link
+            to="/setup"
             className="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3.5 px-10 border-2 border-zinc-900 shadow-[4px_4px_0px_#27272a] hover:-translate-y-px hover:shadow-[5px_5px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
             Start with Scout 2.0
-          </button>
+          </Link>
           <a
             href="https://github.com/Rahul-pamula/Open_Source_Scout"
             target="_blank"
