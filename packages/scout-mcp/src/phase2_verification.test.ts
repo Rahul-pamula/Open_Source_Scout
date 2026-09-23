@@ -19,7 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 
-import { getUserIdFromJwt, getOrCreateTaskSession, updateSessionStatus } from './supabase.js';
+import { getUserIdFromJwt, getOrCreateTaskSession, updateSessionStatus, getSessionStatus, processSubmitForReview, processMarkBlocked } from './supabase.js';
 import { getGitInfo, checkDirtyWorkingTree } from './git.js';
 import { loadSkills } from './skills.js';
 import { runAdvisoryValidation } from './validation.js';
@@ -35,6 +35,8 @@ function makeJwt(payload: Record<string, unknown>): string {
 function mockSelect(rows: Record<string, unknown> | null) {
   const chain: any = {
     eq: () => chain,
+    order: () => chain,
+    limit: () => chain,
     maybeSingle: async () => ({ data: rows, error: null }),
     single: async () => ({ data: rows, error: null }),
   };
@@ -121,7 +123,7 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
 
   await t.test('2b repeated blueprint — same commit → returns existing, no INSERT', async () => {
     let insertCalled = false;
-    const existing = { id: 'session-existing', starting_commit_hash: 'deadbeef' };
+    const existing = { id: 'session-existing', starting_commit_hash: 'deadbeef', status: 'active' };
     const supabase = {
       from: () => ({
         select: mockSelect(existing),
@@ -134,14 +136,14 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
   });
 
   await t.test('2c active session, same commit — explicitly reusable', async () => {
-    const existing = { id: 'session-reuse', starting_commit_hash: 'abc123' };
+    const existing = { id: 'session-reuse', starting_commit_hash: 'abc123', status: 'active' };
     const supabase = { from: () => ({ select: mockSelect(existing) }) };
     const id = await getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123');
     assert.strictEqual(id, 'session-reuse');
   });
 
   await t.test('2d active session, DIFFERENT commit — deterministic stale-session error', async () => {
-    const existing = { id: 'session-stale', starting_commit_hash: 'old-commit' };
+    const existing = { id: 'session-stale', starting_commit_hash: 'old-commit', status: 'active' };
     const supabase = { from: () => ({ select: mockSelect(existing) }) };
     await assert.rejects(
       () => getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'new-commit'),
@@ -151,7 +153,7 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
 
   await t.test('2e concurrent INSERT — unique-index violation (23505) → retry SELECT returns winner', async () => {
     let insertCalled = false;
-    const winner = { id: 'session-winner', starting_commit_hash: 'deadbeef' };
+    const winner = { id: 'session-winner', starting_commit_hash: 'deadbeef', status: 'active' };
 
     // First SELECT returns null → we try to INSERT → DB rejects with 23505
     // → code retries SELECT → returns the concurrently-created session
@@ -162,6 +164,8 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
           select: () => {
             const chain: any = {
               eq: () => chain,
+              order: () => chain,
+              limit: () => chain,
               maybeSingle: async () => {
                 selectCallCount++;
                 if (selectCallCount === 1) return { data: null, error: null };  // first SELECT: empty
@@ -191,6 +195,38 @@ test('2. Session logic — getOrCreateTaskSession (mocked Supabase)', async (t) 
   await t.test('2f wrong-user session access — SKIPPED: environment unavailable', () => {
     // Not executed — Supabase RLS prevents cross-user access.
     // Application code does not attempt to enforce this; enforcement is in the DB.
+  });
+
+  await t.test('2g get_task_blueprint rejects an already SUBMITTED task', async () => {
+    const existing = { id: 'session-sub', starting_commit_hash: 'abc123', status: 'submitted' };
+    const supabase = { from: () => ({ select: mockSelect(existing) }) };
+    await assert.rejects(
+      () => getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123'),
+      /Task is already submitted \/ awaiting external review/
+    );
+  });
+
+  await t.test('2h get_task_blueprint rejects an already BLOCKED task', async () => {
+    const existing = { id: 'session-blk', starting_commit_hash: 'abc123', status: 'blocked' };
+    const supabase = { from: () => ({ select: mockSelect(existing) }) };
+    await assert.rejects(
+      () => getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123'),
+      /Task is already marked as blocked/
+    );
+  });
+  
+  await t.test('2i get_task_blueprint does not create a second ACTIVE session (reuses)', async () => {
+    let insertCalled = false;
+    const existing = { id: 'session-act', starting_commit_hash: 'abc123', status: 'active' };
+    const supabase = {
+      from: () => ({
+        select: mockSelect(existing),
+        insert: () => { insertCalled = true; return mockInsert({ data: null, error: null })(); },
+      })
+    };
+    const id = await getOrCreateTaskSession(supabase as any, 'task-1', 'user-1', 'abc123');
+    assert.strictEqual(id, 'session-act');
+    assert.strictEqual(insertCalled, false);
   });
 });
 
@@ -346,103 +382,149 @@ test('4. Skills Loader — loadSkills', async (t) => {
 
 // ─── 5. SUBMIT FOR REVIEW ──────────────────────────────────────────────────
 
-test('5. submit_for_review — updateSessionStatus (mocked)', async (t) => {
-  await t.test('5a valid submission — status updated to submitted', async () => {
-    let updatedStatus: string | null = null;
+test('5. submit_for_review — processSubmitForReview (mocked)', async (t) => {
+  await t.test('5a ACTIVE → SUBMITTED — valid submission', async () => {
+    let updateCalled = false;
+    let expectedOldStatusChecked = '';
     const supabase = {
       from: () => ({
+        select: mockSelect({ status: 'active' }),
         update: (fields: Record<string, string>) => {
-          updatedStatus = fields.status;
-          return { eq: () => ({ error: null }) };
+          updateCalled = true;
+          const chain: any = {
+            eq: (k: string, v: string) => {
+              if (k === 'status') expectedOldStatusChecked = v;
+              return chain;
+            },
+            select: async () => ({ data: [{ id: 'session-abc' }], error: null })
+          };
+          return chain;
         },
       }),
     };
-    await updateSessionStatus(supabase as any, 'session-abc', 'submitted');
-    assert.strictEqual(updatedStatus, 'submitted');
+    const { idempotent } = await processSubmitForReview(supabase as any, 'session-abc', 'user-1');
+    assert.strictEqual(idempotent, false);
+    assert.strictEqual(updateCalled, true);
+    assert.strictEqual(expectedOldStatusChecked, 'active');
   });
 
-  await t.test('5b repeated submission — calling update again is idempotent at application layer', async () => {
-    let callCount = 0;
+  await t.test('5b SUBMITTED → SUBMITTED — idempotent', async () => {
+    let updateCalled = false;
     const supabase = {
       from: () => ({
-        update: () => {
-          callCount++;
-          return { eq: () => ({ error: null }) };
-        },
+        select: mockSelect({ status: 'submitted' }),
+        update: () => { updateCalled = true; return {}; }
       }),
     };
-    await updateSessionStatus(supabase as any, 'session-abc', 'submitted');
-    await updateSessionStatus(supabase as any, 'session-abc', 'submitted');
-    assert.strictEqual(callCount, 2, 'Both calls were made; DB deduplication handled by constraints');
+    const { idempotent } = await processSubmitForReview(supabase as any, 'session-abc', 'user-1');
+    assert.strictEqual(idempotent, true);
+    assert.strictEqual(updateCalled, false, 'Does not rerun update/advisory when idempotent');
   });
 
-  await t.test('5c invalid session — DB returns error → throws', async () => {
+  await t.test('5c BLOCKED → SUBMITTED rejection', async () => {
     const supabase = {
       from: () => ({
-        update: () => ({
-          eq: () => ({ error: { message: 'row not found' } }),
-        }),
+        select: mockSelect({ status: 'blocked' })
       }),
     };
     await assert.rejects(
-      () => updateSessionStatus(supabase as any, 'session-nonexistent', 'submitted'),
-      /Failed to update session status/
+      () => processSubmitForReview(supabase as any, 'session-abc', 'user-1'),
+      /State transition rejected: cannot submit a blocked session/
     );
   });
 
-  await t.test('5d wrong-user session — SKIPPED: environment unavailable', () => {
-    // Not executed — Supabase RLS enforces this via auth.uid() = user_id.
+  await t.test('5d optimistic concurrency prevents stale ACTIVE state from overwriting a newer state', async () => {
+    // Simulate getting 'active' from select, but by the time update runs, the row doesn't match 'active'
+    const supabase = {
+      from: () => ({
+        select: mockSelect({ status: 'active' }),
+        update: () => {
+          const chain: any = {
+            eq: () => chain,
+            select: async () => ({ data: [], error: null }) // 0 rows affected
+          };
+          return chain;
+        },
+      }),
+    };
+    await assert.rejects(
+      () => processSubmitForReview(supabase as any, 'session-abc', 'user-1'),
+      /State transition rejected: session not found, wrong user, or state changed concurrently/
+    );
+  });
+  
+  await t.test('5e wrong-user session update is rejected', async () => {
+    // RLS handles this mostly, but our optimistic concurrency handles it at the app layer if 0 rows returned
+    const supabase = {
+      from: () => ({
+        select: mockSelect({ status: 'active' }),
+        update: () => {
+          const chain: any = {
+            eq: () => chain,
+            select: async () => ({ data: [], error: null }) // 0 rows affected simulating wrong user
+          };
+          return chain;
+        },
+      }),
+    };
+    await assert.rejects(
+      () => processSubmitForReview(supabase as any, 'session-wrong-user', 'user-1'),
+      /State transition rejected: session not found, wrong user, or state changed concurrently/
+    );
   });
 });
 
 // ─── 6. MARK BLOCKED ───────────────────────────────────────────────────────
 
-test('6. mark_blocked — updateSessionStatus (mocked)', async (t) => {
-  await t.test('6a valid block — status updated to blocked', async () => {
-    let updatedStatus: string | null = null;
+test('6. mark_blocked — processMarkBlocked (mocked)', async (t) => {
+  await t.test('6a ACTIVE → BLOCKED — valid block', async () => {
+    let updateCalled = false;
+    let expectedOldStatusChecked = '';
     const supabase = {
       from: () => ({
+        select: mockSelect({ status: 'active' }),
         update: (fields: Record<string, string>) => {
-          updatedStatus = fields.status;
-          return { eq: () => ({ error: null }) };
+          updateCalled = true;
+          const chain: any = {
+            eq: (k: string, v: string) => {
+              if (k === 'status') expectedOldStatusChecked = v;
+              return chain;
+            },
+            select: async () => ({ data: [{ id: 'session-xyz' }], error: null })
+          };
+          return chain;
         },
       }),
     };
-    await updateSessionStatus(supabase as any, 'session-xyz', 'blocked');
-    assert.strictEqual(updatedStatus, 'blocked');
+    const { idempotent } = await processMarkBlocked(supabase as any, 'session-xyz', 'user-1');
+    assert.strictEqual(idempotent, false);
+    assert.strictEqual(updateCalled, true);
+    assert.strictEqual(expectedOldStatusChecked, 'active');
   });
 
-  await t.test('6b repeated block — idempotent at application layer', async () => {
-    let callCount = 0;
+  await t.test('6b BLOCKED → BLOCKED — idempotent', async () => {
+    let updateCalled = false;
     const supabase = {
       from: () => ({
-        update: () => {
-          callCount++;
-          return { eq: () => ({ error: null }) };
-        },
+        select: mockSelect({ status: 'blocked' }),
+        update: () => { updateCalled = true; return {}; }
       }),
     };
-    await updateSessionStatus(supabase as any, 'session-xyz', 'blocked');
-    await updateSessionStatus(supabase as any, 'session-xyz', 'blocked');
-    assert.strictEqual(callCount, 2);
+    const { idempotent } = await processMarkBlocked(supabase as any, 'session-xyz', 'user-1');
+    assert.strictEqual(idempotent, true);
+    assert.strictEqual(updateCalled, false);
   });
 
-  await t.test('6c invalid session — throws', async () => {
+  await t.test('6c SUBMITTED → BLOCKED rejection', async () => {
     const supabase = {
       from: () => ({
-        update: () => ({
-          eq: () => ({ error: { message: 'not found' } }),
-        }),
+        select: mockSelect({ status: 'submitted' })
       }),
     };
     await assert.rejects(
-      () => updateSessionStatus(supabase as any, 'bad-id', 'blocked'),
-      /Failed to update session status/
+      () => processMarkBlocked(supabase as any, 'session-xyz', 'user-1'),
+      /State transition rejected: cannot block an already submitted session/
     );
-  });
-
-  await t.test('6d wrong-user session — SKIPPED: environment unavailable', () => {
-    // Not executed — Supabase RLS enforces this via auth.uid() = user_id.
   });
 });
 

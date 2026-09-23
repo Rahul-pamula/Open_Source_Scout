@@ -4,7 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { checkDirtyWorkingTree, getGitInfo } from './git.js';
 import { loadSkills } from './skills.js';
-import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getUserIdFromJwt } from './supabase.js';
+import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, processSubmitForReview, processMarkBlocked, getUserIdFromJwt } from './supabase.js';
 import { runAdvisoryValidation } from './validation.js';
 
 const server = new Server({
@@ -112,11 +112,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'submit_for_review': {
         const { session_id } = SubmitForReviewSchema.parse(request.params.arguments);
         
+        const { idempotent } = await processSubmitForReview(supabase, session_id, userId);
+
+        if (idempotent) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                message: 'Successfully recorded submission attempt. (Idempotent)',
+              }, null, 2)
+            }]
+          };
+        }
+
         // Run advisory local checks
         const validationResult = await runAdvisoryValidation();
-
-        // Update session status
-        await updateSessionStatus(supabase, session_id, 'submitted');
 
         return {
           content: [{
@@ -132,14 +142,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'mark_blocked': {
         const { session_id, reason } = MarkBlockedSchema.parse(request.params.arguments);
         
-        // Update session status
-        await updateSessionStatus(supabase, session_id, 'blocked');
+        const { idempotent } = await processMarkBlocked(supabase, session_id, userId);
 
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
-              message: 'Successfully marked session as blocked.',
+              message: idempotent ? 'Successfully marked session as blocked. (Idempotent)' : 'Successfully marked session as blocked.',
               reason
             }, null, 2)
           }]
