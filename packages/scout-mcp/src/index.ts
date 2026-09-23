@@ -7,6 +7,8 @@ import { processManager } from './harness.js';
 import { loadSkills } from './skills.js';
 import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSessionStatus, getSessionStatus, checkSubmitIdempotency, processMarkBlocked, getUserIdFromJwt, updateSessionHeartbeat } from './supabase.js';
 import { runAdvisoryValidation } from './validation.js';
+import { validatePathBoundary } from './guardrails.js';
+import fs from 'fs/promises';
 
 const server = new Server({
   name: 'scout-mcp',
@@ -34,10 +36,30 @@ const MarkBlockedSchema = z.object({
 const RunCommandSchema = z.object({
   session_id: z.string().uuid(),
   command: z.string(),
+  cwd: z.string().optional(),
 });
 
 const CancelSessionSchema = z.object({
   session_id: z.string().uuid(),
+});
+
+
+const ReadFileSchema = z.object({
+  session_id: z.string().uuid(),
+  path: z.string(),
+});
+
+const WriteFileSchema = z.object({
+  session_id: z.string().uuid(),
+  path: z.string(),
+  content: z.string(),
+});
+
+const EditFileSchema = z.object({
+  session_id: z.string().uuid(),
+  path: z.string(),
+  search: z.string(),
+  replace: z.string(),
 });
 
 const SessionHeartbeatSchema = z.object({
@@ -47,6 +69,46 @@ const SessionHeartbeatSchema = z.object({
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
+
+      {
+        name: 'read_file',
+        description: 'Read the contents of a file within the worktree.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            session_id: { type: 'string', description: 'The UUID of the active session.' },
+            path: { type: 'string', description: 'Path to the file to read (relative to worktree or absolute).' },
+          },
+          required: ['session_id', 'path'],
+        },
+      },
+      {
+        name: 'write_file',
+        description: 'Write contents to a file within the worktree. Overwrites if exists.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            session_id: { type: 'string', description: 'The UUID of the active session.' },
+            path: { type: 'string', description: 'Path to the file to write (relative to worktree or absolute).' },
+            content: { type: 'string', description: 'File content.' },
+          },
+          required: ['session_id', 'path', 'content'],
+        },
+      },
+      {
+        name: 'edit_file',
+        description: 'Edit a file within the worktree by replacing exact text.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            session_id: { type: 'string', description: 'The UUID of the active session.' },
+            path: { type: 'string', description: 'Path to the file to edit (relative to worktree or absolute).' },
+            search: { type: 'string', description: 'Exact text to search for.' },
+            replace: { type: 'string', description: 'Text to replace it with.' },
+          },
+          required: ['session_id', 'path', 'search', 'replace'],
+        },
+      },
       {
         name: 'run_command',
         description: 'Execute a shell command inside the session\'s worktree.',
@@ -163,7 +225,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               session_id: sessionId,
               starting_commit_hash: gitInfo.commitHash,
               skills: skills,
-              worktree_path: worktreePath
+              worktree_path: worktreePath,
+              system_instructions: "IMPORTANT: You must use the 'read_file', 'write_file', 'edit_file', and 'run_command' MCP tools provided by scout-mcp to interact with the codebase. Do not use host IDE tools."
             }, null, 2)
           }]
         };
@@ -171,15 +234,67 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 
       case 'run_command': {
-        const { session_id, command } = RunCommandSchema.parse(request.params.arguments);
+        const { session_id, command, cwd } = RunCommandSchema.parse(request.params.arguments);
         const worktreePath = await getWorktreePath(session_id);
         
-        const result = await processManager.runCommand(session_id, command, worktreePath);
+        let validatedCwd = worktreePath;
+        if (cwd) {
+          validatedCwd = validatePathBoundary(worktreePath, cwd);
+        }
+        
+        const result = await processManager.runCommand(session_id, command, validatedCwd);
 
         return {
           content: [{
             type: 'text',
             text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      case 'read_file': {
+        const { session_id, path } = ReadFileSchema.parse(request.params.arguments);
+        const worktreePath = await getWorktreePath(session_id);
+        const validatedPath = validatePathBoundary(worktreePath, path);
+        
+        const fileContent = await fs.readFile(validatedPath, 'utf8');
+        return {
+          content: [{
+            type: 'text',
+            text: fileContent
+          }]
+        };
+      }
+
+      case 'write_file': {
+        const { session_id, path, content: fileContent } = WriteFileSchema.parse(request.params.arguments);
+        const worktreePath = await getWorktreePath(session_id);
+        const validatedPath = validatePathBoundary(worktreePath, path);
+        
+        await fs.writeFile(validatedPath, fileContent, 'utf8');
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ message: 'File written successfully.' })
+          }]
+        };
+      }
+
+      case 'edit_file': {
+        const { session_id, path, search, replace } = EditFileSchema.parse(request.params.arguments);
+        const worktreePath = await getWorktreePath(session_id);
+        const validatedPath = validatePathBoundary(worktreePath, path);
+        
+        const fileContent = await fs.readFile(validatedPath, 'utf8');
+        if (!fileContent.includes(search)) {
+          throw new Error('Search string not found in file.');
+        }
+        const newContent = fileContent.replace(search, replace);
+        await fs.writeFile(validatedPath, newContent, 'utf8');
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ message: 'File edited successfully.' })
           }]
         };
       }
