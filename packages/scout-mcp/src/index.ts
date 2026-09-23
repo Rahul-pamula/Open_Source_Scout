@@ -23,6 +23,8 @@ const server = new Server({
 
 const InitializeExecutionSchema = z.object({
   task_description: z.string(),
+  task_id: z.string().optional(),
+  source: z.string().optional().default('manual'),
 });
 
 const SubmitForReviewSchema = z.object({
@@ -141,6 +143,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: 'object',
           properties: {
             task_description: { type: 'string', description: 'The description of the task to perform.' },
+            task_id: { type: 'string', description: 'Optional cloud task ID.' },
+            source: { type: 'string', description: 'Source of the task (e.g. manual, cloud).' },
           },
           required: ['task_description'],
         },
@@ -203,14 +207,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     switch (request.params.name) {
       case 'initialize_execution': {
-        const { task_description } = InitializeExecutionSchema.parse(request.params.arguments);
+        const { task_description, task_id, source } = InitializeExecutionSchema.parse(request.params.arguments);
         
         const gitInfo = await getGitInfo();
         
         const sessionId = randomUUID();
 
         // Save local state
-        await getOrCreateLocalSession(sessionId, gitInfo.commitHash);
+        await getOrCreateLocalSession(sessionId, gitInfo.commitHash, task_description, source, task_id);
 
         const worktreePath = await createWorktree(sessionId);
         const skills = loadSkills();

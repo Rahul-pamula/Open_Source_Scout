@@ -18,29 +18,31 @@ test('Local State Logic', async (t) => {
   t.after(cleanup);
 
   await t.test('getOrCreateLocalSession creates a new session', async () => {
-    const id = await getOrCreateLocalSession('sess-1', 'commit-123');
+    const id = await getOrCreateLocalSession('sess-1', 'commit-123', 'Task 1', 'manual');
     assert.strictEqual(id, 'sess-1');
     const state = await getLocalState();
     assert.strictEqual(state.sessions['sess-1'].status, 'ACTIVE');
     assert.strictEqual(state.sessions['sess-1'].starting_commit_hash, 'commit-123');
+    assert.strictEqual(state.sessions['sess-1'].task_description, 'Task 1');
+    assert.strictEqual(state.sessions['sess-1'].source, 'manual');
   });
 
   await t.test('getOrCreateLocalSession returns existing active session if commit matches', async () => {
-    await getOrCreateLocalSession('sess-1', 'commit-123');
-    const id = await getOrCreateLocalSession('sess-1', 'commit-123');
+    await getOrCreateLocalSession('sess-1', 'commit-123', 'Task 1', 'manual');
+    const id = await getOrCreateLocalSession('sess-1', 'commit-123', 'Task 1', 'manual');
     assert.strictEqual(id, 'sess-1');
   });
 
   await t.test('getOrCreateLocalSession throws stale session error if commit mismatches', async () => {
-    await getOrCreateLocalSession('sess-1', 'commit-123');
+    await getOrCreateLocalSession('sess-1', 'commit-123', 'Task 1', 'manual');
     await assert.rejects(
-      () => getOrCreateLocalSession('sess-1', 'commit-456'),
+      () => getOrCreateLocalSession('sess-1', 'commit-456', 'Task 1', 'manual'),
       /Stale session detected/
     );
   });
 
   await t.test('processLocalSubmit marks active session as submitted', async () => {
-    await getOrCreateLocalSession('sess-submit', 'commit-123');
+    await getOrCreateLocalSession('sess-submit', 'commit-123', 'Task 1', 'manual');
     const res = await processLocalSubmit('sess-submit', 'http://pr');
     assert.strictEqual(res.idempotent, false);
     
@@ -50,14 +52,14 @@ test('Local State Logic', async (t) => {
   });
 
   await t.test('processLocalSubmit is idempotent on already submitted', async () => {
-    await getOrCreateLocalSession('sess-sub2', 'commit-123');
+    await getOrCreateLocalSession('sess-sub2', 'commit-123', 'Task 1', 'manual');
     await processLocalSubmit('sess-sub2');
     const res = await processLocalSubmit('sess-sub2');
     assert.strictEqual(res.idempotent, true);
   });
 
   await t.test('processLocalSubmit throws if blocked', async () => {
-    await getOrCreateLocalSession('sess-sub3', 'commit-123');
+    await getOrCreateLocalSession('sess-sub3', 'commit-123', 'Task 1', 'manual');
     await processLocalMarkBlocked('sess-sub3', 'reason');
     await assert.rejects(
       () => processLocalSubmit('sess-sub3'),
@@ -66,7 +68,7 @@ test('Local State Logic', async (t) => {
   });
 
   await t.test('processLocalMarkBlocked marks active session as blocked', async () => {
-    await getOrCreateLocalSession('sess-blk', 'commit-123');
+    await getOrCreateLocalSession('sess-blk', 'commit-123', 'Task 1', 'manual');
     const res = await processLocalMarkBlocked('sess-blk', 'some reason');
     assert.strictEqual(res.idempotent, false);
 
@@ -76,14 +78,14 @@ test('Local State Logic', async (t) => {
   });
 
   await t.test('processLocalMarkBlocked is idempotent on already blocked', async () => {
-    await getOrCreateLocalSession('sess-blk2', 'commit-123');
+    await getOrCreateLocalSession('sess-blk2', 'commit-123', 'Task 1', 'manual');
     await processLocalMarkBlocked('sess-blk2', 'reason');
     const res = await processLocalMarkBlocked('sess-blk2', 'reason 2');
     assert.strictEqual(res.idempotent, true);
   });
 
   await t.test('processLocalMarkBlocked throws if submitted', async () => {
-    await getOrCreateLocalSession('sess-blk3', 'commit-123');
+    await getOrCreateLocalSession('sess-blk3', 'commit-123', 'Task 1', 'manual');
     await processLocalSubmit('sess-blk3');
     await assert.rejects(
       () => processLocalMarkBlocked('sess-blk3', 'reason'),
