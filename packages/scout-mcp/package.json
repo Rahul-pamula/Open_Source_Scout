@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",
     "dev": "tsup src/index.ts --format esm --watch",
-    "test": "node --test dist/**/*.test.js"
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^22.13.9",
     "tsup": "^8.4.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.2"
   }
 }
