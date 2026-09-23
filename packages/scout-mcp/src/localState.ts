@@ -27,7 +27,9 @@ export async function getLocalState(): Promise<StateFile> {
 
 export async function saveLocalState(state: StateFile): Promise<void> {
   await fs.mkdir(LOCAL_STATE_DIR, { recursive: true });
-  await fs.writeFile(LOCAL_STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
+  const tmpFile = `${LOCAL_STATE_FILE}.tmp`;
+  await fs.writeFile(tmpFile, JSON.stringify(state, null, 2), 'utf8');
+  await fs.rename(tmpFile, LOCAL_STATE_FILE);
 }
 
 export async function getOrCreateLocalSession(sessionId: string, commitHash: string): Promise<string> {
