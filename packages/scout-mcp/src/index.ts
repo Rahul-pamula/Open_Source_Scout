@@ -9,6 +9,8 @@ import { getSupabaseClient, getOrCreateTaskSession, fetchTaskInfo, updateSession
 import { runAdvisoryValidation } from './validation.js';
 import { validatePathBoundary } from './guardrails.js';
 import fs from 'fs/promises';
+import { randomUUID } from 'crypto';
+import { getLocalState, saveLocalState, getOrCreateLocalSession, processLocalSubmit, processLocalMarkBlocked } from './localState.js';
 
 const server = new Server({
   name: 'scout-mcp',
@@ -19,8 +21,8 @@ const server = new Server({
   },
 });
 
-const GetTaskBlueprintSchema = z.object({
-  task_id: z.string().uuid(),
+const InitializeExecutionSchema = z.object({
+  task_description: z.string(),
 });
 
 const SubmitForReviewSchema = z.object({
@@ -133,14 +135,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: 'get_task_blueprint',
-        description: 'Return the structured context required for the AI to begin a task.',
+        name: 'initialize_execution',
+        description: 'Initialize a new execution session with a task description.',
         inputSchema: {
           type: 'object',
           properties: {
-            task_id: { type: 'string', description: 'The UUID of the task.' },
+            task_description: { type: 'string', description: 'The description of the task to perform.' },
           },
-          required: ['task_id'],
+          required: ['task_description'],
         },
       },
       {
@@ -196,32 +198,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const supabase = getSupabaseClient();
-    const userId = await getUserIdFromJwt(process.env.SCOUT_USER_JWT!);
+    // User JWT is only needed if supabase is active. We fetch it lazily or safely if supabase exists.
+    const userId = supabase && process.env.SCOUT_USER_JWT ? await getUserIdFromJwt(process.env.SCOUT_USER_JWT).catch(() => 'local-user') : 'local-user';
 
     switch (request.params.name) {
-      case 'get_task_blueprint': {
-        const { task_id } = GetTaskBlueprintSchema.parse(request.params.arguments);
+      case 'initialize_execution': {
+        const { task_description } = InitializeExecutionSchema.parse(request.params.arguments);
         
-        // 1. Resolve Identity
         const gitInfo = await getGitInfo();
         
-        // 2. Create or retrieve active session idempotently
-        const sessionId = await getOrCreateTaskSession(supabase, task_id, userId, gitInfo.commitHash);
+        const sessionId = randomUUID();
 
-        // 3. Create unique git worktree for this session
+        // Save local state
+        await getOrCreateLocalSession(sessionId, gitInfo.commitHash);
+
         const worktreePath = await createWorktree(sessionId);
-
-        // 4. Fetch task metadata
-        const taskInfo = await fetchTaskInfo(supabase, task_id);
-
-        // 5. Load and validate skills
         const skills = loadSkills();
 
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
-              task: taskInfo,
+              task: { description: task_description },
               session_id: sessionId,
               starting_commit_hash: gitInfo.commitHash,
               skills: skills,
@@ -336,9 +334,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'submit_for_review': {
         const { session_id, pr_url } = SubmitForReviewSchema.parse(request.params.arguments);
         
-        const isIdempotent = await checkSubmitIdempotency(supabase, session_id, userId);
-
-        if (isIdempotent) {
+        const { idempotent } = await processLocalSubmit(session_id, pr_url);
+        if (idempotent) {
           return {
             content: [{
               type: 'text',
@@ -348,13 +345,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }]
           };
         }
-
-        // Run advisory local checks BEFORE state transition
+        
         const validationResult = await runAdvisoryValidation();
-
-        // Perform optimistic DB update to SUBMITTED
-        // We include pr_url to be saved on the tasks table
-        await updateSessionStatus(supabase, session_id, userId, 'SUBMITTED', 'ACTIVE', pr_url);
+        
+        if (supabase && process.env.SCOUT_USER_JWT) {
+           try {
+             const isIdempotentCloud = await checkSubmitIdempotency(supabase, session_id, userId);
+             if (!isIdempotentCloud) {
+               await updateSessionStatus(supabase, session_id, userId, 'SUBMITTED', 'ACTIVE', pr_url);
+             }
+           } catch (e) {
+             console.error("Cloud sync failed for submit_for_review:", e);
+           }
+        }
 
         return {
           content: [{
@@ -369,7 +372,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'session_heartbeat': {
         const { session_id } = SessionHeartbeatSchema.parse(request.params.arguments);
-        await updateSessionHeartbeat(supabase, session_id, userId);
+        
+        const state = await getLocalState();
+        const session = state.sessions[session_id];
+        if (session) {
+            session.last_heartbeat_at = new Date().toISOString();
+            await saveLocalState(state);
+        }
+
+        if (supabase && process.env.SCOUT_USER_JWT) {
+           try {
+             await updateSessionHeartbeat(supabase, session_id, userId);
+           } catch (e) {
+             console.error("Cloud sync failed for session_heartbeat:", e);
+           }
+        }
         return {
           content: [{
             type: 'text',
@@ -383,7 +400,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'mark_blocked': {
         const { session_id, reason } = MarkBlockedSchema.parse(request.params.arguments);
         
-        const { idempotent } = await processMarkBlocked(supabase, session_id, userId);
+        const { idempotent } = await processLocalMarkBlocked(session_id, reason);
+
+        if (supabase && process.env.SCOUT_USER_JWT) {
+           try {
+             await processMarkBlocked(supabase, session_id, userId);
+           } catch (e) {
+             console.error("Cloud sync failed for mark_blocked:", e);
+           }
+        }
 
         return {
           content: [{

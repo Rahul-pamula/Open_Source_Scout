@@ -1,16 +1,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
   const userJwt = process.env.SCOUT_USER_JWT;
 
-  if (!url || !anonKey) {
-    throw new Error('Authentication Failed: Missing SUPABASE_URL or SUPABASE_ANON_KEY');
-  }
-
-  if (!userJwt) {
-    throw new Error('Authentication Failed: Missing SCOUT_USER_JWT token');
+  if (!url || !anonKey || !userJwt) {
+    return null;
   }
 
   return createClient(url, anonKey, {
