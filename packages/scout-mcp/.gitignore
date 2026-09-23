@@ -1,0 +1,10 @@
+# Build output — never commit
+dist/
+dist-test/
+
+# Test artifacts
+*.log
+
+# Environment
+.env
+.env.*
