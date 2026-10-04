@@ -1,14 +1,106 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Terminal, Database, Server, GitBranch, ArrowRight, BookOpen, Layers } from 'lucide-react';
+import {
+  Terminal,
+  Database,
+  Server,
+  GitBranch,
+  ArrowRight,
+  BookOpen,
+  Layers,
+  CheckCircle,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+
+const McpAnimation = () => {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStep((s) => (s + 1) % 4);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full bg-[#0d1117] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden flex flex-col font-mono transition-all duration-500 h-[280px]">
+      <div className="bg-[#161b22] border-b border-zinc-800 px-4 py-2 flex items-center gap-2">
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+          <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+        </div>
+        <div className="text-zinc-500 text-[10px] ml-4 flex-1 text-center font-sans tracking-wide">
+          IDE Terminal
+        </div>
+      </div>
+
+      <div className="p-6 text-xs md:text-sm text-zinc-300 flex-1 relative overflow-hidden">
+        <div
+          className={`absolute transition-opacity duration-500 ${step === 0 ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <div className="text-zinc-500 mb-2"># 1. Connect IDE to Scout</div>
+          <div className="text-emerald-400">{'<System>'} Connecting to Scout MCP Server...</div>
+          <div className="text-emerald-400 mt-1">{'<System>'} Validating JSON configuration...</div>
+          <div className="text-zinc-300 mt-4 flex items-center gap-2">
+            <span className="text-purple-400">{'<You>'}</span> Fix the padding bug in the header.
+          </div>
+          <div className="text-blue-400 mt-1 animate-pulse">
+            {'<AI Agent>'} Analyzing request...
+          </div>
+        </div>
+
+        <div
+          className={`absolute transition-opacity duration-500 ${step === 1 ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <div className="text-zinc-500 mb-2"># 2. Scout provisions isolated worktree</div>
+          <div className="text-indigo-400">$ scout worktree create session-a1b2c3</div>
+          <div className="text-zinc-400 mt-1">
+            Creating isolated git worktree at .scout-tmp/worktrees/session-a1b2c3
+          </div>
+          <div className="text-zinc-400">Head is now at 2438856...</div>
+          <div className="text-emerald-400 mt-2 font-bold flex items-center gap-2">
+            <CheckCircle size={14} /> Isolation boundary established.
+          </div>
+        </div>
+
+        <div
+          className={`absolute transition-opacity duration-500 ${step === 2 ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <div className="text-zinc-500 mb-2"># 3. AI safely executes tests</div>
+          <div className="text-indigo-400">$ npm run test</div>
+          <div className="text-zinc-400 mt-2">
+            <span className="text-emerald-400 bg-emerald-400/10 px-1">PASS</span>{' '}
+            src/components/Header.test.tsx
+          </div>
+          <div className="text-zinc-400 mt-1">
+            Test Suites: <span className="text-emerald-400">1 passed</span>, 1 total
+          </div>
+        </div>
+
+        <div
+          className={`absolute transition-opacity duration-500 ${step === 3 ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <div className="text-zinc-500 mb-2"># 4. Code securely committed</div>
+          <div className="text-indigo-400">$ scout commit -m "fix: resolve header padding bug"</div>
+          <div className="text-zinc-400 mt-1">
+            [session-a1b2c3 d8f9e0a] fix: resolve header padding bug
+          </div>
+          <div className="text-emerald-400 mt-6 text-lg font-bold flex items-center gap-2">
+            <CheckCircle size={20} /> Task Completed Perfectly.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PipelineAnimation = () => {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setStep((s) => (s + 1) % 5);
+      setStep((s) => (s + 1) % 6);
     }, 2500);
     return () => clearInterval(interval);
   }, []);
@@ -48,6 +140,13 @@ const PipelineAnimation = () => {
       badge: 'MERGED',
       badgeColor: 'bg-purple-100 text-purple-700',
       action: 'Celebrate 🎉',
+    },
+    {
+      label: 'Dropped',
+      tab: 'DROPPED',
+      badge: 'DROPPED',
+      badgeColor: 'bg-red-100 text-red-700',
+      action: 'Find New Issue',
     },
   ];
 
@@ -215,19 +314,45 @@ export function Landing() {
         </div>
       </div>
 
-      {/* Animated Pipeline Section */}
-      <div className="max-w-5xl w-full px-6 mb-32 relative z-10 mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight mb-4">
-            The Mission Control Pipeline.
-          </h2>
-          <p className="text-zinc-500 max-w-2xl mx-auto text-lg leading-relaxed">
-            Stop guessing where your contributions are. Scout organizes every issue into a clean,
-            automated Kanban flow from discovery to merge.
-          </p>
-        </div>
+      {/* Dual Engine Animation Section */}
+      <div className="max-w-7xl w-full px-6 mb-32 relative z-10 mx-auto">
+        <div className="grid lg:grid-cols-2 gap-16 items-start">
+          {/* V1 Dashboard Side */}
+          <div>
+            <div className="mb-8">
+              <h3 className="text-emerald-600 font-mono text-xs tracking-widest uppercase mb-2">
+                Part 1: The Cloud Dashboard
+              </h3>
+              <h2 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight mb-3">
+                Mission Control Pipeline.
+              </h2>
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                Stop guessing where your contributions are. Scout organizes every issue into a
+                clean, automated Kanban flow from discovery to merge—including dropping issues that
+                aren't a fit.
+              </p>
+            </div>
+            <PipelineAnimation />
+          </div>
 
-        <PipelineAnimation />
+          {/* V2 MCP Side */}
+          <div>
+            <div className="mb-8">
+              <h3 className="text-indigo-600 font-mono text-xs tracking-widest uppercase mb-2">
+                Part 2: The AI Pivot
+              </h3>
+              <h2 className="text-2xl md:text-3xl font-black text-zinc-900 tracking-tight mb-3">
+                Local MCP Harness.
+              </h2>
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                An invisible local orchestrator for the AI era. Provisions isolated git worktrees,
+                manages contextual memory, and safely executes code in your IDE to solve the manual
+                copy-paste problem.
+              </p>
+            </div>
+            <McpAnimation />
+          </div>
+        </div>
       </div>
 
       {/* The Problem & Workflow */}
