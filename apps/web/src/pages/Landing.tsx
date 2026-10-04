@@ -211,28 +211,21 @@ export function Landing() {
           don't hide the complexity, we structure it into a clear onboarding journey.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-6 text-left">
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-            <h3 className="font-bold text-zinc-900 mb-2">1. Get your keys</h3>
+        <div className="max-w-2xl mx-auto text-left">
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm rounded-lg">
+            <h3 className="font-bold text-zinc-900 mb-2">Universal MCP Configuration</h3>
             <p className="text-sm text-zinc-600 mb-4">
-              Create a free Supabase project, generate a GitHub OAuth App, and grab a Groq API key.
+              Add this configuration to your favorite AI assistant (Cursor, Cline, Claude Desktop,
+              Antigravity, etc.)
             </p>
-          </div>
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-            <h3 className="font-bold text-zinc-900 mb-2">2. Run the CLI</h3>
-            <div className="bg-zinc-100 p-2 font-mono text-xs rounded mb-4 border border-zinc-200">
-              npx open-source-scout setup
+            <div className="bg-zinc-950 text-emerald-400 p-4 font-mono text-xs rounded border border-zinc-800 overflow-x-auto">
+              <pre>{`"mcpServers": {
+  "scout": {
+    "command": "npx",
+    "args": ["-y", "@scout/mcp"]
+  }
+}`}</pre>
             </div>
-            <p className="text-sm text-zinc-600">
-              The CLI securely deploys the database schema and edge functions to your Supabase
-              project.
-            </p>
-          </div>
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-            <h3 className="font-bold text-zinc-900 mb-2">3. Connect</h3>
-            <p className="text-sm text-zinc-600 mb-4">
-              Open the hosted frontend, paste your Supabase connection URL, and sign in.
-            </p>
           </div>
         </div>
       </div>
@@ -252,54 +245,21 @@ export function Landing() {
           for your favorite AI assistants.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-6 text-left">
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-            <h3 className="font-bold text-zinc-900 mb-2">Cline</h3>
-            <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
-              <pre>{`"mcpServers": {
-  "scout-v2": {
-    "command": "npx",
-    "args": ["-y", "@scout/mcp"]
-  }
-}`}</pre>
-            </div>
-            <p className="text-sm text-zinc-600">
-              Add this to your{' '}
-              <code className="font-mono text-xs bg-zinc-100 px-1 py-0.5 rounded border border-zinc-200">
-                cline_mcp_settings.json
-              </code>
-              .
+        <div className="max-w-2xl mx-auto text-left">
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm rounded-lg">
+            <h3 className="font-bold text-zinc-900 mb-2">Universal MCP Configuration</h3>
+            <p className="text-sm text-zinc-600 mb-4">
+              Add this configuration to your favorite AI assistant (Cursor, Cline, Claude Desktop,
+              Antigravity, etc.)
             </p>
-          </div>
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-            <h3 className="font-bold text-zinc-900 mb-2">Cursor</h3>
-            <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
+            <div className="bg-zinc-950 text-emerald-400 p-4 font-mono text-xs rounded border border-zinc-800 overflow-x-auto">
               <pre>{`"mcpServers": {
-  "scout-v2": {
+  "scout": {
     "command": "npx",
     "args": ["-y", "@scout/mcp"]
   }
 }`}</pre>
             </div>
-            <p className="text-sm text-zinc-600">Add this to your Cursor MCP settings.</p>
-          </div>
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-            <h3 className="font-bold text-zinc-900 mb-2">Claude Desktop</h3>
-            <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
-              <pre>{`"mcpServers": {
-  "scout-v2": {
-    "command": "npx",
-    "args": ["-y", "@scout/mcp"]
-  }
-}`}</pre>
-            </div>
-            <p className="text-sm text-zinc-600">
-              Add this to your{' '}
-              <code className="font-mono text-xs bg-zinc-100 px-1 py-0.5 rounded border border-zinc-200">
-                claude_desktop_config.json
-              </code>
-              .
-            </p>
           </div>
         </div>
       </div>
