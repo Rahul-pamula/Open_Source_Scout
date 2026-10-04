@@ -237,23 +237,48 @@ export function Landing() {
         </div>
       </div>
 
-      {/* MCP Reality */}
+      {/* MCP Setup Guide */}
       <div className="max-w-6xl w-full px-6 mb-24 relative z-10 text-center">
+        <div className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 font-mono text-xs font-bold mb-6">
+          <Server size={14} />
+          SCOUT v2 LOCAL ENGINE
+        </div>
         <h2 className="text-3xl font-black text-zinc-900 tracking-tight mb-4">
           Execute safely with MCP.
         </h2>
         <p className="text-zinc-600 leading-relaxed max-w-2xl mx-auto mb-12">
           Don't give your AI raw shell access. Connect your IDE via the Model Context Protocol to
-          execute code in isolated Git worktrees with enforced boundaries.
+          execute code in isolated Git worktrees with enforced boundaries. Here is the setup guide
+          for your favorite AI assistants.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-6 text-left">
+        <div className="grid md:grid-cols-3 gap-6 text-left">
           <div className="bg-white border border-zinc-200 p-6 shadow-sm">
-            <h3 className="font-bold text-zinc-900 mb-2">Cursor Configuration</h3>
+            <h3 className="font-bold text-zinc-900 mb-2">Cline</h3>
             <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
-              <pre>{`"scout-v2": {
-  "command": "npx",
-  "args": ["-y", "@scout/mcp"]
+              <pre>{`"mcpServers": {
+  "scout-v2": {
+    "command": "npx",
+    "args": ["-y", "@scout/mcp"]
+  }
+}`}</pre>
+            </div>
+            <p className="text-sm text-zinc-600">
+              Add this to your{' '}
+              <code className="font-mono text-xs bg-zinc-100 px-1 py-0.5 rounded border border-zinc-200">
+                cline_mcp_settings.json
+              </code>
+              .
+            </p>
+          </div>
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+            <h3 className="font-bold text-zinc-900 mb-2">Cursor</h3>
+            <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
+              <pre>{`"mcpServers": {
+  "scout-v2": {
+    "command": "npx",
+    "args": ["-y", "@scout/mcp"]
+  }
 }`}</pre>
             </div>
             <p className="text-sm text-zinc-600">Add this to your Cursor MCP settings.</p>
@@ -261,12 +286,20 @@ export function Landing() {
           <div className="bg-white border border-zinc-200 p-6 shadow-sm">
             <h3 className="font-bold text-zinc-900 mb-2">Claude Desktop</h3>
             <div className="bg-zinc-100 p-3 font-mono text-xs rounded mb-4 border border-zinc-200 overflow-x-auto">
-              <pre>{`"scout-v2": {
-  "command": "npx",
-  "args": ["-y", "@scout/mcp"]
+              <pre>{`"mcpServers": {
+  "scout-v2": {
+    "command": "npx",
+    "args": ["-y", "@scout/mcp"]
+  }
 }`}</pre>
             </div>
-            <p className="text-sm text-zinc-600">Add this to your claude_desktop_config.json.</p>
+            <p className="text-sm text-zinc-600">
+              Add this to your{' '}
+              <code className="font-mono text-xs bg-zinc-100 px-1 py-0.5 rounded border border-zinc-200">
+                claude_desktop_config.json
+              </code>
+              .
+            </p>
           </div>
         </div>
       </div>
