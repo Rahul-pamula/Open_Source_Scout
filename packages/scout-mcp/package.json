@@ -1,14 +1,16 @@
 {
   "name": "open-source-scout-mcp",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "description": "Scout MCP Orchestration Server",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "scout-mcp": "./dist/index.js"
+    "open-source-scout-mcp": "dist/index.js",
+    "scout-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",
+    "postbuild": "chmod +x dist/index.js",
     "dev": "tsup src/index.ts --format esm --watch",
     "test": "tsx --test \"src/**/*.test.ts\" \"src/*.test.ts\""
   },
