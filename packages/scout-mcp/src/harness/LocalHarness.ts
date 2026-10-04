@@ -18,6 +18,7 @@
 
 import { randomUUID } from 'crypto';
 import { ProcessManager } from '../harness.js';
+import { CommandBoundaryGuard } from '../guardrails.js';
 import { getGitInfo, createWorktree, removeWorktree, getGitDiff, getChangedFiles } from '../git.js';
 import {
   getOrCreateLocalSession,
@@ -158,6 +159,7 @@ export class LocalHarness {
     command: string,
     cwd: string,
   ): Promise<RunCommandResult> {
+    CommandBoundaryGuard.validate(command);
     return this.processManager.runCommand(sessionId, command, cwd);
   }
 
