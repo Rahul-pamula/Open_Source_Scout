@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
-import { BookOpen, FileText, FolderOpen, ChevronRight, Menu, X } from 'lucide-react';
+import { FileText, FolderOpen, ChevronRight, Menu, X } from 'lucide-react';
 
 // Dynamically load all user guide markdown files
 const allDocsRaw = import.meta.glob('../content/user-guide/**/*.md', {
