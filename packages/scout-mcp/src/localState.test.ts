@@ -363,3 +363,71 @@ test('Recovery from Stale Sessions', async (t) => {
     assert.strictEqual(id, null);
   });
 });
+
+// --------------------------------------------------------------------------
+// Cancel tests
+// --------------------------------------------------------------------------
+
+test('Cancellation Lifecycle Tests', async (t) => {
+  let tmpDir: string;
+
+  t.beforeEach(async () => {
+    tmpDir = await makeTmpDir();
+  });
+
+  t.afterEach(async () => {
+    await cleanDir(tmpDir);
+  });
+
+  await t.test('processLocalCancel updates ACTIVE session to CANCELLED', async () => {
+    const { processLocalCancel } = await import('./localState.js');
+    await getOrCreateLocalSession('sess-cancel', 'commit-1', 'Task', 'manual', undefined, tmpDir);
+    const result = await processLocalCancel('sess-cancel', tmpDir);
+    assert.strictEqual(result.idempotent, false);
+
+    const state = await getLocalState(tmpDir);
+    assert.strictEqual(state.sessions['sess-cancel'].status, 'CANCELLED');
+  });
+
+  await t.test('processLocalCancel is idempotent when already CANCELLED', async () => {
+    const { processLocalCancel } = await import('./localState.js');
+    await getOrCreateLocalSession('sess-cancel2', 'commit-1', 'Task', 'manual', undefined, tmpDir);
+    await processLocalCancel('sess-cancel2', tmpDir);
+    const result = await processLocalCancel('sess-cancel2', tmpDir);
+    assert.strictEqual(result.idempotent, true);
+  });
+
+  await t.test('processLocalCancel fails on SUBMITTED session', async () => {
+    const { processLocalCancel } = await import('./localState.js');
+    await getOrCreateLocalSession('sess-cancel-sub', 'commit-1', 'Task', 'manual', undefined, tmpDir);
+    await processLocalSubmit('sess-cancel-sub', undefined, tmpDir);
+
+    await assert.rejects(
+      () => processLocalCancel('sess-cancel-sub', tmpDir),
+      /State transition rejected: cannot cancel an already submitted session/
+    );
+  });
+
+  await t.test('checkStaleSessions does not affect CANCELLED sessions', async () => {
+    const { processLocalCancel } = await import('./localState.js');
+    await getOrCreateLocalSession('sess-cancel-stale', 'commit-1', 'Task', 'manual', undefined, tmpDir);
+    await processLocalCancel('sess-cancel-stale', tmpDir);
+    
+    const count = await checkStaleSessions(0, tmpDir);
+    assert.strictEqual(count, 0);
+
+    const state = await getLocalState(tmpDir);
+    assert.strictEqual(state.sessions['sess-cancel-stale'].status, 'CANCELLED');
+  });
+
+  await t.test('getOrCreateLocalSession rejects CANCELLED sessions', async () => {
+    const { processLocalCancel } = await import('./localState.js');
+    await getOrCreateLocalSession('sess-cancel-reuse', 'commit-1', 'Task', 'manual', undefined, tmpDir);
+    await processLocalCancel('sess-cancel-reuse', tmpDir);
+
+    await assert.rejects(
+      () => getOrCreateLocalSession('sess-cancel-reuse', 'commit-1', 'Task', 'manual', undefined, tmpDir),
+      /CANCELLED/
+    );
+  });
+});
