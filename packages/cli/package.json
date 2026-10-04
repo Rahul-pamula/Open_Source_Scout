@@ -1,6 +1,6 @@
 {
   "name": "open-source-scout",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "Setup wizard for deploying your own Open Source Scout backend with Supabase and Edge Functions.",
   "homepage": "https://github.com/Rahul-pamula/Open_Source_Scout#readme",
   "repository": {
