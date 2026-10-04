@@ -221,10 +221,17 @@ export function Landing() {
     >
       {/* Top Navigation */}
       <header className="w-full max-w-6xl px-6 py-6 flex items-center justify-between z-10 relative">
-        <div className="flex items-center gap-2 font-black text-xl text-zinc-900 tracking-tight">
-          <img src="./logo.jpg" alt="Logo" className="w-8 h-8 rounded shadow-sm" />
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-black text-xl text-zinc-900 tracking-tight hover:opacity-80 transition-opacity"
+        >
+          <img
+            src={`${import.meta.env.BASE_URL}logo.jpg`}
+            alt="Logo"
+            className="w-8 h-8 rounded shadow-sm"
+          />
           Open Source Scout
-        </div>
+        </Link>
         <nav className="flex items-center gap-6">
           <Link
             to="/docs"

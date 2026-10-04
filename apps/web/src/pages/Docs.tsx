@@ -80,10 +80,14 @@ export function Docs() {
     <div className="min-h-screen bg-white flex flex-col md:flex-row">
       {/* Mobile Sidebar Toggle */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-zinc-200 bg-white sticky top-0 z-20">
-        <div className="flex items-center gap-2 font-bold text-zinc-900">
-          <BookOpen size={20} className="text-emerald-500" />
+        <Link to="/" className="flex items-center gap-2 font-bold text-zinc-900 hover:opacity-80">
+          <img
+            src={`${import.meta.env.BASE_URL}logo.jpg`}
+            alt="Logo"
+            className="w-6 h-6 rounded shadow-sm"
+          />
           Scout Docs
-        </div>
+        </Link>
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="p-2 bg-zinc-100 rounded-md"
@@ -99,12 +103,17 @@ export function Docs() {
         md:translate-x-0 transition-transform duration-300 fixed md:sticky top-0 left-0 h-screen w-72 bg-zinc-50 border-r border-zinc-200 overflow-y-auto z-10 flex flex-col
       `}
       >
-        <div className="p-6 hidden md:flex items-center gap-3 border-b border-zinc-200 bg-white sticky top-0 z-10">
-          <div className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
-            <BookOpen size={24} />
-          </div>
+        <Link
+          to="/"
+          className="p-6 hidden md:flex items-center gap-3 border-b border-zinc-200 bg-white sticky top-0 z-10 hover:bg-zinc-50 transition-colors"
+        >
+          <img
+            src={`${import.meta.env.BASE_URL}logo.jpg`}
+            alt="Logo"
+            className="w-8 h-8 rounded shadow-sm"
+          />
           <h1 className="font-black text-xl tracking-tight text-zinc-900">Scout Docs</h1>
-        </div>
+        </Link>
 
         <nav className="p-4 space-y-8 flex-1">
           {Object.entries(sidebarStructure).map(
