@@ -111,7 +111,7 @@ export function AutomationPage() {
     setExternalError(null);
     if (!externalUrl.trim()) return;
 
-    const urlPattern = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+)$/;
+    const urlPattern = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/;
     if (!urlPattern.test(externalUrl.trim())) {
       setExternalError(
         'Invalid GitHub issue URL. Format: https://github.com/owner/repo/issues/123',

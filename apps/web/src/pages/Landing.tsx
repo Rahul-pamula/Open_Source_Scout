@@ -220,21 +220,29 @@ export function Landing() {
           don't hide the complexity, we structure it into a clear onboarding journey.
         </p>
 
-        <div className="max-w-2xl mx-auto text-left">
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm rounded-lg">
-            <h3 className="font-bold text-zinc-900 mb-2">Universal MCP Configuration</h3>
+        <div className="grid md:grid-cols-3 gap-6 text-left">
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+            <h3 className="font-bold text-zinc-900 mb-2">1. Bring your keys</h3>
             <p className="text-sm text-zinc-600 mb-4">
-              Add this configuration to your favorite AI assistant (Cursor, Cline, Claude Desktop,
-              Antigravity, etc.)
+              You'll need a free Supabase account, a GitHub Personal Access Token, and a Groq API
+              key.
             </p>
-            <div className="bg-zinc-950 text-emerald-400 p-4 font-mono text-xs rounded border border-zinc-800 overflow-x-auto">
-              <pre>{`"mcpServers": {
-  "scout": {
-    "command": "npx",
-    "args": ["-y", "@scout/mcp"]
-  }
-}`}</pre>
+          </div>
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+            <h3 className="font-bold text-zinc-900 mb-2">2. Run the CLI</h3>
+            <div className="bg-zinc-100 p-2 font-mono text-xs rounded mb-4 border border-zinc-200">
+              npx open-source-scout setup
             </div>
+            <p className="text-sm text-zinc-600">
+              The CLI securely deploys the database schema and edge functions to your Supabase
+              project.
+            </p>
+          </div>
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+            <h3 className="font-bold text-zinc-900 mb-2">3. Connect</h3>
+            <p className="text-sm text-zinc-600 mb-4">
+              Open the hosted frontend, paste your Supabase connection URL, and sign in.
+            </p>
           </div>
         </div>
       </div>
