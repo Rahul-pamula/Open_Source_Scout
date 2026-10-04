@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings, LogOut, LogIn } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, LogIn, UserCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout() {
@@ -25,14 +25,21 @@ export function Layout() {
         <div className="flex flex-col space-y-1 flex-1">
           <Link
             to="/app/dashboard"
-            className={`flex items-center space-x-2 p-2 rounded-md font-medium transition-colors ${location.pathname.includes('/dashboard') ? 'bg-emerald-50 text-emerald-700' : 'text-zinc-600 hover:bg-zinc-100'}`}
+            className={`flex items-center space-x-2 p-2 rounded-md font-medium transition-colors ${location.pathname.includes('/dashboard') || location.pathname === '/app' ? 'bg-emerald-50 text-emerald-700' : 'text-zinc-600 hover:bg-zinc-100'}`}
           >
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
           </Link>
           <Link
+            to="/app/identity"
+            className={`flex items-center space-x-2 p-2 rounded-md font-medium transition-colors ${location.pathname.includes('/identity') ? 'bg-emerald-50 text-emerald-700' : 'text-zinc-600 hover:bg-zinc-100'}`}
+          >
+            <UserCircle size={20} />
+            <span>Profile & Identity</span>
+          </Link>
+          <Link
             to="/app/integrations"
-            className={`flex items-center space-x-2 p-2 rounded-md transition-colors ${location.pathname.includes('/integrations') ? 'bg-emerald-50 text-emerald-700' : 'text-zinc-600 hover:bg-zinc-100'}`}
+            className={`flex items-center space-x-2 p-2 rounded-md font-medium transition-colors ${location.pathname.includes('/integrations') ? 'bg-emerald-50 text-emerald-700' : 'text-zinc-600 hover:bg-zinc-100'}`}
           >
             <Settings size={20} />
             <span>Integrations</span>
@@ -93,17 +100,24 @@ export function Layout() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-zinc-200 flex">
         <Link
           to="/app/dashboard"
-          className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[10px] font-bold transition-colors ${location.pathname.includes('/dashboard') ? 'text-emerald-600' : 'text-zinc-400'}`}
+          className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[10px] font-bold transition-colors ${location.pathname.includes('/dashboard') || location.pathname === '/app' ? 'text-emerald-600' : 'text-zinc-400'}`}
         >
           <LayoutDashboard size={22} />
           <span>Dashboard</span>
+        </Link>
+        <Link
+          to="/app/identity"
+          className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[10px] font-bold transition-colors ${location.pathname.includes('/identity') ? 'text-emerald-600' : 'text-zinc-400'}`}
+        >
+          <UserCircle size={22} />
+          <span>Profile</span>
         </Link>
         <Link
           to="/app/integrations"
           className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[10px] font-bold transition-colors ${location.pathname.includes('/integrations') ? 'text-emerald-600' : 'text-zinc-400'}`}
         >
           <Settings size={22} />
-          <span>Integrations</span>
+          <span>Settings</span>
         </Link>
         {!user && (
           <Link
