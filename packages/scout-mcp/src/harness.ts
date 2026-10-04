@@ -10,7 +10,7 @@ export class ProcessManager {
     cwd: string
   ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return new Promise((resolve, reject) => {
-      const child = spawn(command, { cwd, shell: true });
+      const child = spawn('sh', ['-c', command], { cwd, shell: false });
 
       if (!this.activeProcesses.has(sessionId)) {
         this.activeProcesses.set(sessionId, []);
