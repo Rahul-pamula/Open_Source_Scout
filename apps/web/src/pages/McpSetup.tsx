@@ -13,19 +13,12 @@ export default function SetupPage() {
   const mcpCommand = 'npx';
   const mcpArgs = ['-y', '@scout/mcp'];
 
-  const envVars = {
-    SUPABASE_URL: config?.url || '<YOUR_SUPABASE_URL>',
-    SUPABASE_ANON_KEY: config?.key || '<YOUR_SUPABASE_ANON_KEY>',
-    SCOUT_USER_JWT: session?.access_token || '<YOUR_SCOUT_USER_JWT>',
-  };
-
   const snippet = JSON.stringify(
     {
       mcpServers: {
         scout: {
           command: mcpCommand,
           args: mcpArgs,
-          env: envVars,
         },
       },
     },
