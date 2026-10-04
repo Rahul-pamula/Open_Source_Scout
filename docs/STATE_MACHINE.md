@@ -50,3 +50,15 @@ If a maintainer replies:
 2. Passes the reply through the AI Claim Analyzer (`claimDetector`).
 3. If permission is granted (e.g., "Go ahead!"), it automatically transitions the state to `ASSIGNED`.
 4. If permission is denied, it moves the state to `REJECTED`.
+
+## v2 Local Execution State Machine
+
+> **Note:** The above describes the v1 cloud-based contribution pipeline. The following describes the isolated local execution lifecycle for Scout v2.
+
+Scout v2 tracks the lifecycle of local execution sessions independently of any cloud state. These states apply to the local MCP execution engine and are tracked in `.scout-tmp/state.json`:
+
+- **`ACTIVE`**: The session is running and the AI agent is actively working.
+- **`BLOCKED`**: The agent cannot safely continue and is awaiting human input (e.g., ambiguous requirements, missing credentials).
+- **`STALE`**: A heartbeat has not been received within the timeout window (used for crash detection and recovery).
+- **`SUBMITTED`**: The agent has successfully submitted the work for external review. This is a terminal state.
+- **`CANCELLED`**: The session was explicitly cancelled by the user and all associated processes have been verified as stopped.
