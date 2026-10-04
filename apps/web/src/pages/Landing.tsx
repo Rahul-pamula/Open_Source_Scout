@@ -22,7 +22,7 @@ export function Landing() {
       {/* Top Navigation */}
       <header className="w-full max-w-6xl px-6 py-6 flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-2 font-black text-xl text-zinc-900 tracking-tight">
-          <div className="bg-zinc-900 text-white p-1.5 rounded text-sm">🎯</div>
+          <img src="./logo.jpg" alt="Logo" className="w-8 h-8 rounded shadow-sm" />
           Open Source Scout
         </div>
         <nav className="flex items-center gap-6">
@@ -53,8 +53,9 @@ export function Landing() {
         </h1>
 
         <p className="text-lg md:text-xl text-zinc-600 mb-12 font-medium max-w-2xl mx-auto leading-relaxed">
-          Scout 2.0 is an AI-assisted workflow that helps you discover, understand, claim, and
-          manage open-source contributions. Your backend. Your GitHub. Your data.
+          Open Source Scout is a dual-engine architecture for the AI era. Use the{' '}
+          <strong>v1 Cloud Dashboard</strong> to manage your GitHub contributions, and the{' '}
+          <strong>v2 Local MCP</strong> to safely orchestrate AI agents directly in your IDE.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
