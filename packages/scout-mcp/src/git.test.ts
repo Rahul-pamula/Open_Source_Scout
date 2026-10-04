@@ -28,12 +28,12 @@ test('Git Adapter', async (t) => {
   });
 
   await t.test('fails on missing origin', async () => {
-    execSync('git init', { cwd: testDir });
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     await assert.rejects(() => getGitInfo(testDir), /Git error:/);
   });
 
   await t.test('fails on detached HEAD', async () => {
-    execSync('git init', { cwd: testDir });
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git remote add origin https://github.com/test/repo', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
     execSync('git checkout --detach HEAD', { cwd: testDir });
@@ -41,7 +41,7 @@ test('Git Adapter', async (t) => {
   });
 
   await t.test('succeeds on valid git repository', async () => {
-    execSync('git init', { cwd: testDir });
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git remote add origin git@github.com:test/repo.git', { cwd: testDir });
     execSync('git checkout -b main', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
@@ -53,7 +53,7 @@ test('Git Adapter', async (t) => {
   });
 
   await t.test('creates and removes worktree safely', async () => {
-    execSync('git init', { cwd: testDir });
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
 
     const sessionId = 'test-session-123';
@@ -68,7 +68,7 @@ test('Git Adapter', async (t) => {
   });
 
   await t.test('cleans up dirty worktrees safely', async () => {
-    execSync('git init', { cwd: testDir });
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
 
     const sessionId = 'test-session-dirty';
@@ -82,7 +82,7 @@ test('Git Adapter', async (t) => {
   });
 
   await t.test('concurrent worktree creation', async () => {
-    execSync('git init', { cwd: testDir });
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
 
     const sessions = ['session-1', 'session-2', 'session-3'];
@@ -108,7 +108,7 @@ test('Git Adapter', async (t) => {
   });
 
   await t.test('cleans up orphaned worktrees safely', async () => {
-    execSync('git init', { cwd: testDir });
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
 
     const sessionActive = 'session-active';

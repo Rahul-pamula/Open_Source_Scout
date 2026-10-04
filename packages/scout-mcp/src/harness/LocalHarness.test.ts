@@ -398,7 +398,7 @@ describe('LocalHarness.initializeExecution recovery payload', () => {
     try {
       // Setup a real git repo in the temp dir so git operations don't fail
       const { execSync } = await import('child_process');
-      execSync('git init && git remote add origin https://github.com/org/repo && git branch -m main && echo "init" > README.md && git add README.md && git commit -m "init"', { cwd: tmpDir });
+      execSync('git init && git config user.email "test@example.com" && git config user.name "Test" && git remote add origin https://github.com/org/repo && git branch -m main && echo "init" > README.md && git add README.md && git commit -m "init"', { cwd: tmpDir });
       
       const { LocalHarness } = await import('./LocalHarness.js');
       const { getWorktreePath } = await import('../git.js');
