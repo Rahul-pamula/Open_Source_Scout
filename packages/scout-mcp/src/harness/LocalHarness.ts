@@ -157,8 +157,9 @@ export class LocalHarness {
     sessionId: string,
     command: string,
     cwd: string,
+    timeoutMs?: number,
   ): Promise<RunCommandResult> {
-    return this.processManager.runCommand(sessionId, command, cwd);
+    return this.processManager.runCommand(sessionId, command, cwd, timeoutMs);
   }
 
   // -------------------------------------------------------------------------
