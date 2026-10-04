@@ -19,6 +19,8 @@
 import { randomUUID } from 'crypto';
 import { ProcessManager } from '../harness.js';
 import { getGitInfo, createWorktree, removeWorktree, getGitDiff, getChangedFiles } from '../git.js';
+import { ICloudAdapter } from '../cloud/CloudAdapter.js';
+import { NullCloudAdapter } from '../cloud/NullCloudAdapter.js';
 import {
   getOrCreateLocalSession,
   checkStaleSessions,
@@ -68,8 +70,6 @@ export interface RunCommandResult {
   exitCode: number | null;
 }
 
-/** Optional async cloud-sync function.  Errors are swallowed. */
-export type CloudSyncFn = () => Promise<void>;
 
 // ---------------------------------------------------------------------------
 // LocalHarness
@@ -77,9 +77,11 @@ export type CloudSyncFn = () => Promise<void>;
 
 export class LocalHarness {
   private readonly processManager: ProcessManager;
+  private readonly cloudAdapter: ICloudAdapter;
 
-  constructor(processManager?: ProcessManager) {
+  constructor(processManager?: ProcessManager, cloudAdapter?: ICloudAdapter) {
     this.processManager = processManager ?? new ProcessManager();
+    this.cloudAdapter = cloudAdapter ?? new NullCloudAdapter();
   }
 
   // -------------------------------------------------------------------------
@@ -100,7 +102,6 @@ export class LocalHarness {
     taskDescription: string,
     source: string = 'manual',
     taskId?: string,
-    cloudSync?: CloudSyncFn,
   ): Promise<InitializeResult> {
     const gitInfo = await getGitInfo();
 
@@ -127,11 +128,9 @@ export class LocalHarness {
     const skills = loadSkills();
 
     // Optional cloud sync — fire-and-forget, failures logged only.
-    if (cloudSync) {
-      cloudSync().catch((e) =>
-        console.error('[LocalHarness] Cloud sync failed for initializeExecution:', e),
-      );
-    }
+    this.cloudAdapter.syncSession(sessionId, taskId).catch((e) =>
+      console.error('[LocalHarness] Cloud sync failed for initializeExecution:', e),
+    );
 
     return {
       session_id: sessionId,
@@ -194,7 +193,6 @@ export class LocalHarness {
     sessionId: string,
     worktreePath: string,
     prUrl?: string,
-    cloudSync?: CloudSyncFn,
   ): Promise<SubmitResult> {
     const { idempotent } = await processLocalSubmit(sessionId, prUrl);
 
@@ -223,11 +221,9 @@ export class LocalHarness {
     await recordValidationResults(sessionId, validationResult);
 
     // Optional cloud sync.
-    if (cloudSync) {
-      cloudSync().catch((e) =>
-        console.error('[LocalHarness] Cloud sync failed for submitForReview:', e),
-      );
-    }
+    this.cloudAdapter.syncSubmit(sessionId, prUrl).catch((e) =>
+      console.error('[LocalHarness] Cloud sync failed for submitForReview:', e),
+    );
 
     return { idempotent: false, advisory_validation: validationResult };
   }
@@ -243,7 +239,6 @@ export class LocalHarness {
    */
   async sessionHeartbeat(
     sessionId: string,
-    cloudSync?: CloudSyncFn,
   ): Promise<HeartbeatResult> {
     const found = await updateLocalHeartbeat(sessionId);
 
@@ -253,11 +248,9 @@ export class LocalHarness {
       );
     }
 
-    if (cloudSync) {
-      cloudSync().catch((e) =>
-        console.error('[LocalHarness] Cloud sync failed for sessionHeartbeat:', e),
-      );
-    }
+    this.cloudAdapter.syncHeartbeat(sessionId).catch((e) =>
+      console.error('[LocalHarness] Cloud sync failed for sessionHeartbeat:', e),
+    );
 
     return { found };
   }
@@ -272,15 +265,12 @@ export class LocalHarness {
   async markBlocked(
     sessionId: string,
     reason: string,
-    cloudSync?: CloudSyncFn,
   ): Promise<MarkBlockedResult> {
     const { idempotent } = await processLocalMarkBlocked(sessionId, reason);
 
-    if (cloudSync) {
-      cloudSync().catch((e) =>
-        console.error('[LocalHarness] Cloud sync failed for markBlocked:', e),
-      );
-    }
+    this.cloudAdapter.syncBlocked(sessionId, reason).catch((e) =>
+      console.error('[LocalHarness] Cloud sync failed for markBlocked:', e),
+    );
 
     return { idempotent };
   }
@@ -294,5 +284,4 @@ export class LocalHarness {
   }
 }
 
-/** Singleton harness used by the MCP server. */
-export const localHarness = new LocalHarness();
+
