@@ -16,8 +16,6 @@ import { Docs } from './pages/Docs';
 import { OAuthCallback } from './pages/OAuthCallback';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasSupabaseConfig } from './services/supabase';
-import DashboardPage from './pages/Dashboard';
-import IntegrationsPage from './pages/Integrations';
 import McpSetupPage from './pages/McpSetup';
 
 function ProtectedRoute({
@@ -97,8 +95,6 @@ function App() {
               <Route path="pipeline" element={<Navigate to="/app/automation" replace />} />
             </Route>
             <Route path="identity" element={<Identity />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="integrations" element={<IntegrationsPage />} />
           </Route>
 
           {/* Catch-all redirect */}
