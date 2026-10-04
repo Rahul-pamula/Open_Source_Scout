@@ -13,7 +13,7 @@ function getLocalStateFile(cwd: string = process.cwd()) {
 }
 
 export interface SessionState {
-  status: string;
+  status: 'ACTIVE' | 'SUBMITTED' | 'BLOCKED' | 'STALE' | 'CANCELLED';
   starting_commit_hash: string;
   task_description: string;
   source: string;
@@ -63,7 +63,7 @@ export async function updateLocalHeartbeat(sessionId: string, cwd: string = proc
 /**
  * Mark sessions as STALE when their last heartbeat is older than `timeoutMs`.
  *
- * Only ACTIVE sessions are eligible to become STALE. SUBMITTED/BLOCKED/STALE
+ * Only ACTIVE sessions are eligible to become STALE. SUBMITTED/BLOCKED/STALE/CANCELLED
  * sessions are left untouched.
  *
  * A session that has never sent a heartbeat (last_heartbeat_at is absent) is
@@ -145,6 +145,9 @@ export async function getOrCreateLocalSession(
     if (session.status === 'STALE') {
       throw new Error(`Session ${sessionId} is STALE. A new session should be created.`);
     }
+    if (session.status === 'CANCELLED') {
+      throw new Error(`Session ${sessionId} is CANCELLED. A new session should be created.`);
+    }
     if (session.status === 'ACTIVE' && session.starting_commit_hash !== commitHash) {
       throw new Error(`Stale session detected. Active session exists with commit ${session.starting_commit_hash}, but current HEAD is ${commitHash}.`);
     }
@@ -182,6 +185,10 @@ export async function processLocalSubmit(
     throw new Error('State transition rejected: cannot submit a blocked session');
   }
 
+  if (session.status === 'CANCELLED') {
+    throw new Error('State transition rejected: cannot submit a cancelled session');
+  }
+
   session.status = 'SUBMITTED';
   if (prUrl) {
     session.pr_url = prUrl;
@@ -206,12 +213,40 @@ export async function processLocalMarkBlocked(
     throw new Error('State transition rejected: cannot block an already submitted session');
   }
 
+  if (session.status === 'CANCELLED') {
+    throw new Error('State transition rejected: cannot block a cancelled session');
+  }
+
   if (session.status === 'BLOCKED') {
     return { idempotent: true };
   }
 
   session.status = 'BLOCKED';
   session.blocked_reason = reason;
+  await saveLocalState(state, cwd);
+  return { idempotent: false };
+}
+
+export async function processLocalCancel(
+  sessionId: string,
+  cwd: string = process.cwd(),
+): Promise<{ idempotent: boolean }> {
+  const state = await getLocalState(cwd);
+  const session = state.sessions[sessionId];
+
+  if (!session) {
+    throw new Error('Session not found in local state');
+  }
+
+  if (session.status === 'SUBMITTED') {
+    throw new Error('State transition rejected: cannot cancel an already submitted session');
+  }
+
+  if (session.status === 'CANCELLED') {
+    return { idempotent: true };
+  }
+
+  session.status = 'CANCELLED';
   await saveLocalState(state, cwd);
   return { idempotent: false };
 }

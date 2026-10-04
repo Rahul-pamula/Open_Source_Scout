@@ -18,7 +18,7 @@ export class ProcessManager {
     timeoutMs: number = 600000
   ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return new Promise((resolve, reject) => {
-      const child = spawn(command, { cwd, shell: true });
+      const child = spawn('sh', ['-c', command], { cwd, shell: false });
       let timeoutId: NodeJS.Timeout | undefined;
 
       if (!this.activeProcesses.has(sessionId)) {

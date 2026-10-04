@@ -353,3 +353,38 @@ describe('LocalHarness cloud sync side-effect', () => {
     assert.equal(errorCaught, true);
   });
 });
+
+describe('LocalHarness.cancelSession', () => {
+  it('kills processes and updates state to CANCELLED', async () => {
+    const tmpDir = await makeTempDir();
+    const { LocalHarness } = await import('./LocalHarness.js');
+    const originalCwd = process.cwd();
+    process.chdir(tmpDir); // LocalHarness uses process.cwd()
+
+    try {
+      const sessionId = randomUUID();
+
+      await writeTempState(tmpDir, {
+        [sessionId]: {
+          status: 'ACTIVE',
+          starting_commit_hash: 'abc',
+          task_description: 'test',
+          source: 'manual',
+          last_heartbeat_at: new Date().toISOString(),
+        },
+      });
+
+      const stubProcessManager = new StubProcessManager() as any;
+      const harness = new LocalHarness(stubProcessManager);
+
+      await harness.cancelSession(sessionId);
+
+      assert.deepEqual(stubProcessManager.cancelled, [sessionId]);
+
+      const state = await readTempState(tmpDir);
+      assert.equal(state.sessions[sessionId].status, 'CANCELLED');
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+});

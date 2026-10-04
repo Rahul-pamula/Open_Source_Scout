@@ -15,18 +15,15 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { validatePathBoundary } from './guardrails.js';
 import { getWorktreePath } from './git.js';
-import {
-  getSupabaseClient,
-  getOrCreateTaskSession,
-  fetchTaskInfo,
-  updateSessionStatus,
-  getSessionStatus,
-  checkSubmitIdempotency,
-  processMarkBlocked,
-  getUserIdFromJwt,
-  updateSessionHeartbeat,
-} from './supabase.js';
-import { localHarness } from './harness/LocalHarness.js';
+import { SupabaseCloudAdapter } from './cloud/SupabaseCloudAdapter.js';
+import { NullCloudAdapter } from './cloud/NullCloudAdapter.js';
+import { LocalHarness } from './harness/LocalHarness.js';
+
+const cloudAdapter = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY && process.env.SCOUT_USER_JWT
+  ? new SupabaseCloudAdapter()
+  : new NullCloudAdapter();
+
+const localHarness = new LocalHarness(undefined, cloudAdapter);
 import fs from 'fs/promises';
 
 // ---------------------------------------------------------------------------
@@ -230,13 +227,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
-    // Cloud client and user identity are resolved once per request.
-    // Both are null/fallback when Supabase env vars are absent.
-    const supabase = getSupabaseClient();
-    const userId =
-      supabase && process.env.SCOUT_USER_JWT
-        ? await getUserIdFromJwt(process.env.SCOUT_USER_JWT).catch(() => 'local-user')
-        : 'local-user';
+
 
     switch (request.params.name) {
       // -----------------------------------------------------------------------
@@ -245,19 +236,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           request.params.arguments,
         );
 
-        // Optional Supabase cloud sync: create a cloud session if connected.
-        const cloudSync =
-          supabase && task_id && process.env.SCOUT_USER_JWT
-            ? async () => {
-                await getOrCreateTaskSession(supabase, task_id, userId, '');
-              }
-            : undefined;
-
         const result = await localHarness.initializeExecution(
           task_description,
           source,
           task_id,
-          cloudSync,
         );
 
         return {
@@ -363,22 +345,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { session_id, pr_url } = SubmitForReviewSchema.parse(request.params.arguments);
         const worktreePath = await getWorktreePath(session_id);
 
-        // Cloud sync: update session status in Supabase after local submit.
-        const cloudSync =
-          supabase && process.env.SCOUT_USER_JWT
-            ? async () => {
-                const isIdempotentCloud = await checkSubmitIdempotency(supabase, session_id, userId);
-                if (!isIdempotentCloud) {
-                  await updateSessionStatus(supabase, session_id, userId, 'SUBMITTED', 'ACTIVE', pr_url);
-                }
-              }
-            : undefined;
-
         const result = await localHarness.submitForReview(
           session_id,
           worktreePath,
           pr_url,
-          cloudSync,
         );
 
         if (result.idempotent) {
@@ -417,15 +387,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'session_heartbeat': {
         const { session_id } = SessionHeartbeatSchema.parse(request.params.arguments);
 
-        // Cloud sync: update heartbeat in Supabase.
-        const cloudSync =
-          supabase && process.env.SCOUT_USER_JWT
-            ? async () => {
-                await updateSessionHeartbeat(supabase, session_id, userId);
-              }
-            : undefined;
-
-        await localHarness.sessionHeartbeat(session_id, cloudSync);
+        await localHarness.sessionHeartbeat(session_id);
 
         return {
           content: [
@@ -441,15 +403,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'mark_blocked': {
         const { session_id, reason } = MarkBlockedSchema.parse(request.params.arguments);
 
-        // Cloud sync: mark session blocked in Supabase.
-        const cloudSync =
-          supabase && process.env.SCOUT_USER_JWT
-            ? async () => {
-                await processMarkBlocked(supabase, session_id, userId);
-              }
-            : undefined;
-
-        const result = await localHarness.markBlocked(session_id, reason, cloudSync);
+        const result = await localHarness.markBlocked(session_id, reason);
 
         return {
           content: [

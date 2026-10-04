@@ -1,41 +1,32 @@
-import { describe, it } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert';
-import path from 'path';
-import { validatePathBoundary, GuardrailError } from './guardrails.js';
+import { CommandBoundaryGuard } from './guardrails.js';
 
-describe('Guardrails', () => {
-  it('should allow paths strictly within the worktree', () => {
-    const worktreePath = '/tmp/worktree';
-    
-    assert.strictEqual(
-      validatePathBoundary(worktreePath, 'file.txt'),
-      path.resolve(worktreePath, 'file.txt')
-    );
-    
-    assert.strictEqual(
-      validatePathBoundary(worktreePath, './dir/file.txt'),
-      path.resolve(worktreePath, 'dir/file.txt')
-    );
-    
-    assert.strictEqual(
-      validatePathBoundary(worktreePath, '/tmp/worktree/file.txt'),
-      path.resolve(worktreePath, 'file.txt')
-    );
+test('CommandBoundaryGuard', async (t) => {
+  await t.test('legitimate commands allowed', () => {
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('ls -la'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('echo hello'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('cd src'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('cd src/components'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('cd ./src'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('cd src && npm run build'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('cd foo; ls'));
   });
 
-  it('should block paths outside the worktree', () => {
-    const worktreePath = '/tmp/worktree';
+  await t.test('escape patterns blocked', () => {
+    assert.throws(() => CommandBoundaryGuard.validate('cd ..'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('cd ../..'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('cd src/..'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('pushd ..'), /Directory escape detected/);
     
-    assert.throws(() => {
-      validatePathBoundary(worktreePath, '../file.txt');
-    }, GuardrailError);
+    assert.throws(() => CommandBoundaryGuard.validate('cd /etc'), /Absolute directory traversal detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('cd /var/log'), /Absolute directory traversal detected/);
     
-    assert.throws(() => {
-      validatePathBoundary(worktreePath, '/etc/passwd');
-    }, GuardrailError);
+    assert.throws(() => CommandBoundaryGuard.validate('cd ~'), /Home directory traversal detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('cd ~/foo'), /Home directory traversal detected/);
     
-    assert.throws(() => {
-      validatePathBoundary(worktreePath, '/tmp/worktree_other/file.txt');
-    }, GuardrailError);
+    assert.throws(() => CommandBoundaryGuard.validate('ls && cd ..'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('cd src; cd ../..'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('echo hello || cd /'), /Absolute directory traversal detected/);
   });
 });
