@@ -236,6 +236,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           task_id,
         );
 
+        if (result.recovered_from_stale_session) {
+          return {
+            content: [{
+              type: 'text',
+              text: `Session recovered successfully. Previous changes preserved:\n\n${result.recovered_diff}\n\n${JSON.stringify(result, null, 2)}`
+            }],
+          };
+        }
+
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
