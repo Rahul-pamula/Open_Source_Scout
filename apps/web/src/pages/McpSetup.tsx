@@ -8,7 +8,7 @@ export default function SetupPage() {
   const [showPromptHelper, setShowPromptHelper] = useState(false);
 
   const mcpCommand = 'npx';
-  const mcpArgs = ['-y', '@scout/mcp'];
+  const mcpArgs = ['-y', 'open-source-scout-mcp'];
 
   const snippet = JSON.stringify(
     {

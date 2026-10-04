@@ -58,7 +58,7 @@ Add this JSON snippet to your AI assistant's MCP configuration file (Cursor, Cli
   "mcpServers": {
     "scout": {
       "command": "npx",
-      "args": ["-y", "@scout/mcp"]
+      "args": ["-y", "open-source-scout-mcp"]
     }
   }
 }

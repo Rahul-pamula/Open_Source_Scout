@@ -11,7 +11,7 @@ Add this configuration to your favorite AI assistant's MCP configuration file:
   "mcpServers": {
     "scout": {
       "command": "npx",
-      "args": ["-y", "@scout/mcp"]
+      "args": ["-y", "open-source-scout-mcp"]
     }
   }
 }
@@ -22,7 +22,7 @@ Add this configuration to your favorite AI assistant's MCP configuration file:
 1. Open Cursor Settings.
 2. Go to **Features > MCP Servers**.
 3. Click **+ Add New MCP Server**.
-4. Set Name to `scout`, Type to `command`, and Command to `npx -y @scout/mcp`.
+4. Set Name to `scout`, Type to `command`, and Command to `npx -y open-source-scout-mcp`.
 
 ### Setup for Cline
 

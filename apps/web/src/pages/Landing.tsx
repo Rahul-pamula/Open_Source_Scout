@@ -541,7 +541,7 @@ export function Landing() {
               <pre>{`"mcpServers": {
   "scout": {
     "command": "npx",
-    "args": ["-y", "@scout/mcp"]
+    "args": ["-y", "open-source-scout-mcp"]
   }
 }`}</pre>
             </div>
