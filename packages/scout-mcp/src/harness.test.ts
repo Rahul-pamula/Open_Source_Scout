@@ -58,4 +58,20 @@ describe('ProcessManager', () => {
     const result = await runPromise;
     assert.strictEqual(manager.getActiveProcessCount('session-4'), 0);
   });
+
+  it('should timeout if a command takes too long', async () => {
+    const manager = new ProcessManager();
+    const startTime = Date.now();
+    try {
+      await manager.runCommand('session-5', 'sleep 10', process.cwd(), 100);
+      assert.fail('Should have timed out and thrown');
+    } catch (err: any) {
+      assert.strictEqual(err.name, 'TimeoutError');
+      assert.match(err.message, /Command timed out after 100ms/);
+    }
+    const elapsed = Date.now() - startTime;
+    assert.ok(elapsed < 5000, 'Command should have timed out quickly');
+    assert.strictEqual(manager.getActiveProcessCount('session-5'), 0);
+  });
+
 });

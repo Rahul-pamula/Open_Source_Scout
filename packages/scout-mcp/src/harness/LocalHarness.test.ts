@@ -47,8 +47,8 @@ class StubProcessManager {
   public cancelled: string[] = [];
   public shouldError = false;
 
-  async runCommand(sessionId: string, command: string, cwd: string) {
-    this.ran.push({ sessionId, command, cwd });
+  async runCommand(sessionId: string, command: string, cwd: string, timeoutMs?: number) {
+    this.ran.push({ sessionId, command, cwd, timeoutMs } as any);
     if (this.shouldError) throw new Error('stub error');
     return { stdout: 'ok', stderr: '', exitCode: 0 };
   }
@@ -260,7 +260,7 @@ describe('LocalHarness.runCommand via ProcessManager', () => {
     const result = await stub.runCommand('sess-1', 'echo hi', '/tmp');
     assert.equal(result.stdout, 'ok');
     assert.equal(result.exitCode, 0);
-    assert.deepEqual(stub.ran, [{ sessionId: 'sess-1', command: 'echo hi', cwd: '/tmp' }]);
+    assert.deepEqual(stub.ran, [{ sessionId: 'sess-1', command: 'echo hi', cwd: '/tmp', timeoutMs: undefined }]);
   });
 
   it('delegates cancel_session to the process manager', async () => {

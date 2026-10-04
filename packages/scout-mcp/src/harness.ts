@@ -1,16 +1,25 @@
 import { spawn, ChildProcess } from 'child_process';
 import treeKill from 'tree-kill';
 
+export class TimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TimeoutError';
+  }
+}
+
 export class ProcessManager {
   private activeProcesses: Map<string, ChildProcess[]> = new Map();
 
   public runCommand(
     sessionId: string,
     command: string,
-    cwd: string
+    cwd: string,
+    timeoutMs: number = 600000
   ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return new Promise((resolve, reject) => {
       const child = spawn('sh', ['-c', command], { cwd, shell: false });
+      let timeoutId: NodeJS.Timeout | undefined;
 
       if (!this.activeProcesses.has(sessionId)) {
         this.activeProcesses.set(sessionId, []);
@@ -28,7 +37,15 @@ export class ProcessManager {
         stderr += data.toString();
       });
 
+      const cleanupTimeout = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
+      };
+
       const onExit = (code: number | null) => {
+        cleanupTimeout();
         this.removeProcess(sessionId, child);
         import('./evidence.js').then(({ recordCommand }) => {
           recordCommand(sessionId, command, code, new Date().toISOString()).catch(console.error);
@@ -39,12 +56,23 @@ export class ProcessManager {
       child.on('exit', onExit);
 
       child.on('error', (err) => {
+        cleanupTimeout();
         this.removeProcess(sessionId, child);
         import('./evidence.js').then(({ recordCommand }) => {
           recordCommand(sessionId, command, null, new Date().toISOString()).catch(console.error);
         });
         reject(err);
       });
+
+      if (timeoutMs > 0) {
+        timeoutId = setTimeout(() => {
+          if (child.pid) {
+            treeKill(child.pid, 'SIGKILL');
+          }
+          this.removeProcess(sessionId, child);
+          reject(new TimeoutError(`Command timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }
     });
   }
 

@@ -158,9 +158,10 @@ export class LocalHarness {
     sessionId: string,
     command: string,
     cwd: string,
+    timeoutMs?: number,
   ): Promise<RunCommandResult> {
     CommandBoundaryGuard.validate(command);
-    return this.processManager.runCommand(sessionId, command, cwd);
+    return this.processManager.runCommand(sessionId, command, cwd, timeoutMs);
   }
 
   // -------------------------------------------------------------------------
