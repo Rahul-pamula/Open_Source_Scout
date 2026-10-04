@@ -4,8 +4,8 @@ Scout tracks your workflow visually using a Kanban-style pipeline.
 
 ## States
 
-1. **DISCOVERED:** Raw issues found by the Radar.
-2. **ENGAGED:** Issues currently in the Dossier being evaluated.
+1. **DISCOVERED:** Raw issues found by the Issue Scanner.
+2. **ENGAGED:** Issues currently in the AI Evaluator being evaluated.
 3. **CLAIMED:** Issues you have decided to work on.
 4. **ASSIGNED:** Issues where you have successfully been assigned on GitHub.
 5. **ABANDONED:** Issues you tried to work on but gave up.

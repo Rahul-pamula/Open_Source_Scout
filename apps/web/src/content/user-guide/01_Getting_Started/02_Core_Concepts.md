@@ -14,7 +14,7 @@ Instead of letting AI agents modify your main repository (and potentially ruin y
 
 Bring-Your-Own-Backend. Scout v1 does not host your data. You deploy the database, edge functions, and API keys to your own Supabase instance. You own your data.
 
-## The Radar & The Dossier
+## Issue Scanner & AI Evaluator
 
-- **The Radar:** The v1 discovery engine that actively scans GitHub for issues matching your developer profile.
-- **The Dossier:** The v1 AI evaluation engine that reads the issue and tells you exactly how hard it is and if you have the right skills to solve it.
+- **Issue Scanner:** The v1 discovery engine that actively scans GitHub for issues matching your developer profile.
+- **AI Evaluator:** The v1 AI evaluation engine that reads the issue and tells you exactly how hard it is and if you have the right skills to solve it.

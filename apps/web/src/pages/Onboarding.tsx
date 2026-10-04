@@ -154,7 +154,7 @@ export function Onboarding() {
           <div className="flex flex-col items-center gap-4 py-8 text-center">
             <Rocket size={40} className="text-emerald-500" />
             <h1 className="text-3xl font-bold tracking-tight">You are ready.</h1>
-            <p className="text-zinc-500 font-mono text-sm">Redirecting to Radar...</p>
+            <p className="text-zinc-500 font-mono text-sm">Redirecting to Issue Scanner...</p>
           </div>
         )}
       </div>

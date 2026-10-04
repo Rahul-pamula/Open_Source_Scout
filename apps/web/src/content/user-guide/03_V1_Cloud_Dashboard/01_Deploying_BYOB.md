@@ -44,7 +44,7 @@ You will need free accounts at these three services:
 
 1. Go to [https://github.com/settings/tokens](https://github.com/settings/tokens).
 2. Click **Generate new token (classic)**.
-3. Give it a descriptive name like `Scout Radar`.
+3. Give it a descriptive name like `Scout Issue Scanner`.
 4. Check the `repo` scope (read access to public repositories and issues).
 5. Click **Generate token** and copy it immediately — it is only shown once.
 
@@ -69,7 +69,7 @@ npx open-source-scout setup
 The CLI will walk you through entering all your credentials. It will:
 
 1. Apply all PostgreSQL migrations to build the tables (`profiles`, `issues`, etc.).
-2. Deploy the Deno Edge Functions (which power the Radar and Dossier).
+2. Deploy the Deno Edge Functions (which power the Issue Scanner and AI Evaluator).
 3. Configure `pg_cron` jobs to automatically scan GitHub every hour.
 4. Securely store your API keys in the Supabase Vault.
 
@@ -123,10 +123,10 @@ npm run build --workspace=apps/web
 
 ## Quick Reference
 
-| Credential                | Where to Get It                              | Required For        |
-| ------------------------- | -------------------------------------------- | ------------------- |
-| Supabase URL              | Supabase → Settings → API                    | v1 Dashboard UI     |
-| Supabase Anon Key         | Supabase → Settings → API                    | v1 Dashboard UI     |
-| Supabase Service Role Key | Supabase → Settings → API                    | CLI Setup only      |
-| GitHub PAT                | GitHub → Developer Settings → Tokens         | Radar Scanning      |
-| Groq API Key              | [console.groq.com](https://console.groq.com) | Dossier Evaluations |
+| Credential                | Where to Get It                              | Required For             |
+| ------------------------- | -------------------------------------------- | ------------------------ |
+| Supabase URL              | Supabase → Settings → API                    | v1 Dashboard UI          |
+| Supabase Anon Key         | Supabase → Settings → API                    | v1 Dashboard UI          |
+| Supabase Service Role Key | Supabase → Settings → API                    | CLI Setup only           |
+| GitHub PAT                | GitHub → Developer Settings → Tokens         | Issue Scanner Scanning   |
+| Groq API Key              | [console.groq.com](https://console.groq.com) | AI Evaluator Evaluations |

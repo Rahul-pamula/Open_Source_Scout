@@ -125,7 +125,8 @@ export function Landing() {
                   <span className="text-emerald-500">→</span> Discovery
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-emerald-500">→</span> AI Dossier (Match Score & Difficulty)
+                  <span className="text-emerald-500">→</span> AI Evaluator (Match Score &
+                  Difficulty)
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-emerald-500">→</span> Claim & Assignment
@@ -136,7 +137,7 @@ export function Landing() {
               </div>
             </div>
             <div className="bg-zinc-50 border border-zinc-100 p-6 font-mono text-xs text-zinc-500 leading-loose rounded">
-              <div className="text-zinc-900 font-bold mb-4">// The AI Dossier</div>
+              <div className="text-zinc-900 font-bold mb-4">// The AI Evaluator</div>
               <div>[INFO] Analyzing issue context...</div>
               <div>[MATCH] Skills aligned with React, TypeScript.</div>
               <div>[DIFF] Estimated difficulty: Intermediate.</div>

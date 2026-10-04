@@ -26,7 +26,7 @@ Scout is a **dual-engine architecture** built for the AI era:
 flowchart LR
     A[You] -->|Discover issues| B["☁️ v1 Cloud Dashboard\n(BYOB Supabase)"]
     A -->|Delegate code to AI| C["🤖 v2 Local MCP Engine\n(100% Offline)"]
-    B -->|Radar + Dossier| D[GitHub Issues]
+    B -->|Issue Scanner + AI Evaluator| D[GitHub Issues]
     C -->|Isolated Worktrees| E[Your Codebase]
 ```
 
