@@ -16,7 +16,7 @@ function AssignedCard({
   onMarkUnderReview: () => Promise<void>;
   onMarkDropped: () => void;
 }) {
-  const issueNumber = issue.external_url.split('/').pop();
+  const issueNumber = (issue.external_url || '').split('/').pop();
 
   const handleReviewClick = async () => {
     if (isPending) return;

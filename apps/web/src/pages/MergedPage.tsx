@@ -5,7 +5,7 @@ import { IssueCardSkeleton } from '../components/IssueCard';
 import type { Task } from '../types';
 
 function MergedCard({ issue }: { issue: Task }) {
-  const issueNumber = issue.external_url.split('/').pop();
+  const issueNumber = (issue.external_url || '').split('/').pop();
 
   return (
     <div className="bg-white border border-emerald-200 p-4 flex flex-col transition-shadow hover:shadow-md h-full">

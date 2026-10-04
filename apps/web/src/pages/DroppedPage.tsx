@@ -13,7 +13,7 @@ function DroppedCard({
   isPending?: boolean;
   onRestore: () => void;
 }) {
-  const issueNumber = issue.external_url.split('/').pop();
+  const issueNumber = (issue.external_url || '').split('/').pop();
 
   return (
     <div className="bg-white border border-red-200 p-4 flex flex-col transition-shadow hover:shadow-md opacity-75 grayscale-[0.3] h-full">

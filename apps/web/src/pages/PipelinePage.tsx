@@ -138,7 +138,7 @@ export function PipelinePage() {
             .map((issue) => {
               const isExpanded = expandedPipelineId === issue.id;
               const transitions = getAvailableTransitions(issue.state);
-              const issueNumber = issue.external_url.split('/').pop() || '';
+              const issueNumber = (issue.external_url || '').split('/').pop() || '';
 
               return (
                 <div

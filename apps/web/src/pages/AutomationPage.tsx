@@ -17,7 +17,7 @@ function ClaimedCard({
   onMakeAssigned: () => void;
   onMarkNotAssigned: () => void;
 }) {
-  const issueNumber = issue.external_url.split('/').pop();
+  const issueNumber = (issue.external_url || '').split('/').pop();
   const claimedVia = (issue as any).claimed_via || 'AUTO';
   const isManual = claimedVia === 'MANUAL';
   const isExternal = claimedVia === 'EXTERNAL';
