@@ -1,89 +1,81 @@
-# Open Source Scout 🎯
+# Open Source Scout
 
-Find the issues worth solving. Understand them faster. Contribute with confidence.
+> **Scout is a dual-engine architecture for the AI era.** Use the **v1 Cloud Dashboard** to manage your GitHub contributions, and the **v2 Local MCP** to safely orchestrate AI agents directly in your IDE.
 
-**[Try the Hosted App](https://rahul-pamula.github.io/Open_Source_Scout/)**  
-_(You do not need to deploy the frontend yourself to use Scout)_
+![Scout Preview](./apps/web/public/hero_bg.jpg)
 
-## What is Scout?
+## Try it Now — No Installation Required
 
-Open Source Scout is an AI-assisted workflow that helps you discover, understand, claim, and manage open-source contributions. Instead of aimlessly browsing GitHub for issues you can solve, you configure your intent, and Scout's Mission Control pipeline helps you evaluate and engage with the right opportunities.
+The Scout v1 Cloud Dashboard is publicly hosted and ready to use:
 
----
+🔗 **[https://rahul-pamula.github.io/Open_Source_Scout/](https://rahul-pamula.github.io/Open_Source_Scout/)**
 
-## 🚀 Current Capabilities (v0.1.0)
-
-Scout currently operates as a **Bring-Your-Own-Backend (BYOB)** application.
-Every deployment of Open Source Scout is **100% decentralized**. There is no central Scout server storing everyone's data. **Each developer uses their own Supabase project.**
-
-### Features Available Now
-
-1. **Discovery:** Filters GitHub to find issues matching your exact skills.
-2. **AI Dossier:** Groq LLMs analyze issue context, estimate difficulty, and assign a match score.
-3. **Claim & Assignment:** Generate context-aware draft comments to request assignment.
-4. **Contribution Tracking:** Manage PRs, assignments, and reviews in a tabbed pipeline.
-5. **Strict State Guards:** PostgreSQL-level defense-in-depth ensures valid issue state transitions.
-
-### Required Services
-
-- **Supabase**: To host your database, Edge Functions, and manage authentication.
-- **GitHub**: To fetch issues, post claim comments, and authenticate you.
-- **Groq**: To power the AI evaluation and generate context-aware draft comments.
-
-### How to use v0.1.0
-
-1. Go to the **[Hosted Scout App](https://rahul-pamula.github.io/Open_Source_Scout/)** and click "Sign Up (New Setup)".
-2. Gather your Supabase, Groq, and GitHub keys.
-3. Run the setup wizard in your terminal: `npx open-source-scout setup`
-4. Return to the hosted app, enter your Supabase Connection URL, and sign in!
+Just bring your own Supabase backend and GitHub token. Setup takes about 5 minutes.
 
 ---
 
-## 🏗 Planned Architecture (Scout 2.0)
+## The Dual-Engine Architecture
 
-We are pivoting Scout from a simple issue tracker into a platform-agnostic **Agentic Context Engine**.
+Scout is built for modern developers who use AI. It consists of two completely independent engines:
 
-### The Hybrid Architecture Pivot
+### ☁️ Part 1: The v1 Cloud Dashboard (For Humans)
 
-Scout 2.0 will use a strictly separated architecture:
+A Bring-Your-Own-Backend (BYOB) platform that connects to your personal Supabase instance.
 
-1. **Supabase / PostgreSQL (Authority & Security):** Handles authentication, state, and rate limiting (Already in v0.1.0).
-2. **GitHub CI (Code Quality Enforcement):** The only layer that mechanically enforces test passage via branch protection.
-3. **Scout MCP (Orchestration):** A future Model Context Protocol server that connects your local IDE AI to Scout's state. It will deliver context, load `.scout/skills/`, and provide local _advisory_ validation (git diff/npm test). It will NOT be an enforcement boundary.
-4. **Skills (`.scout/skills/`):** Declarative markdown workflows providing context and helper guides to the AI.
+- **Issue Scanner:** Discovers open-source issues on GitHub that match your developer profile.
+- **AI Evaluator:** Evaluates each issue with AI to tell you the difficulty and skill match.
+- **Mission Control Pipeline:** Tracks your contributions through a visual Kanban pipeline (Discovered -> Claimed -> Assigned -> Review -> Merged).
 
-_Note: The MCP Server and Skills features are currently under development in Phase 2 and are not yet available._
+### 🤖 Part 2: The v2 Local MCP Engine (For AI Agents)
+
+A 100% offline local execution harness that your AI assistant (Cursor, Cline, Claude) connects to via the Model Context Protocol (MCP).
+
+- **Git Worktree Isolation:** Isolates all AI code execution inside hidden `git worktrees` so your main branch is never corrupted.
+- **CommandBoundaryGuard:** Enforces strict command boundaries so AI cannot escape your project directory (`cd ../..` is blocked).
+- **Crash Recovery:** Recovers stale sessions by feeding the AI its own uncommitted diffs if the IDE crashes.
 
 ---
 
-## 🛠 Developing Scout
+## 🚀 Getting Started
 
-_Only follow these instructions if you want to modify Scout's source code and contribute to the project itself._
+### Setting up the v1 Cloud Dashboard
 
-Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request. We use a **risk-based PR workflow** where high-risk changes (DB, MCP, Auth) require strict review, while low-risk changes (Docs) use a lightweight path.
+Since Scout v1 is a BYOB architecture, you host the backend yourself on Supabase (free tier is perfect).
 
-### Local Development Setup
+```bash
+# Run the interactive setup CLI
+npx open-source-scout setup
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Rahul-pamula/Open_Source_Scout.git
-   cd Open_Source_Scout
-   ```
-2. **Install dependencies:**
-   ```bash
-   npm install --workspace=apps/web
-   npm install --workspace=packages/cli
-   ```
-3. **Run the frontend:**
-   ```bash
-   npm run dev --workspace=apps/web
-   ```
-   The app will run at `http://localhost:5173`.
+The CLI will automatically apply PostgreSQL migrations and deploy the Deno Edge Functions to your Supabase project. Then, just visit the [hosted dashboard](https://rahul-pamula.github.io/Open_Source_Scout/) and log in with your keys.
 
-### Security Vulnerabilities
+### Setting up the v2 Local MCP Engine
 
-If you discover a security vulnerability, please refer to our [Security Policy](SECURITY.md) for reporting instructions.
+Add this JSON snippet to your AI assistant's MCP configuration file (Cursor, Cline, Claude Desktop):
 
-### License
+```json
+{
+  "mcpServers": {
+    "scout": {
+      "command": "npx",
+      "args": ["-y", "@scout/mcp"]
+    }
+  }
+}
+```
 
-This project is licensed under the [MIT License](LICENSE).
+---
+
+## 📚 Documentation
+
+For a deep dive into the architecture, security guardrails, and deployment guides, check out the [Official Documentation](https://rahul-pamula.github.io/Open_Source_Scout/#/docs/01_getting_started/01_welcome).
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) and [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
