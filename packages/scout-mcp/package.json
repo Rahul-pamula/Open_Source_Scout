@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",
     "dev": "tsup src/index.ts --format esm --watch",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test \"src/**/*.test.ts\" \"src/*.test.ts\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
