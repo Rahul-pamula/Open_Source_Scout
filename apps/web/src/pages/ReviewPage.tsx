@@ -1,5 +1,5 @@
 import { useOutletContext } from 'react-router-dom';
-import { Eye, ExternalLink, Loader2 } from 'lucide-react';
+import { Eye, ExternalLink, Loader2, Undo2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
 import type { Task } from '../types';
@@ -9,11 +9,13 @@ function ReviewCard({
   isPending,
   onMarkMerged,
   onMarkDropped,
+  onMoveToAssigned,
 }: {
   issue: Task;
   isPending?: boolean;
   onMarkMerged: () => void;
   onMarkDropped: () => void;
+  onMoveToAssigned: () => void;
 }) {
   const issueNumber = (issue.external_url || '').split('/').pop();
 
@@ -57,13 +59,22 @@ function ReviewCard({
             {isPending ? 'Updating...' : 'Mark Merged'}
           </button>
         </div>
-        <button
-          onClick={onMarkDropped}
-          disabled={isPending}
-          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center disabled:opacity-50 disabled:pointer-events-none"
-        >
-          {isPending ? 'Updating...' : 'Drop / Close'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onMoveToAssigned}
+            disabled={isPending}
+            className="text-zinc-400 hover:text-amber-600 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <Undo2 size={12} /> Back to Assigned
+          </button>
+          <button
+            onClick={onMarkDropped}
+            disabled={isPending}
+            className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {isPending ? 'Updating...' : 'Drop / Close'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -75,6 +86,11 @@ export function ReviewPage() {
   const reviewIssues = ctx.trackedIssues.filter(
     (i) => i.state === 'ASSIGNED' && i.contribution_checklist?.under_review,
   );
+
+  const handleMoveToAssigned = async (issue: Task) => {
+    const currentChecklist = issue.contribution_checklist || {};
+    await ctx.handleUpdateChecklist(issue.id, { ...currentChecklist, under_review: false });
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -107,6 +123,7 @@ export function ReviewPage() {
               isPending={!!ctx.pendingIssues[issue.id]}
               onMarkMerged={() => ctx.handleUpdateState(issue.id, 'COMPLETED')}
               onMarkDropped={() => ctx.handleUpdateState(issue.id, 'REJECTED')}
+              onMoveToAssigned={() => handleMoveToAssigned(issue)}
             />
           ))}
         </div>

@@ -1,10 +1,18 @@
 import { useOutletContext } from 'react-router-dom';
-import { PartyPopper, ExternalLink } from 'lucide-react';
+import { PartyPopper, ExternalLink, Undo2, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
 import type { Task } from '../types';
 
-function MergedCard({ issue }: { issue: Task }) {
+function MergedCard({
+  issue,
+  isPending,
+  onMoveToReview,
+}: {
+  issue: Task;
+  isPending?: boolean;
+  onMoveToReview: () => void;
+}) {
   const issueNumber = (issue.external_url || '').split('/').pop();
 
   return (
@@ -28,7 +36,7 @@ function MergedCard({ issue }: { issue: Task }) {
         </a>
       </div>
 
-      <div className="mt-auto flex items-center gap-2 pt-3 border-t border-zinc-100">
+      <div className="mt-auto flex items-center justify-between gap-2 pt-3 border-t border-zinc-100">
         <a
           href={issue.external_url}
           target="_blank"
@@ -37,6 +45,14 @@ function MergedCard({ issue }: { issue: Task }) {
         >
           View Issue <ExternalLink size={12} className="ml-1.5" />
         </a>
+        <button
+          onClick={onMoveToReview}
+          disabled={isPending}
+          className="text-zinc-400 hover:text-amber-600 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
+        >
+          {isPending ? <Loader2 size={12} className="animate-spin" /> : <Undo2 size={12} />}
+          Back to Under Review
+        </button>
       </div>
     </div>
   );
@@ -46,6 +62,13 @@ export function MergedPage() {
   const ctx = useOutletContext<MissionControlContextType>();
 
   const mergedIssues = ctx.trackedIssues.filter((i) => i.state === 'COMPLETED');
+
+  const handleMoveToReview = async (issue: Task) => {
+    // Merged is 'COMPLETED', moving back to under review means state='ASSIGNED', under_review=true
+    const currentChecklist = issue.contribution_checklist || {};
+    await ctx.handleUpdateChecklist(issue.id, { ...currentChecklist, under_review: true });
+    await ctx.handleUpdateState(issue.id, 'ASSIGNED');
+  };
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -72,7 +95,12 @@ export function MergedPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {mergedIssues.map((issue) => (
-            <MergedCard key={issue.id} issue={issue} />
+            <MergedCard
+              key={issue.id}
+              issue={issue}
+              isPending={!!ctx.pendingIssues[issue.id]}
+              onMoveToReview={() => handleMoveToReview(issue)}
+            />
           ))}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useOutletContext } from 'react-router-dom';
 
-import { CheckSquare, ExternalLink, Loader2 } from 'lucide-react';
+import { CheckSquare, ExternalLink, Loader2, Undo2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
 import type { Task } from '../types';
@@ -10,11 +10,13 @@ function AssignedCard({
   isPending,
   onMarkUnderReview,
   onMarkDropped,
+  onMoveToClaimed,
 }: {
   issue: Task;
   isPending?: boolean;
   onMarkUnderReview: () => Promise<void>;
   onMarkDropped: () => void;
+  onMoveToClaimed: () => void;
 }) {
   const issueNumber = (issue.external_url || '').split('/').pop();
 
@@ -63,13 +65,22 @@ function AssignedCard({
             {isPending ? 'Updating...' : 'Mark Under Review'}
           </button>
         </div>
-        <button
-          onClick={onMarkDropped}
-          disabled={isPending}
-          className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center disabled:opacity-50 disabled:pointer-events-none"
-        >
-          {isPending ? 'Updating...' : 'Drop / Close'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onMoveToClaimed}
+            disabled={isPending}
+            className="text-zinc-400 hover:text-amber-600 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1 disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <Undo2 size={12} /> Back to Claimed
+          </button>
+          <button
+            onClick={onMarkDropped}
+            disabled={isPending}
+            className="text-zinc-400 hover:text-red-500 transition-colors text-xs font-mono font-bold uppercase tracking-wider flex items-center disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {isPending ? 'Updating...' : 'Drop / Close'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -121,6 +132,7 @@ export function AssignedPage() {
               isPending={!!ctx.pendingIssues[issue.id]}
               onMarkUnderReview={() => handleMarkUnderReview(issue)}
               onMarkDropped={() => ctx.handleUpdateState(issue.id, 'REJECTED')}
+              onMoveToClaimed={() => ctx.handleUpdateState(issue.id, 'ENGAGED')}
             />
           ))}
         </div>
