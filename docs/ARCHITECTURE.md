@@ -1,5 +1,11 @@
 # Architecture: Open Source Scout (BYOB)
 
+> **WARNING: V1 ARCHITECTURE ONLY**
+> 
+> This document describes the **Scout v1 (BYOB Cloud Web App)** architecture. It is preserved for historical context and to document the web dashboard.
+> 
+> For the **Scout v2** local execution engine architecture, please see [SCOUT_V2_ARCHITECTURE.md](../SCOUT_V2_ARCHITECTURE.md).
+
 ## Vision
 
 Open Source Scout is an autonomous open-source contribution discovery and engagement agent.
