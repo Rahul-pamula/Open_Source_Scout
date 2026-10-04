@@ -388,3 +388,44 @@ describe('LocalHarness.cancelSession', () => {
     }
   });
 });
+
+describe('LocalHarness.initializeExecution recovery payload', () => {
+  it('includes recovered_diff when resuming a stale session', async () => {
+    const tmpDir = await makeTempDir();
+    const originalCwd = process.cwd();
+    process.chdir(tmpDir); // LocalHarness uses process.cwd()
+
+    try {
+      // Setup a real git repo in the temp dir so git operations don't fail
+      const { execSync } = await import('child_process');
+      execSync('git init && git remote add origin https://github.com/org/repo && git branch -m main && echo "init" > README.md && git add README.md && git commit -m "init"', { cwd: tmpDir });
+      
+      const { LocalHarness } = await import('./LocalHarness.js');
+      const { getWorktreePath } = await import('../git.js');
+      const { getOrCreateLocalSession } = await import('../localState.js');
+      const { checkStaleSessions } = await import('../localState.js');
+
+      const harness = new LocalHarness();
+      const res1 = await harness.initializeExecution('first task');
+      const sessionId = res1.session_id;
+
+      // Make a change in the worktree
+      const wtPath = await getWorktreePath(sessionId, tmpDir);
+      await fs.writeFile(path.join(wtPath, 'README.md'), 'changed', 'utf8');
+
+      // Make the session stale
+      const state = await readTempState(tmpDir);
+      state.sessions[sessionId].last_heartbeat_at = new Date(0).toISOString();
+      await writeTempState(tmpDir, state.sessions);
+      
+      
+
+      // Now call initializeExecution again, it should recover the stale session diff
+      const res2 = await harness.initializeExecution('second task');
+      assert.equal(res2.recovered_from_stale_session, sessionId);
+      assert.ok(res2.recovered_diff?.includes('changed'));
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+});

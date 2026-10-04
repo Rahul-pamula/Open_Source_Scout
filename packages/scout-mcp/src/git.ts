@@ -171,3 +171,13 @@ export async function getChangedFiles(cwd: string = process.cwd()): Promise<stri
     return [];
   }
 }
+
+export async function getWorktreeDiff(sessionId: string, cwd: string = process.cwd()): Promise<string> {
+  try {
+    const worktreePath = await getWorktreePath(sessionId, cwd);
+    const { stdout } = await execAsync('git diff HEAD', { cwd: worktreePath });
+    return stdout;
+  } catch (e: any) {
+    return '';
+  }
+}

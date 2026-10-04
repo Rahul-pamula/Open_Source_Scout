@@ -19,7 +19,7 @@
 import { randomUUID } from 'crypto';
 import { ProcessManager } from '../harness.js';
 import { CommandBoundaryGuard } from '../guardrails.js';
-import { getGitInfo, createWorktree, removeWorktree, getGitDiff, getChangedFiles } from '../git.js';
+import { getGitInfo, createWorktree, removeWorktree, getGitDiff, getChangedFiles, getWorktreeDiff } from '../git.js';
 import {
   getOrCreateLocalSession,
   checkStaleSessions,
@@ -42,6 +42,7 @@ import { loadSkills } from '../skills.js';
 // ---------------------------------------------------------------------------
 
 export interface InitializeResult {
+  recovered_diff?: string;
   session_id: string;
   starting_commit_hash: string;
   worktree_path: string;
@@ -111,6 +112,10 @@ export class LocalHarness {
       );
     }
 
+        let recovered_diff = '';
+    if (staleSessionId) {
+      recovered_diff = await getWorktreeDiff(staleSessionId);
+    }
     const sessionId = randomUUID();
 
     await getOrCreateLocalSession(
@@ -131,6 +136,7 @@ export class LocalHarness {
       skills,
       task: { description: taskDescription },
       recovered_from_stale_session: staleSessionId ?? undefined,
+      recovered_diff: staleSessionId ? recovered_diff : undefined,
       system_instructions:
         "IMPORTANT: You must use the 'read_file', 'write_file', 'edit_file', and 'run_command' MCP tools provided by scout-mcp to interact with the codebase. Do not use host IDE tools.",
     };
