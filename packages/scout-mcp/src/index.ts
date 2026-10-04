@@ -15,15 +15,9 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { validatePathBoundary } from './guardrails.js';
 import { getWorktreePath } from './git.js';
-import { SupabaseCloudAdapter } from './cloud/SupabaseCloudAdapter.js';
-import { NullCloudAdapter } from './cloud/NullCloudAdapter.js';
 import { LocalHarness } from './harness/LocalHarness.js';
 
-const cloudAdapter = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY && process.env.SCOUT_USER_JWT
-  ? new SupabaseCloudAdapter()
-  : new NullCloudAdapter();
-
-const localHarness = new LocalHarness(undefined, cloudAdapter);
+const localHarness = new LocalHarness();
 import fs from 'fs/promises';
 
 // ---------------------------------------------------------------------------

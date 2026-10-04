@@ -54,14 +54,14 @@ export function Landing() {
             to="/setup"
             className="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3.5 px-8 border-2 border-zinc-900 shadow-[4px_4px_0px_#27272a] hover:-translate-y-px hover:shadow-[5px_5px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Start with Scout 2.0
+            Open v1 Dashboard
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
           <Link
             to="/mcp-setup"
             className="w-full sm:w-auto bg-white text-zinc-900 font-bold py-3.5 px-8 border-2 border-zinc-200 shadow-[4px_4px_0px_#e4e4e7] hover:-translate-y-px hover:shadow-[5px_5px_0px_#e4e4e7] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Connect MCP
+            Scout v2 Setup
             <Server className="ml-2 h-5 w-5 text-zinc-400" />
           </Link>
         </div>
@@ -314,7 +314,7 @@ export function Landing() {
             to="/setup"
             className="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3.5 px-10 border-2 border-zinc-900 shadow-[4px_4px_0px_#27272a] hover:-translate-y-px hover:shadow-[5px_5px_0px_#27272a] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center rounded-sm"
           >
-            Start with Scout 2.0
+            Open v1 Dashboard
           </Link>
           <a
             href="https://github.com/Rahul-pamula/Open_Source_Scout"

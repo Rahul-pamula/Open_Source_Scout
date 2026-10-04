@@ -20,8 +20,6 @@ import { randomUUID } from 'crypto';
 import { ProcessManager } from '../harness.js';
 import { CommandBoundaryGuard } from '../guardrails.js';
 import { getGitInfo, createWorktree, removeWorktree, getGitDiff, getChangedFiles } from '../git.js';
-import { ICloudAdapter } from '../cloud/CloudAdapter.js';
-import { NullCloudAdapter } from '../cloud/NullCloudAdapter.js';
 import {
   getOrCreateLocalSession,
   checkStaleSessions,
@@ -79,11 +77,8 @@ export interface RunCommandResult {
 
 export class LocalHarness {
   private readonly processManager: ProcessManager;
-  private readonly cloudAdapter: ICloudAdapter;
-
-  constructor(processManager?: ProcessManager, cloudAdapter?: ICloudAdapter) {
+  constructor(processManager?: ProcessManager) {
     this.processManager = processManager ?? new ProcessManager();
-    this.cloudAdapter = cloudAdapter ?? new NullCloudAdapter();
   }
 
   // -------------------------------------------------------------------------
@@ -128,11 +123,6 @@ export class LocalHarness {
 
     const worktreePath = await createWorktree(sessionId);
     const skills = loadSkills();
-
-    // Optional cloud sync — fire-and-forget, failures logged only.
-    this.cloudAdapter.syncSession(sessionId, taskId).catch((e) =>
-      console.error('[LocalHarness] Cloud sync failed for initializeExecution:', e),
-    );
 
     return {
       session_id: sessionId,
@@ -225,11 +215,6 @@ export class LocalHarness {
     const validationResult = await runAdvisoryValidation();
     await recordValidationResults(sessionId, validationResult);
 
-    // Optional cloud sync.
-    this.cloudAdapter.syncSubmit(sessionId, prUrl).catch((e) =>
-      console.error('[LocalHarness] Cloud sync failed for submitForReview:', e),
-    );
-
     return { idempotent: false, advisory_validation: validationResult };
   }
 
@@ -253,10 +238,6 @@ export class LocalHarness {
       );
     }
 
-    this.cloudAdapter.syncHeartbeat(sessionId).catch((e) =>
-      console.error('[LocalHarness] Cloud sync failed for sessionHeartbeat:', e),
-    );
-
     return { found };
   }
 
@@ -272,10 +253,6 @@ export class LocalHarness {
     reason: string,
   ): Promise<MarkBlockedResult> {
     const { idempotent } = await processLocalMarkBlocked(sessionId, reason);
-
-    this.cloudAdapter.syncBlocked(sessionId, reason).catch((e) =>
-      console.error('[LocalHarness] Cloud sync failed for markBlocked:', e),
-    );
 
     return { idempotent };
   }
