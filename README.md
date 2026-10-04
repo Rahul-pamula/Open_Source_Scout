@@ -2,7 +2,7 @@
 
 > **Scout is a dual-engine architecture for the AI era.** Use the **v1 Cloud Dashboard** to manage your GitHub contributions, and the **v2 Local MCP** to safely orchestrate AI agents directly in your IDE.
 
-![Scout Preview](./apps/web/public/hero_bg.jpg)
+![Scout Preview](./docs/preview.jpg)
 
 ## Try it Now — No Installation Required
 
