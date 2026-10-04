@@ -10,12 +10,20 @@ export function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col items-center font-sans overflow-x-hidden selection:bg-emerald-500/30">
+    <div
+      className="min-h-screen flex flex-col items-center font-sans overflow-x-hidden selection:bg-emerald-500/30"
+      style={{
+        backgroundImage: "url('./hero_bg.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'top center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
       {/* Top Navigation */}
       <header className="w-full max-w-6xl px-6 py-6 flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-2 font-black text-xl text-zinc-900 tracking-tight">
           <div className="bg-zinc-900 text-white p-1.5 rounded text-sm">🎯</div>
-          Scout 2.0
+          Open Source Scout
         </div>
         <nav className="flex items-center gap-6">
           <Link
