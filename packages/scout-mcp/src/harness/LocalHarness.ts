@@ -26,6 +26,7 @@ import {
   processLocalSubmit,
   processLocalMarkBlocked,
   updateLocalHeartbeat,
+  processLocalCancel,
 } from '../localState.js';
 import {
   recordGitDiff,
@@ -171,6 +172,7 @@ export class LocalHarness {
    */
   async cancelSession(sessionId: string): Promise<void> {
     await this.processManager.cancelSession(sessionId);
+    await processLocalCancel(sessionId);
   }
 
   // -------------------------------------------------------------------------
