@@ -738,81 +738,79 @@ export function MissionControl() {
       {/* Sticky Header + Tabs */}
       <div className="sticky top-0 z-20 bg-zinc-50">
         {/* Header */}
-        <div className="flex justify-between items-end mb-6 border-b border-zinc-200 pb-4 pt-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-4 border-b border-zinc-200 pb-4 pt-2 gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Dashboard</h1>
-            <p className="text-zinc-600 font-mono text-sm">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 mb-1">
+              Mission Control
+            </h1>
+            <p className="text-zinc-500 font-mono text-xs sm:text-sm hidden sm:block">
               Central dashboard for discovery and autonomous engagement.
             </p>
           </div>
 
           {/* Agent Status UI */}
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex sm:flex-col sm:items-end items-center justify-between gap-2 sm:gap-1">
             <div className="flex items-center gap-2">
               {isDiscovering ? (
-                <Loader2 size={16} className="text-emerald-500 animate-spin" />
+                <Loader2 size={14} className="text-emerald-500 animate-spin" />
               ) : (
-                <Search size={16} className="text-zinc-400" />
+                <Search size={14} className="text-zinc-400" />
               )}
-              <span className="font-mono text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                {isDiscovering
-                  ? 'SCOUT IS SCANNING...'
-                  : isAutomating
-                    ? 'SCOUT IS ENGAGING...'
-                    : 'SCOUT IS IDLE'}
+              <span className="font-mono text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                {isDiscovering ? 'SCANNING...' : isAutomating ? 'ENGAGING...' : 'IDLE'}
+              </span>
+              <span className="font-mono text-[10px] text-zinc-400 hidden sm:inline">
+                · Last scan: {lastScanTime ? getTimeAgo(lastScanTime) : 'Never'}
               </span>
             </div>
-            <span className="font-mono text-[10px] text-zinc-400">
-              Last scan: {lastScanTime ? getTimeAgo(lastScanTime) : 'Never'}
-            </span>
             <button
               onClick={handleSync}
               disabled={isSyncing}
-              className="mt-2 text-[10px] font-mono font-bold border border-zinc-300 px-3 py-1 uppercase tracking-widest hover:bg-zinc-100 disabled:opacity-50"
+              className="text-[10px] font-mono font-bold border border-zinc-300 px-3 py-1 uppercase tracking-widest hover:bg-zinc-100 disabled:opacity-50 rounded"
             >
               {isSyncing ? 'Syncing...' : 'Sync GitHub'}
             </button>
           </div>
         </div>
 
-        {/* Workflow Tabs */}
-        <div className="mb-6 border-b border-zinc-200 flex gap-4 md:gap-6 overflow-x-auto overflow-y-hidden">
+        {/* Workflow Tabs - scrollable on mobile */}
+        <div className="mb-4 border-b border-zinc-200 flex gap-3 md:gap-6 overflow-x-auto overflow-y-hidden pb-px">
           <Link
             to="/app/discovery"
-            className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap ${location.pathname.includes('/discovery') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+            className={`pb-2 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 whitespace-nowrap transition-colors ${location.pathname.includes('/discovery') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
           >
-            <Search size={16} /> Discovery
+            <Search size={14} /> Discovery
           </Link>
           <Link
             to="/app/automation"
-            className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap ${location.pathname.includes('/automation') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+            className={`pb-2 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 whitespace-nowrap transition-colors ${location.pathname.includes('/automation') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
           >
-            <Activity size={16} className={isAutomating ? 'text-emerald-500 animate-pulse' : ''} />{' '}
+            <Activity size={14} className={isAutomating ? 'text-emerald-500 animate-pulse' : ''} />{' '}
             Claimed
           </Link>
           <Link
             to="/app/assigned"
-            className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap ${location.pathname.includes('/assigned') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+            className={`pb-2 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 whitespace-nowrap transition-colors ${location.pathname.includes('/assigned') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
           >
-            <Terminal size={16} /> Assigned
+            <Terminal size={14} /> Assigned
           </Link>
           <Link
             to="/app/review"
-            className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap ${location.pathname.includes('/review') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+            className={`pb-2 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 whitespace-nowrap transition-colors ${location.pathname.includes('/review') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
           >
-            <Eye size={16} /> Under Review
+            <Eye size={14} /> Review
           </Link>
           <Link
             to="/app/merged"
-            className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap ${location.pathname.includes('/merged') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+            className={`pb-2 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 whitespace-nowrap transition-colors ${location.pathname.includes('/merged') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
           >
-            <PartyPopper size={16} /> Merged
+            <PartyPopper size={14} /> Merged
           </Link>
           <Link
             to="/app/dropped"
-            className={`pb-2 text-sm font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap ${location.pathname.includes('/dropped') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-red-500'}`}
+            className={`pb-2 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 whitespace-nowrap transition-colors ${location.pathname.includes('/dropped') ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-400 hover:text-red-500'}`}
           >
-            <ArchiveX size={16} /> Dropped
+            <ArchiveX size={14} /> Dropped
           </Link>
         </div>
       </div>
