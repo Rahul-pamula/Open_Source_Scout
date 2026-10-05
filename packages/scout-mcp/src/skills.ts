@@ -2,35 +2,49 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 
+function findMarkdownFiles(dir: string, fileList: string[] = []): string[] {
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    if (fs.statSync(filePath).isDirectory()) {
+      findMarkdownFiles(filePath, fileList);
+    } else if (file.endsWith('.md')) {
+      fileList.push(filePath);
+    }
+  }
+  return fileList;
+}
+
 export function loadSkills(cwd: string = process.cwd()) {
   const skillsDir = path.join(cwd, '.scout', 'skills');
   if (!fs.existsSync(skillsDir)) {
     return [];
   }
 
-  const files = fs.readdirSync(skillsDir);
+  const markdownFiles = findMarkdownFiles(skillsDir);
   const skills = [];
 
-  for (const file of files) {
-    if (!file.endsWith('.md')) continue;
-    
-    const filePath = path.join(skillsDir, file);
+  for (const filePath of markdownFiles) {
     const content = fs.readFileSync(filePath, 'utf8');
     
     try {
+      // gray-matter gracefully handles files without frontmatter by returning empty data
       const parsed = matter(content);
+      
+      // We only consider files valid skills if they have the required frontmatter
       if (!parsed.data.name || !parsed.data.description) {
-        throw new Error('Missing required frontmatter (name, description)');
+        // Skip files that aren't actually skills (like READMEs)
+        continue;
       }
       
       skills.push({
-        filename: file,
+        filename: path.basename(filePath),
         name: parsed.data.name,
         description: parsed.data.description,
         content: parsed.content
       });
     } catch (e: any) {
-      throw new Error(`Failed to parse skill file ${file}: ${e.message}`);
+      throw new Error(`Failed to parse skill file ${filePath}: ${e.message}`);
     }
   }
 
