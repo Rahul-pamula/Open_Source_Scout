@@ -2,6 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 function findMarkdownFiles(dir: string, fileList: string[] = []): string[] {
   const files = fs.readdirSync(dir);
   for (const file of files) {
@@ -26,8 +31,15 @@ export function loadSkills(taskDescription?: string, cwd: string = process.cwd()
   if (allSkills === null) {
     const skillsDir = path.join(cwd, '.scout', 'skills');
     if (!fs.existsSync(skillsDir)) {
-      skillCache = [];
-      return skillCache;
+      // Auto-Bootstrapping: Scaffold default skills from the MCP package if they don't exist
+      const defaultSkillsPath = path.resolve(__dirname, '../default-skills');
+      if (fs.existsSync(defaultSkillsPath)) {
+        fs.cpSync(defaultSkillsPath, skillsDir, { recursive: true });
+        console.error(`[Scout] Auto-bootstrapped default skills into ${skillsDir}`);
+      } else {
+        skillCache = [];
+        return skillCache;
+      }
     }
 
     const markdownFiles = findMarkdownFiles(skillsDir);
