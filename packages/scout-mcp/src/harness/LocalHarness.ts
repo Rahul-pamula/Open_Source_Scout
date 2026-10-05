@@ -105,7 +105,7 @@ export class LocalHarness {
     const gitInfo = await getGitInfo(cwd);
 
     // Stale-session detection runs before creating anything new.
-    await checkStaleSessions(cwd);
+    await checkStaleSessions(undefined, cwd);
     const staleSessionId = await findStaleSession(cwd);
     if (staleSessionId) {
       console.error(
