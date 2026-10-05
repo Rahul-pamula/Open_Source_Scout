@@ -129,6 +129,21 @@ export class LocalHarness {
     const worktreePath = await createWorktree(sessionId);
     const skills = loadSkills();
 
+    // The Task Slicer / Orchestrator Intercept:
+    // If the user's prompt is massive or contains multiple distinct commands,
+    // we hijack the system instructions to force the LLM into Architect Mode.
+    // For demonstration, a simple heuristic: > 500 characters or containing multiple newlines/bullets.
+    const isMassiveTask =
+      taskDescription.length > 500 ||
+      (taskDescription.split('\n').length > 5 && taskDescription.includes('-'));
+
+    let systemInstructions =
+      "IMPORTANT: You must use the 'read_file', 'write_file', 'edit_file', and 'run_command' MCP tools provided by scout-mcp to interact with the codebase. Do not use host IDE tools.";
+
+    if (isMassiveTask) {
+      systemInstructions = `WARNING: Task scope too large for single-pass execution. You are now in ARCHITECT MODE. Do not write code. Your only permitted action is to write a comprehensive STATE.md project breakdown with distinct Phases, then call submit_for_review. Do not attempt to execute Phase 1 yet.\n\n` + systemInstructions;
+    }
+
     return {
       session_id: sessionId,
       starting_commit_hash: gitInfo.commitHash,
@@ -137,8 +152,7 @@ export class LocalHarness {
       task: { description: taskDescription },
       recovered_from_stale_session: staleSessionId ?? undefined,
       recovered_diff: staleSessionId ? recovered_diff : undefined,
-      system_instructions:
-        "IMPORTANT: You must use the 'read_file', 'write_file', 'edit_file', and 'run_command' MCP tools provided by scout-mcp to interact with the codebase. Do not use host IDE tools.",
+      system_instructions: systemInstructions,
     };
   }
 
