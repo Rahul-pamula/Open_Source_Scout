@@ -68,27 +68,57 @@ export class TrackingService {
       .limit(limit);
 
     if (userId) query = query.eq('user_id', userId);
-    if (state) query = query.eq('state', state);
+    
+    // Map V1 state request to V2 DB state
+    if (state) {
+      let dbState = state;
+      if (state === 'ENGAGED' || state === 'ASSIGNED') dbState = 'ACTIVE';
+      else if (state === 'DISCOVERED' || state === 'EVALUATED' || state === 'DRAFTED') dbState = 'QUEUED';
+      else if (state === 'REJECTED') dbState = 'CANCELLED';
+      query = query.eq('state', dbState);
+    }
 
     const { data, error } = await query;
     if (error) throw new Error(`Supabase Select Error: ${error.message}`);
-    return data || [];
+    
+    // Compatibility layer: Map V2 states back to V1 states for the UI
+    const mappedData = (data || []).map(task => {
+      let uiState = task.state;
+      if (task.state === 'ACTIVE') {
+        // If it was assigned to a maintainer or has an assignee in metadata, it's ASSIGNED
+        // Otherwise default to ENGAGED
+        uiState = task.contribution_checklist?.maintainer_assigned ? 'ASSIGNED' : 'ENGAGED';
+      } else if (task.state === 'QUEUED') {
+        uiState = 'DISCOVERED';
+      } else if (task.state === 'CANCELLED') {
+        uiState = 'REJECTED';
+      }
+      return { ...task, state: uiState };
+    });
+
+    return mappedData;
   }
 
-  async updateIssueState(authHeader: string, id: string, newState: IssueState): Promise<Task> {
+  async updateIssueState(authHeader: string, id: string, requestedState: IssueState | string): Promise<Task> {
     const supabase = this.getClient(authHeader);
+    
+    // Compatibility layer: Map Scout v1 UI states to v2 execution states
+    let newState = requestedState as IssueState;
+    if (newState === 'ENGAGED' || newState === 'ASSIGNED') newState = 'ACTIVE' as IssueState;
+    else if (newState === 'DISCOVERED' || newState === 'EVALUATED' || newState === 'DRAFTED') newState = 'QUEUED' as IssueState;
+    else if (newState === 'REJECTED') newState = 'CANCELLED' as IssueState;
     
     const transitions: Record<IssueState, IssueState[]> = {
       'QUEUED': ['ACTIVE', 'CANCELLED'],
-      'ACTIVE': ['PAUSED', 'CANCEL_REQUESTED', 'BLOCKED', 'FAILED', 'COMPLETED', 'SUBMITTED'],
-      'PAUSED': ['ACTIVE', 'CANCEL_REQUESTED'],
-      'CANCEL_REQUESTED': ['STOPPING', 'CANCELLED'],
+      'ACTIVE': ['PAUSED', 'CANCEL_REQUESTED', 'BLOCKED', 'FAILED', 'COMPLETED', 'SUBMITTED', 'QUEUED'],
+      'PAUSED': ['ACTIVE', 'CANCEL_REQUESTED', 'QUEUED'],
+      'CANCEL_REQUESTED': ['STOPPING', 'CANCELLED', 'ACTIVE'],
       'STOPPING': ['CANCELLED', 'FAILED'],
-      'BLOCKED': ['ACTIVE', 'CANCEL_REQUESTED', 'FAILED'],
-      'CANCELLED': [],
-      'FAILED': [],
-      'COMPLETED': [],
-      'SUBMITTED': []
+      'BLOCKED': ['ACTIVE', 'CANCEL_REQUESTED', 'FAILED', 'QUEUED'],
+      'CANCELLED': ['QUEUED'], // Allow reviving a cancelled task
+      'FAILED': ['QUEUED', 'ACTIVE'], // Allow retrying
+      'COMPLETED': ['ACTIVE'], // Allow reopening
+      'SUBMITTED': ['ACTIVE'] // Allow reverting review
     };
 
     const allowedCurrentStates: IssueState[] = [];
@@ -108,7 +138,7 @@ export class TrackingService {
 
     if (updateError) {
       if (updateError.code === 'PGRST116') {
-        throw new Error(`Invalid state transition or issue not found. Target state ${newState} not allowed from current state.`);
+        throw new Error(`400: Invalid state transition. Target state ${newState} not allowed from current state.`);
       }
       throw new Error(`Supabase Update Error: ${updateError.message}`);
     }

@@ -108,6 +108,14 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     const err = error as Error
     console.error('[tracking-function] Error:', err)
+    
+    if (err.message.startsWith('400:')) {
+      return new Response(
+        JSON.stringify({ error: err.message.substring(4).trim() }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     return new Response(
       JSON.stringify({ error: err.message || 'Internal Server Error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
