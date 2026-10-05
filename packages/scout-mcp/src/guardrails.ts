@@ -26,6 +26,7 @@ export class CommandBoundaryGuard {
   }
 }
 import path from 'path';
+import fs from 'fs';
 
 export class GuardrailError extends Error {
   constructor(message: string) {
@@ -40,6 +41,20 @@ export function validatePathBoundary(worktreePath: string, targetPath: string): 
   
   if (absoluteTarget !== absoluteWorktree && !absoluteTarget.startsWith(absoluteWorktree + path.sep)) {
     throw new GuardrailError(`Path boundary violation. Access to ${targetPath} is strictly forbidden outside of the worktree.`);
+  }
+
+  // Symlink escape prevention
+  let checkPath = absoluteTarget;
+  while (!fs.existsSync(checkPath) && checkPath !== path.parse(checkPath).root) {
+    checkPath = path.dirname(checkPath);
+  }
+
+  if (fs.existsSync(checkPath)) {
+    const realCheckPath = fs.realpathSync(checkPath);
+    const realWorktree = fs.realpathSync(absoluteWorktree);
+    if (realCheckPath !== realWorktree && !realCheckPath.startsWith(realWorktree + path.sep)) {
+      throw new GuardrailError(`Path boundary violation (symlink escape). Access to ${targetPath} is strictly forbidden outside of the worktree.`);
+    }
   }
   
   return absoluteTarget;
