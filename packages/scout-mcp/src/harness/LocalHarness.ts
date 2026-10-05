@@ -127,7 +127,7 @@ export class LocalHarness {
     );
 
     const worktreePath = await createWorktree(sessionId);
-    const skills = loadSkills();
+    const skills = loadSkills(taskDescription);
 
     // The Task Slicer / Orchestrator Intercept:
     // If the user's prompt is massive or contains multiple distinct commands,

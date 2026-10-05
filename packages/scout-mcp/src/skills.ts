@@ -20,44 +20,76 @@ function findMarkdownFiles(dir: string, fileList: string[] = []): string[] {
 // loading massive skill repositories (like claude-skills).
 let skillCache: any[] | null = null;
 
-export function loadSkills(cwd: string = process.cwd()) {
-  if (skillCache !== null) {
-    return skillCache;
-  }
+export function loadSkills(taskDescription?: string, cwd: string = process.cwd()) {
+  let allSkills = skillCache;
 
-  const skillsDir = path.join(cwd, '.scout', 'skills');
-  if (!fs.existsSync(skillsDir)) {
-    skillCache = [];
-    return skillCache;
-  }
+  if (allSkills === null) {
+    const skillsDir = path.join(cwd, '.scout', 'skills');
+    if (!fs.existsSync(skillsDir)) {
+      skillCache = [];
+      return skillCache;
+    }
 
-  const markdownFiles = findMarkdownFiles(skillsDir);
-  const skills = [];
+    const markdownFiles = findMarkdownFiles(skillsDir);
+    const skills = [];
 
-  for (const filePath of markdownFiles) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    
-    try {
-      // gray-matter gracefully handles files without frontmatter by returning empty data
-      const parsed = matter(content);
+    for (const filePath of markdownFiles) {
+      const content = fs.readFileSync(filePath, 'utf8');
       
-      // We only consider files valid skills if they have the required frontmatter
-      if (!parsed.data.name || !parsed.data.description) {
-        // Skip files that aren't actually skills (like READMEs)
-        continue;
+      try {
+        const parsed = matter(content);
+        
+        if (!parsed.data.name || !parsed.data.description) {
+          continue;
+        }
+        
+        skills.push({
+          filename: path.basename(filePath),
+          name: parsed.data.name,
+          description: parsed.data.description,
+          trigger: parsed.data.trigger || 'CONDITIONAL',
+          content: parsed.content
+        });
+      } catch (e: any) {
+        throw new Error(`Failed to parse skill file ${filePath}: ${e.message}`);
       }
-      
-      skills.push({
-        filename: path.basename(filePath),
-        name: parsed.data.name,
-        description: parsed.data.description,
-        content: parsed.content
-      });
-    } catch (e: any) {
-      throw new Error(`Failed to parse skill file ${filePath}: ${e.message}`);
+    }
+
+    skillCache = skills;
+    allSkills = skills;
+  }
+
+  if (!taskDescription) {
+    return allSkills;
+  }
+
+  const activeSkills = [];
+  const words = taskDescription.toLowerCase().split(/\\W+/).filter(w => w.length > 3);
+  
+  for (const skill of allSkills) {
+    if (skill.trigger === 'ALWAYS') {
+      activeSkills.push({ ...skill, _score: 999 });
+      continue;
+    }
+    
+    let score = 0;
+    const name = skill.name.toLowerCase();
+    const desc = skill.description.toLowerCase();
+    
+    for (const word of words) {
+      if (name.includes(word)) score += 5;
+      if (desc.includes(word)) score += 1;
+    }
+    
+    if (score > 1) {
+      activeSkills.push({ ...skill, _score: score });
     }
   }
 
-  skillCache = skills;
-  return skillCache;
+  activeSkills.sort((a, b) => b._score - a._score);
+  
+  return activeSkills.slice(0, 8).map(s => {
+    const { _score, ...rest } = s;
+    return rest;
+  });
 }
