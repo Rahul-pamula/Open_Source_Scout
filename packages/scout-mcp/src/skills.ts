@@ -15,10 +15,20 @@ function findMarkdownFiles(dir: string, fileList: string[] = []): string[] {
   return fileList;
 }
 
+// In-Memory Skill Cache
+// Caches parsed SKILL.md files on boot to prevent disk I/O bottlenecks when
+// loading massive skill repositories (like claude-skills).
+let skillCache: any[] | null = null;
+
 export function loadSkills(cwd: string = process.cwd()) {
+  if (skillCache !== null) {
+    return skillCache;
+  }
+
   const skillsDir = path.join(cwd, '.scout', 'skills');
   if (!fs.existsSync(skillsDir)) {
-    return [];
+    skillCache = [];
+    return skillCache;
   }
 
   const markdownFiles = findMarkdownFiles(skillsDir);
@@ -48,5 +58,6 @@ export function loadSkills(cwd: string = process.cwd()) {
     }
   }
 
-  return skills;
+  skillCache = skills;
+  return skillCache;
 }
