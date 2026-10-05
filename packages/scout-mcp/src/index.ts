@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Scout MCP Server — thin interface layer.
  *
@@ -240,7 +241,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return {
             content: [{
               type: 'text',
-              text: `Session recovered successfully. Previous changes preserved:\n\n${result.recovered_diff}\n\n${JSON.stringify(result, null, 2)}`
+              text: `Session recovered successfully. Previous changes preserved:
+
+${result.recovered_diff}
+
+${JSON.stringify(result, null, 2)}`
             }],
           };
         }
