@@ -19,6 +19,7 @@ import { getWorktreePath } from './git.js';
 import { LocalHarness } from './harness/LocalHarness.js';
 
 const localHarness = new LocalHarness();
+const sessionWorkspaces = new Map<string, string>();
 import fs from 'fs/promises';
 
 // ---------------------------------------------------------------------------
@@ -38,6 +39,7 @@ const InitializeExecutionSchema = z.object({
   task_description: z.string(),
   task_id: z.string().optional(),
   source: z.string().optional().default('manual'),
+  cwd: z.string().optional(),
 });
 
 const SubmitForReviewSchema = z.object({
@@ -163,8 +165,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           task_description: { type: 'string', description: 'The description of the task to perform.' },
           task_id: { type: 'string', description: 'Optional cloud task ID.' },
           source: { type: 'string', description: 'Source of the task (e.g. manual, cloud).' },
+          cwd: { type: 'string', description: 'Absolute path to the target repository workspace.' },
         },
-        required: ['task_description'],
+        required: ['task_description', 'cwd'],
       },
     },
     {
@@ -227,7 +230,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
       // -----------------------------------------------------------------------
       case 'initialize_execution': {
-        const { task_description, task_id, source } = InitializeExecutionSchema.parse(
+        const { task_description, task_id, source, cwd } = InitializeExecutionSchema.parse(
           request.params.arguments,
         );
 
@@ -235,7 +238,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           task_description,
           source,
           task_id,
+          cwd
         );
+
+        if (cwd) {
+          sessionWorkspaces.set(result.session_id, cwd);
+        }
 
         if (result.recovered_from_stale_session) {
           return {
@@ -258,7 +266,8 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'run_command': {
         const { session_id, command, cwd } = RunCommandSchema.parse(request.params.arguments);
-        const worktreePath = await getWorktreePath(session_id);
+        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const worktreePath = await getWorktreePath(session_id, repoCwd);
 
         let validatedCwd = worktreePath;
         if (cwd) {
@@ -275,7 +284,8 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'read_file': {
         const { session_id, path } = ReadFileSchema.parse(request.params.arguments);
-        const worktreePath = await getWorktreePath(session_id);
+        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
         const fileContent = await fs.readFile(validatedPath, 'utf8');
@@ -287,7 +297,8 @@ ${JSON.stringify(result, null, 2)}`
         const { session_id, path, content: fileContent } = WriteFileSchema.parse(
           request.params.arguments,
         );
-        const worktreePath = await getWorktreePath(session_id);
+        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
         await fs.writeFile(validatedPath, fileContent, 'utf8');
@@ -299,7 +310,8 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'edit_file': {
         const { session_id, path, search, replace } = EditFileSchema.parse(request.params.arguments);
-        const worktreePath = await getWorktreePath(session_id);
+        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
         const fileContent = await fs.readFile(validatedPath, 'utf8');
@@ -351,7 +363,8 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'submit_for_review': {
         const { session_id, pr_url } = SubmitForReviewSchema.parse(request.params.arguments);
-        const worktreePath = await getWorktreePath(session_id);
+        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const worktreePath = await getWorktreePath(session_id, repoCwd);
 
         const result = await localHarness.submitForReview(
           session_id,

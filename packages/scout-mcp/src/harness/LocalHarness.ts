@@ -100,12 +100,13 @@ export class LocalHarness {
     taskDescription: string,
     source: string = 'manual',
     taskId?: string,
+    cwd: string = process.cwd()
   ): Promise<InitializeResult> {
-    const gitInfo = await getGitInfo();
+    const gitInfo = await getGitInfo(cwd);
 
     // Stale-session detection runs before creating anything new.
-    await checkStaleSessions();
-    const staleSessionId = await findStaleSession();
+    await checkStaleSessions(cwd);
+    const staleSessionId = await findStaleSession(cwd);
     if (staleSessionId) {
       console.error(
         `[LocalHarness] Detected stale session ${staleSessionId}. Creating a fresh session.`,
@@ -114,7 +115,7 @@ export class LocalHarness {
 
         let recovered_diff = '';
     if (staleSessionId) {
-      recovered_diff = await getWorktreeDiff(staleSessionId);
+      recovered_diff = await getWorktreeDiff(staleSessionId, cwd);
     }
     const sessionId = randomUUID();
 
@@ -124,10 +125,11 @@ export class LocalHarness {
       taskDescription,
       source,
       taskId,
+      cwd
     );
 
-    const worktreePath = await createWorktree(sessionId);
-    const skills = loadSkills(taskDescription);
+    const worktreePath = await createWorktree(sessionId, cwd);
+    const skills = loadSkills(taskDescription, cwd);
 
     // The Task Slicer / Orchestrator Intercept:
     // If the user's prompt is massive or contains multiple distinct commands,
