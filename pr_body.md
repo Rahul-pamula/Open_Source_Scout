@@ -1,43 +1,38 @@
 ## Problem
 
-When users click UI buttons to revert task states (e.g., "BACK TO CLAIMED" or "BACK TO ASSIGNED"), the Supabase Edge Function throws a 500 `non-2xx status code` error because backward transitions are not explicitly modeled in the edge function or database triggers. Additionally, the database had migrated to new V2 states (`QUEUED`, `ACTIVE`), but the V1 UI was still sending old V1 states (`ENGAGED`, `ASSIGNED`), leading to validation mismatches.
+The `MarkdownRenderer.tsx` in `apps/web` used `rehypeRaw` to allow rendering of HTML within markdown. However, it lacked a sanitization plugin, creating a Stored Cross-Site Scripting (XSS) vulnerability if any malicious payload (e.g., `<script>` or `<img onerror=.../>`) was ingested via GitHub issues or issue bodies.
 
 ## Root cause
 
-1. Edge Function and DB Trigger `validate_state_transition` lacked backward paths.
-2. Mismatch between UI states and database enum (`execution_state`). The Edge Function threw `PGRST116` which bubbled up as a 500 error.
+The `rehypePlugins` array only included `rehypeRaw`, rendering HTML directly as DOM elements without filtering unsafe tags or attributes.
 
 ## Solution
 
-- Added a new migration `20261005111900_relax_state_machine_reversions.sql` to explicitly allow reversions (e.g., `ACTIVE` -> `QUEUED`, `SUBMITTED` -> `ACTIVE`).
-- Updated `tracking.ts` `transitions` map to support the same reversions.
-- Added a transparent compatibility layer in `tracking.ts` that maps V1 UI states (e.g., `ENGAGED`, `ASSIGNED`) to V2 DB states (e.g., `ACTIVE`, `QUEUED`) on the way in, and maps them back for the UI on the way out in `getTasks`.
-- Gracefully caught `400` errors resulting from `PGRST116` to prevent bubbling as `500`.
+Installed and added `rehype-sanitize` to the `rehypePlugins` array immediately after `rehypeRaw`. This ensures all raw HTML elements are sanitized according to a safe schema (removing scripts, on-event handlers, etc.) before being rendered into the DOM.
 
 ## Files changed
 
-- `supabase/functions/_shared/tracking.ts`
-- `supabase/functions/tracking/index.ts`
-- `supabase/migrations/20261005111900_relax_state_machine_reversions.sql`
+- `apps/web/package.json`
+- `apps/web/src/components/MarkdownRenderer.tsx`
 
 ## Tests executed
 
-- Validated state mappings syntactically and reviewed logic to ensure UI will resolve correctly.
+- `npm run build --workspace=apps/web` (Verified successful frontend build).
 
 ## Security impact
 
-Medium. Fixes broken authorization state logic that effectively locked issues out of state transitions.
+High. Closes a severe Cross-Site Scripting (XSS) vector in the frontend dashboard.
 
 ## Breaking changes
 
-None. Restores functionality for the frontend.
+None. Legitimate markdown and safe HTML (like `<b>`, `<i>`) will still render properly, while dangerous payloads will be stripped.
 
 ## Deployment/migration requirements
 
-Requires running Supabase migrations.
+None.
 
 ## Rollback considerations
 
-If UI relies on strict state validation, they might need adjustment, but this largely fixes a broken flow.
+If certain safe, rich HTML elements are stripped (e.g., custom iframes or svgs intended by users), a custom schema can be supplied to `rehype-sanitize`.
 
-Closes #298
+Closes #299
