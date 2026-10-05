@@ -30,3 +30,41 @@ test('CommandBoundaryGuard', async (t) => {
     assert.throws(() => CommandBoundaryGuard.validate('echo hello || cd /'), /Absolute directory traversal detected/);
   });
 });
+
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { validatePathBoundary } from './guardrails.js';
+
+test('validatePathBoundary', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-test-'));
+  const worktree = path.join(tmpDir, 'worktree');
+  fs.mkdirSync(worktree);
+  const externalFile = path.join(tmpDir, 'external.txt');
+  fs.writeFileSync(externalFile, 'secret');
+
+  await t.test('allows valid paths', () => {
+    assert.doesNotThrow(() => validatePathBoundary(worktree, 'src/index.ts'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, './package.json'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, path.join(worktree, 'file.txt')));
+  });
+
+  await t.test('blocks directory traversal', () => {
+    assert.throws(() => validatePathBoundary(worktree, '../external.txt'), /Path boundary violation/);
+    assert.throws(() => validatePathBoundary(worktree, '../../etc/passwd'), /Path boundary violation/);
+  });
+
+  await t.test('blocks absolute paths outside worktree', () => {
+    assert.throws(() => validatePathBoundary(worktree, '/etc/passwd'), /Path boundary violation/);
+    assert.throws(() => validatePathBoundary(worktree, externalFile), /Path boundary violation/);
+  });
+
+  await t.test('blocks symlink escapes', () => {
+    const symlinkPath = path.join(worktree, 'link-out');
+    fs.symlinkSync(tmpDir, symlinkPath);
+    // target is inside the symlinked dir, which resolves outside
+    assert.throws(() => validatePathBoundary(worktree, 'link-out/external.txt'), /symlink escape/);
+  });
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
