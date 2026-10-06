@@ -63,7 +63,7 @@ export function loadSkills(taskDescription?: string, cwd: string = process.cwd()
           content: parsed.content
         });
       } catch (e: any) {
-        throw new Error(`Failed to parse skill file ${filePath}: ${e.message}`);
+        console.error(`[Scout] Failed to parse skill file ${filePath}: ${e.message}. Skipping.`);
       }
     }
 
