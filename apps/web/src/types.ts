@@ -54,6 +54,7 @@ export interface Task {
   platform: TaskPlatform;
   external_id: string;
   external_url: string;
+  github_issue_url?: string;
   title: string;
   description?: string;
   repo_name?: string;

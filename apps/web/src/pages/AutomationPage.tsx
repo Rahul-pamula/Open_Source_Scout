@@ -17,7 +17,10 @@ function ClaimedCard({
   onMakeAssigned: () => void;
   onMarkNotAssigned: () => void;
 }) {
-  const issueNumber = (issue.external_url || '').split('/').pop();
+  const issueUrl = issue.external_url || (issue as any).github_issue_url || '';
+  const repoUrl =
+    issue.repo_clone_url || (issue.repo_name ? `https://github.com/${issue.repo_name}` : issueUrl);
+  const issueNumber = (issueUrl || '').split('/').pop() || '';
   const claimedVia = (issue as any).claimed_via || 'AUTO';
   const isManual = claimedVia === 'MANUAL';
   const isExternal = claimedVia === 'EXTERNAL';
@@ -56,7 +59,7 @@ function ClaimedCard({
       <div className="mb-4">
         <h3 className="text-xl font-bold text-zinc-900 leading-tight mb-2">{issue.title}</h3>
         <a
-          href={issue.external_url}
+          href={repoUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-zinc-500 font-mono text-sm hover:text-emerald-600 transition-colors inline-flex items-center"
@@ -70,7 +73,7 @@ function ClaimedCard({
       <div className="mt-auto flex items-center justify-between pt-4">
         <div className="flex gap-2">
           <a
-            href={issue.external_url}
+            href={issueUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-zinc-900 text-white font-bold py-2 px-4 shadow-[4px_4px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#10b981] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all text-sm flex items-center"

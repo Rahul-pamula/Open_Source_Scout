@@ -25,11 +25,25 @@ function findMarkdownFiles(dir: string, fileList: string[] = []): string[] {
 // loading massive skill repositories (like claude-skills).
 let skillCache: any[] | null = null;
 
-export function loadSkills(taskDescription?: string, cwd: string = process.cwd()) {
+export function clearSkillCache() {
+  skillCache = null;
+}
+
+export function loadSkills(taskDescription?: string, cwd?: string) {
+  let targetCwd = cwd;
+  let targetTaskDescription = taskDescription;
+
+  if (taskDescription && !cwd && (path.isAbsolute(taskDescription) || taskDescription.startsWith('.') || fs.existsSync(taskDescription))) {
+    targetCwd = taskDescription;
+    targetTaskDescription = undefined;
+  } else if (!targetCwd) {
+    targetCwd = process.cwd();
+  }
+
   let allSkills = skillCache;
 
   if (allSkills === null) {
-    const skillsDir = path.join(cwd, '.scout', 'skills');
+    const skillsDir = path.join(targetCwd, '.scout', 'skills');
     if (!fs.existsSync(skillsDir)) {
       // Auto-Bootstrapping: Scaffold default skills from the MCP package if they don't exist
       const defaultSkillsPath = path.resolve(__dirname, '../default-skills');
@@ -57,9 +71,9 @@ export function loadSkills(taskDescription?: string, cwd: string = process.cwd()
         
         skills.push({
           filename: path.basename(filePath),
-          name: parsed.data.name,
-          description: parsed.data.description,
-          trigger: parsed.data.trigger || 'CONDITIONAL',
+          name: String(parsed.data.name),
+          description: String(parsed.data.description),
+          trigger: parsed.data.trigger ? String(parsed.data.trigger) : 'CONDITIONAL',
           content: parsed.content
         });
       } catch (e: any) {
@@ -71,12 +85,12 @@ export function loadSkills(taskDescription?: string, cwd: string = process.cwd()
     allSkills = skills;
   }
 
-  if (!taskDescription) {
+  if (!targetTaskDescription) {
     return allSkills;
   }
 
   const activeSkills = [];
-  const words = taskDescription.toLowerCase().split(/\\W+/).filter(w => w.length > 3);
+  const words = targetTaskDescription.toLowerCase().split(/\W+/).filter(w => w.length > 3);
   
   for (const skill of allSkills) {
     if (skill.trigger === 'ALWAYS') {
@@ -85,6 +99,10 @@ export function loadSkills(taskDescription?: string, cwd: string = process.cwd()
     }
     
     let score = 0;
+    if (typeof skill.name !== 'string') {
+      console.error(`Invalid skill name type for ${skill.filename}:`, typeof skill.name, skill.name);
+      continue;
+    }
     const name = skill.name.toLowerCase();
     const desc = skill.description.toLowerCase();
     

@@ -138,7 +138,11 @@ export function PipelinePage() {
             .map((issue) => {
               const isExpanded = expandedPipelineId === issue.id;
               const transitions = getAvailableTransitions(issue.state);
-              const issueNumber = (issue.external_url || '').split('/').pop() || '';
+              const issueUrl = issue.external_url || (issue as any).github_issue_url || '';
+              const repoUrl =
+                issue.repo_clone_url ||
+                (issue.repo_name ? `https://github.com/${issue.repo_name}` : issueUrl);
+              const issueNumber = (issueUrl || '').split('/').pop() || '';
 
               return (
                 <div
@@ -156,9 +160,15 @@ export function PipelinePage() {
                         {issue.title}
                       </span>
                       <div className="flex items-center gap-2 font-mono text-[9px] text-zinc-500">
-                        <span className="truncate">
+                        <a
+                          href={repoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1 truncate"
+                        >
                           {issue.repo_name} #{issueNumber}
-                        </span>
+                          <ExternalLink size={9} />
+                        </a>
                         {issue.match_score && (
                           <>
                             <span>·</span>
@@ -201,14 +211,14 @@ export function PipelinePage() {
                     {/* Actions */}
                     <div className="col-span-3 flex items-center justify-end gap-2">
                       <button
-                        onClick={() => ctx.openDossier(issue.external_url)}
+                        onClick={() => ctx.openDossier(issueUrl)}
                         className="text-zinc-400 hover:text-zinc-900 transition-colors"
                         title="Open Dossier"
                       >
                         <Search size={14} />
                       </button>
                       <a
-                        href={issue.external_url}
+                        href={issueUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-zinc-400 hover:text-emerald-600 transition-colors"

@@ -251,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
         fixture = (
             "# Sample handoff\n"
             "API key: AKIAIOSFODNN7EXAMPLE\n"
-            "Token: ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+            "Token: gho_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
             "PASSWORD=hunter2supersecret\n"
             "Contact: jane.doe@example.com\n"
             "URL: https://api.example.com/v1/data?token=abcdef1234567890\n"

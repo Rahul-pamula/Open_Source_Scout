@@ -2,17 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadSkills } from './skills.js';
+import { loadSkills, clearSkillCache } from './skills.js';
 
 test('Skills Loader', async (t) => {
   const testDir = path.join(process.cwd(), '.test-scout-skills');
   const skillsDir = path.join(testDir, '.scout', 'skills');
 
   t.beforeEach(() => {
+    clearSkillCache();
     fs.mkdirSync(skillsDir, { recursive: true });
   });
 
   t.afterEach(() => {
+    clearSkillCache();
     fs.rmSync(testDir, { recursive: true, force: true });
   });
 
@@ -25,19 +27,22 @@ test('Skills Loader', async (t) => {
     assert.strictEqual(skills[0].content.trim(), '# Content');
   });
 
-  await t.test('fails on missing name', () => {
+  await t.test('gracefully skips on missing name', () => {
     fs.writeFileSync(path.join(skillsDir, 'missing-name.md'), '---\ndescription: Missing name\n---\n# Content');
-    assert.throws(() => loadSkills(testDir), /Missing required frontmatter/);
+    const skills = loadSkills(testDir);
+    assert.strictEqual(skills.length, 0);
   });
 
-  await t.test('fails on missing description', () => {
+  await t.test('gracefully skips on missing description', () => {
     fs.writeFileSync(path.join(skillsDir, 'missing-desc.md'), '---\nname: Test\n---\n# Content');
-    assert.throws(() => loadSkills(testDir), /Missing required frontmatter/);
+    const skills = loadSkills(testDir);
+    assert.strictEqual(skills.length, 0);
   });
 
-  await t.test('fails on malformed frontmatter', () => {
+  await t.test('gracefully skips on malformed frontmatter', () => {
     fs.writeFileSync(path.join(skillsDir, 'malformed.md'), '---\nname: [unclosed array\ndescription: Test\n---\n# Content');
-    assert.throws(() => loadSkills(testDir), /Failed to parse skill file/);
+    const skills = loadSkills(testDir);
+    assert.strictEqual(skills.length, 0);
   });
 
   await t.test('loads multiple skills', () => {
@@ -45,5 +50,13 @@ test('Skills Loader', async (t) => {
     fs.writeFileSync(path.join(skillsDir, '2.md'), '---\nname: B\ndescription: B\n---\nB');
     const skills = loadSkills(testDir);
     assert.strictEqual(skills.length, 2);
+  });
+
+  await t.test('filters and ranks skills by task description', () => {
+    fs.writeFileSync(path.join(skillsDir, 'git.md'), '---\nname: git-flow\ndescription: Manage git branches and commits\n---\nGit docs');
+    fs.writeFileSync(path.join(skillsDir, 'docker.md'), '---\nname: docker-deploy\ndescription: Container deployment\n---\nDocker docs');
+    const skills = loadSkills('Help with git flow commits', testDir);
+    assert.ok(skills.length >= 1);
+    assert.strictEqual(skills[0].name, 'git-flow');
   });
 });
