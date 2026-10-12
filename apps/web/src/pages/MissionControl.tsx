@@ -187,7 +187,9 @@ export function MissionControl() {
       setDiscoveryStatus('Filtering candidates...');
 
       // Filter out issues already in the pipeline
-      const currentTrackedUrls = new Set(trackedIssues.map((t) => t.external_url));
+      const currentTrackedUrls = new Set(
+        trackedIssues.map((t) => t.external_url || t.github_issue_url).filter(Boolean),
+      );
       const untrackedIssues = rawEligibleIssues.filter(
         (issue) => !currentTrackedUrls.has(issue.url),
       );
@@ -242,6 +244,9 @@ export function MissionControl() {
             action: 'save',
             issueData: {
               external_url: githubUrl,
+              github_issue_url: githubUrl,
+              external_id: number || githubUrl.split('/').pop() || '',
+              platform: 'github',
               title: scoutedIssues.find((i) => i.url === githubUrl)?.title || '',
               repo_name: `${owner}/${repo}`,
               match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
@@ -343,7 +348,12 @@ export function MissionControl() {
         return;
       }
 
-      setTasks(resData.data);
+      const normalizedData: Task[] = (resData.data || []).map((t: any) => ({
+        ...t,
+        external_url: t.external_url || t.github_issue_url || '',
+        github_issue_url: t.github_issue_url || t.external_url || '',
+      }));
+      setTasks(normalizedData);
     } catch (err: any) {
       console.error('Failed to load tracking:', err);
       setTrackingError('Failed to load tracking data');
@@ -424,6 +434,7 @@ export function MissionControl() {
             action: 'save',
             issueData: {
               external_url: issue.url,
+              github_issue_url: issue.url,
               external_id: issue.id.toString(),
               platform: 'github',
               title: issue.title,
@@ -540,6 +551,7 @@ export function MissionControl() {
           action: 'save',
           issueData: {
             external_url: issueToSave.url,
+            github_issue_url: issueToSave.url,
             external_id: issueToSave.id.toString(),
             platform: 'github',
             title: issueToSave.title,

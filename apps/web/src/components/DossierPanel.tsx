@@ -85,7 +85,9 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
         });
         if (mounted && trackingData?.data) {
           const matched = trackingData.data.find((i: any) =>
-            i.external_url.endsWith(`${owner}/${repo}/issues/${number}`),
+            (i.external_url || i.github_issue_url || '').endsWith(
+              `${owner}/${repo}/issues/${number}`,
+            ),
           );
           if (matched) {
             setTask(matched);
@@ -249,7 +251,9 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
           body: { action: 'list' },
         });
         if (trackingData?.data) {
-          const tracked = trackingData.data.find((i: any) => i.external_url === issue?.url);
+          const tracked = trackingData.data.find(
+            (i: any) => (i.external_url || i.github_issue_url) === issue?.url,
+          );
           if (tracked) {
             const { error: trackErr } = await supabase.functions.invoke('tracking', {
               body: { action: 'update_state', id: tracked.id, state: 'ENGAGED' },

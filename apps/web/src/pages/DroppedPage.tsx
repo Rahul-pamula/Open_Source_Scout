@@ -13,7 +13,10 @@ function DroppedCard({
   isPending?: boolean;
   onRestore: () => void;
 }) {
-  const issueNumber = (issue.external_url || '').split('/').pop();
+  const issueUrl = issue.external_url || (issue as any).github_issue_url || '';
+  const repoUrl =
+    issue.repo_clone_url || (issue.repo_name ? `https://github.com/${issue.repo_name}` : issueUrl);
+  const issueNumber = (issueUrl || '').split('/').pop() || '';
 
   return (
     <div className="bg-white border border-red-200 p-4 flex flex-col transition-shadow hover:shadow-md opacity-75 grayscale-[0.3] h-full">
@@ -28,7 +31,7 @@ function DroppedCard({
           {issue.title}
         </h3>
         <a
-          href={issue.external_url}
+          href={repoUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-zinc-500 font-mono text-xs hover:text-red-600 transition-colors inline-flex items-center"
@@ -40,7 +43,7 @@ function DroppedCard({
 
       <div className="mt-auto flex items-center gap-2 pt-3 border-t border-zinc-100">
         <a
-          href={issue.external_url}
+          href={issueUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-zinc-100 text-zinc-700 font-bold py-1.5 px-4 shadow-[2px_2px_0px_#fca5a5] border-2 border-zinc-300 hover:-translate-y-px hover:shadow-[3px_3px_0px_#fca5a5] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center"

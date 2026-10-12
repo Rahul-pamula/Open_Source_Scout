@@ -63,6 +63,7 @@ Deno.serve(async (req: Request) => {
 
       const issueData = {
         external_url: rawIssue.url,
+        github_issue_url: rawIssue.url,
         external_id: rawIssue.id.toString(),
         platform: 'github',          // NormalizedIssue uses .url, not .html_url
         title: rawIssue.title,

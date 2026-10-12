@@ -17,7 +17,10 @@ function ReviewCard({
   onMarkDropped: () => void;
   onMoveToAssigned: () => void;
 }) {
-  const issueNumber = (issue.external_url || '').split('/').pop();
+  const issueUrl = issue.external_url || (issue as any).github_issue_url || '';
+  const repoUrl =
+    issue.repo_clone_url || (issue.repo_name ? `https://github.com/${issue.repo_name}` : issueUrl);
+  const issueNumber = (issueUrl || '').split('/').pop() || '';
 
   return (
     <div className="bg-white border border-yellow-200 p-4 flex flex-col transition-shadow hover:shadow-md h-full">
@@ -30,7 +33,7 @@ function ReviewCard({
       <div className="mb-4">
         <h3 className="text-lg font-bold text-zinc-900 leading-snug mb-1">{issue.title}</h3>
         <a
-          href={issue.external_url}
+          href={repoUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-zinc-500 font-mono text-xs hover:text-emerald-600 transition-colors inline-flex items-center"
@@ -43,12 +46,12 @@ function ReviewCard({
       <div className="mt-auto flex items-center justify-between pt-3 border-t border-zinc-100">
         <div className="flex gap-2">
           <a
-            href={issue.external_url}
+            href={issue.pr_url || issueUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="bg-zinc-900 text-white font-bold py-1.5 px-4 shadow-[2px_2px_0px_#10b981] border-2 border-zinc-900 hover:-translate-y-px hover:shadow-[3px_3px_0px_#10b981] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center"
           >
-            View PR / Issue <ExternalLink size={12} className="ml-1.5" />
+            {issue.pr_url ? 'View PR' : 'View Issue'} <ExternalLink size={12} className="ml-1.5" />
           </a>
           <button
             onClick={onMarkMerged}

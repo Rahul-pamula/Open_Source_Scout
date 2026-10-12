@@ -38,25 +38,62 @@ export class TrackingService {
     
     // Allow caller to specify initial state (e.g. ENGAGED for manual claims)
     const initialState: IssueState = issueData.initial_state || 'QUEUED';
+    const issueUrl = issueData.external_url || issueData.github_issue_url || '';
+    const issueId = issueData.external_id || (issueUrl ? issueUrl.split('/').pop() : '') || '0';
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({
-        user_id: userId,
-        external_url: issueData.external_url,
-        external_id: issueData.external_id,
-        platform: issueData.platform || 'github',
-        title: issueData.title,
-        repo_name: issueData.repo_name,
-        state: initialState,
-        match_score: issueData.match_score || null,
-        claimed_via: issueData.claimed_via || 'MANUAL',
-      })
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          user_id: userId,
+          external_url: issueUrl,
+          external_id: issueId,
+          platform: issueData.platform || 'github',
+          title: issueData.title,
+          repo_name: issueData.repo_name,
+          state: initialState,
+          match_score: issueData.match_score || null,
+          claimed_via: issueData.claimed_via || 'MANUAL',
+        })
+        .select()
+        .single();
 
-    if (error) throw new Error(`Supabase Insert Error: ${error.message}`);
-    return data;
+      if (!error && data) {
+        return {
+          ...data,
+          github_issue_url: issueUrl,
+        };
+      }
+
+      // If tasks table insert had an error, try legacy tracked_issues table
+      const { data: legacyData, error: legacyError } = await supabase
+        .from('tracked_issues')
+        .insert({
+          user_id: userId,
+          github_issue_url: issueUrl,
+          title: issueData.title,
+          repo_name: issueData.repo_name,
+          state: initialState,
+          match_score: issueData.match_score || null,
+          claimed_via: issueData.claimed_via || 'MANUAL',
+        })
+        .select()
+        .single();
+
+      if (legacyError) {
+        throw new Error(`Supabase Insert Error: ${error ? error.message : legacyError.message}`);
+      }
+
+      return {
+        ...legacyData,
+        external_url: legacyData.github_issue_url,
+        external_id: legacyData.id,
+        platform: 'github',
+      };
+    } catch (err: any) {
+      if (err.message?.startsWith('Supabase Insert Error')) throw err;
+      throw new Error(`Supabase Insert Error: ${err.message}`);
+    }
   }
 
   async getTasks(authHeader: string, userId?: string, state?: string, limit = 50): Promise<Task[]> {
@@ -78,8 +115,22 @@ export class TrackingService {
       query = query.eq('state', dbState);
     }
 
-    const { data, error } = await query;
-    if (error) throw new Error(`Supabase Select Error: ${error.message}`);
+    let { data, error } = await query;
+    if (error) {
+      // Fallback to legacy tracked_issues
+      let legacyQuery = supabase
+        .from('tracked_issues')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(limit);
+
+      if (userId) legacyQuery = legacyQuery.eq('user_id', userId);
+      const { data: legacyData, error: legacyError } = await legacyQuery;
+      if (legacyError) {
+        throw new Error(`Supabase Select Error: ${error.message}`);
+      }
+      data = legacyData;
+    }
     
     // Compatibility layer: Map V2 states back to V1 states for the UI
     const mappedData = (data || []).map(task => {
@@ -93,7 +144,13 @@ export class TrackingService {
       } else if (task.state === 'CANCELLED') {
         uiState = 'REJECTED';
       }
-      return { ...task, state: uiState };
+      const issueUrl = task.external_url || task.github_issue_url || '';
+      return {
+        ...task,
+        state: uiState,
+        external_url: issueUrl,
+        github_issue_url: issueUrl,
+      };
     });
 
     return mappedData;
