@@ -36,6 +36,36 @@ A 100% offline local execution harness that your AI assistant (Cursor, Cline, Cl
 
 ---
 
+## ⚡ How Scout Handles Scale: The 4-Stage Funnel Architecture
+
+GitHub hosts tens of millions of issues, enforces strict Search API limits (30 requests/min), and contains significant noise.
+
+> _"Instead of naively crawling millions of GitHub issues, our system uses a funnel architecture with Push-Down Filtering. We push query constraints directly to GitHub's search index to cut millions down to hundreds, pass those through a zero-latency deterministic edge filter, deduplicate against our local pipeline state, and only run expensive AI evaluations on claimed candidates."_
+
+```mermaid
+flowchart TD
+    A["GitHub Universe (100M+ Issues)"] -->|1. Push-Down Query Filtering| B["~50 Fresh Candidates"]
+    B -->|2. Deterministic Edge Filter| C["Eligible Unassigned Issues"]
+    C -->|3. Local Pipeline Deduplication| D["10 High-Signal Scouted Issues"]
+    D -->|4. Lazy On-Demand Evaluation| E["Autonomous AI Execution (Scout MCP)"]
+```
+
+### How the Funnel Works:
+
+1. **Push-Down Filtering (Upstream Index Querying)**
+   Rather than downloading huge feeds, Scout constructs scoped search queries (e.g., `is:open is:issue label:"good first issue" language:typescript sort:updated-desc`) directly against GitHub's search engine. GitHub's inverted indexes do the heavy lifting, instantly narrowing down 100M+ issues to a compact pool of ~50 candidates.
+2. **Deterministic Edge Filtering (Zero-Latency Rule Engine)**
+   The candidate batch passes through our Deno Edge Function's `FilterEngine`, instantly discarding low-signal issues without calling an LLM:
+   - Rejects issues that already have assignees (`isAssigned`).
+   - Drops blacklisted tags (`wontfix`, `duplicate`, `invalid`, `spam`, `stale`, `question`).
+   - Rejects low-effort submissions (bodies `< 20` characters).
+3. **State Deduplication (O(1) Pipeline Filtering)**
+   Candidates are cross-referenced with your Supabase pipeline via an `O(1)` Set lookup. Issues already claimed, assigned, merged, or dropped are filtered out so you only see fresh opportunities.
+4. **Lazy AI Evaluation (Token Cost Optimization)**
+   Expensive LLM reasoning and MCP agent orchestration are never run across raw discovery feeds—they are triggered lazily, only when an issue is claimed for autonomous execution.
+
+---
+
 ## 🚀 Getting Started
 
 ### Setting up the v1 Cloud Dashboard
