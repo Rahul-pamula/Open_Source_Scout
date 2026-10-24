@@ -150,6 +150,8 @@ export class TrackingService {
         state: uiState,
         external_url: issueUrl,
         github_issue_url: issueUrl,
+        interview_notes_url:
+          task.interview_notes_url || task.contribution_checklist?.interview_notes_url || '',
       };
     });
 
@@ -204,13 +206,47 @@ export class TrackingService {
 
   async updateIssueChecklist(authHeader: string, id: string, checklist: any): Promise<void> {
     const supabase = this.getClient(authHeader);
-    
+
+    const updatePayload: Record<string, any> = { contribution_checklist: checklist };
+    if (checklist && typeof checklist.interview_notes_url === 'string') {
+      updatePayload.interview_notes_url = checklist.interview_notes_url;
+    }
+
     const { error } = await supabase
       .from('tasks')
-      .update({ contribution_checklist: checklist })
+      .update(updatePayload)
       .eq('id', id);
-      
-    if (error) throw new Error(`Supabase Update Error: ${error.message}`);
+
+    if (error) {
+      // Gracefully fall back to updating only contribution_checklist if column is missing
+      if (
+        updatePayload.interview_notes_url &&
+        (error.message.includes('column') || error.code === '42703')
+      ) {
+        const { error: fallbackError } = await supabase
+          .from('tasks')
+          .update({ contribution_checklist: checklist })
+          .eq('id', id);
+        if (fallbackError) throw new Error(`Supabase Update Error: ${fallbackError.message}`);
+        return;
+      }
+      throw new Error(`Supabase Update Error: ${error.message}`);
+    }
+  }
+
+  async updateNotesUrl(authHeader: string, id: string, notesUrl: string): Promise<void> {
+    const supabase = this.getClient(authHeader);
+
+    const { data: task } = await supabase
+      .from('tasks')
+      .select('contribution_checklist')
+      .eq('id', id)
+      .maybeSingle();
+
+    const currentChecklist = (task && task.contribution_checklist) || {};
+    const updatedChecklist = { ...currentChecklist, interview_notes_url: notesUrl };
+
+    await this.updateIssueChecklist(authHeader, id, updatedChecklist);
   }
 }
 

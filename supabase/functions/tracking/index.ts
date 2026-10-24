@@ -102,6 +102,19 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    if (action === 'update_notes_url') {
+      const { id, notes_url, interview_notes_url } = body
+      const targetUrl = notes_url !== undefined ? notes_url : interview_notes_url
+      if (!id || targetUrl === undefined) throw new Error('Missing tracking ID or notes_url')
+
+      await trackingService.updateNotesUrl(authHeader as string, id, targetUrl)
+
+      return new Response(
+        JSON.stringify({ message: 'Notes URL updated successfully' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
