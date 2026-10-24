@@ -25,6 +25,7 @@ A Bring-Your-Own-Backend (BYOB) platform that connects to your personal Supabase
 - **Issue Scanner:** Discovers open-source issues on GitHub that match your developer profile.
 - **AI Evaluator:** Evaluates each issue with AI to tell you the difficulty and skill match.
 - **Mission Control Pipeline:** Tracks your contributions through a visual Kanban pipeline (Discovered -> Claimed -> Assigned -> Review -> Merged).
+- **Interview Prep Memory:** Directly attach and manage your personal Google Docs technical notes for every merged contribution, ensuring zero human context decay before technical interviews.
 
 ### 🤖 Part 2: The v2 Local MCP Engine (For AI Agents)
 
