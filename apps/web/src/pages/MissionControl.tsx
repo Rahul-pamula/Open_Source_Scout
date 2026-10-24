@@ -352,6 +352,8 @@ export function MissionControl() {
         ...t,
         external_url: t.external_url || t.github_issue_url || '',
         github_issue_url: t.github_issue_url || t.external_url || '',
+        interview_notes_url:
+          t.interview_notes_url || t.contribution_checklist?.interview_notes_url || '',
       }));
       setTasks(normalizedData);
     } catch (err: any) {
@@ -650,6 +652,67 @@ export function MissionControl() {
     }
   };
 
+  const handleUpdateNotesUrl = async (trackedId: string, notesUrl: string) => {
+    if (pendingIssuesRef.current[trackedId]) return;
+
+    const issueToUpdate = trackedIssues.find((i) => i.id === trackedId);
+    if (!issueToUpdate) return;
+
+    const previousNotesUrl = issueToUpdate.interview_notes_url;
+    const previousChecklist = issueToUpdate.contribution_checklist;
+    const updatedChecklist = {
+      ...(previousChecklist || {}),
+      interview_notes_url: notesUrl,
+    };
+    const reqId = Date.now();
+
+    // 1. Optimistically update local state immediately
+    setTasks((prev) =>
+      prev.map((i) =>
+        i.id === trackedId
+          ? { ...i, interview_notes_url: notesUrl, contribution_checklist: updatedChecklist }
+          : i,
+      ),
+    );
+    setIssuePending(trackedId, reqId);
+
+    try {
+      // 2. Persist to backend
+      const { error } = await supabase.functions.invoke('tracking', {
+        body: {
+          action: 'update_checklist',
+          id: trackedId,
+          checklist: updatedChecklist,
+          interview_notes_url: notesUrl,
+        },
+      });
+      if (error) throw new Error(error.message);
+      showToast('success', 'Interview prep doc linked successfully!');
+    } catch (err: any) {
+      console.error('Notes URL update failed:', err);
+      // 3. Rollback on failure
+      if (pendingIssuesRef.current[trackedId] === reqId) {
+        setTasks((prev) =>
+          prev.map((i) =>
+            i.id === trackedId
+              ? {
+                  ...i,
+                  interview_notes_url: previousNotesUrl,
+                  contribution_checklist: previousChecklist,
+                }
+              : i,
+          ),
+        );
+        showToast('error', 'Failed to save notes link: ' + err.message);
+        pipelineVersionRef.current += 1;
+      }
+    } finally {
+      if (pendingIssuesRef.current[trackedId] === reqId) {
+        setIssuePending(trackedId, null);
+      }
+    }
+  };
+
   // --- URL State (Dossier Side Panel) ---
   const [searchParams, setSearchParams] = useSearchParams();
   const issueParam = searchParams.get('issue'); // expected format: owner/repo/number
@@ -718,6 +781,7 @@ export function MissionControl() {
     handleClaimIssue,
     handleUpdateState,
     handleUpdateChecklist,
+    handleUpdateNotesUrl,
     isSyncing,
     syncStatus,
     handleSync,
