@@ -48,6 +48,12 @@ export type IssueState =
 
 export type TaskPlatform = 'github' | 'jira' | 'linear' | 'manual';
 
+export interface ContributionChecklist {
+  under_review?: boolean;
+  interview_notes_url?: string;
+  [key: string]: any;
+}
+
 export interface Task {
   id: string;
   user_id: string;
@@ -66,9 +72,10 @@ export interface Task {
   agent_status?: string;
   agent_ide?: string;
   pr_url?: string;
+  interview_notes_url?: string;
   integration_id?: string;
   created_at: string;
   updated_at: string;
   // retained for frontend backwards compatibility
-  contribution_checklist?: any;
+  contribution_checklist?: ContributionChecklist | any;
 }
