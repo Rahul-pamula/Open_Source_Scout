@@ -2,31 +2,38 @@ import { useOutletContext } from 'react-router-dom';
 import { PartyPopper, ExternalLink, Undo2, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
+import { GoogleDocsLinkButton } from '../components/GoogleDocsLinkButton';
+import { EditableInterviewNotesBlock } from '../components/EditableInterviewNotesBlock';
 import type { Task } from '../types';
 
 function MergedCard({
   issue,
   isPending,
   onMoveToReview,
+  onSaveNotesUrl,
 }: {
   issue: Task;
   isPending?: boolean;
   onMoveToReview: () => void;
+  onSaveNotesUrl: (url: string) => Promise<void>;
 }) {
   const issueUrl = issue.external_url || (issue as any).github_issue_url || '';
   const repoUrl =
     issue.repo_clone_url || (issue.repo_name ? `https://github.com/${issue.repo_name}` : issueUrl);
   const issueNumber = (issueUrl || '').split('/').pop() || '';
+  const currentNotesUrl =
+    issue.interview_notes_url || issue.contribution_checklist?.interview_notes_url || '';
 
   return (
     <div className="bg-white border border-emerald-200 p-4 flex flex-col transition-shadow hover:shadow-md h-full">
-      <div className="flex justify-between items-start mb-3 pb-3 border-b border-zinc-100">
+      <div className="flex justify-between items-center mb-3 pb-3 border-b border-zinc-100">
         <span className="font-mono text-[9px] px-2 py-1 border border-emerald-200 bg-emerald-50 text-emerald-700 font-bold uppercase tracking-wider">
           COMPLETED ✓
         </span>
+        <GoogleDocsLinkButton />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-3">
         <h3 className="text-lg font-bold text-zinc-900 leading-snug mb-1">{issue.title}</h3>
         <a
           href={repoUrl}
@@ -37,6 +44,14 @@ function MergedCard({
           {issue.repo_name} #{issueNumber}
           <ExternalLink size={10} className="ml-1" />
         </a>
+      </div>
+
+      <div className="mb-4">
+        <EditableInterviewNotesBlock
+          initialUrl={currentNotesUrl}
+          onSave={onSaveNotesUrl}
+          isPending={isPending}
+        />
       </div>
 
       <div className="mt-auto flex items-center justify-between gap-2 pt-3 border-t border-zinc-100">
@@ -103,6 +118,7 @@ export function MergedPage() {
               issue={issue}
               isPending={!!ctx.pendingIssues[issue.id]}
               onMoveToReview={() => handleMoveToReview(issue)}
+              onSaveNotesUrl={(url) => ctx.handleUpdateNotesUrl(issue.id, url)}
             />
           ))}
         </div>
