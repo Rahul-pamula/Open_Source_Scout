@@ -4,7 +4,8 @@
 export function normalizeDocUrl(rawUrl: string): string {
   const trimmed = (rawUrl || '').trim();
   if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed)) {
+  // If it already has a protocol scheme, leave it untouched
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/i.test(trimmed)) {
     return trimmed;
   }
   return `https://${trimmed}`;
