@@ -687,7 +687,11 @@ export function MissionControl() {
         },
       });
       if (error) throw new Error(error.message);
-      showToast('success', 'Interview prep doc linked successfully!');
+      if (!notesUrl) {
+        showToast('success', 'Interview prep doc link removed.');
+      } else {
+        showToast('success', 'Interview prep doc linked successfully!');
+      }
     } catch (err: any) {
       console.error('Notes URL update failed:', err);
       // 3. Rollback on failure

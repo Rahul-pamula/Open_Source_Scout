@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FileText, ExternalLink, Pencil, Check, X, Loader2 } from 'lucide-react';
 import { normalizeDocUrl, isValidGoogleDocsUrl, isValidWebUrl } from '../utils/urlHelpers';
 
@@ -15,17 +15,19 @@ export function EditableInterviewNotesBlock({
   isPending = false,
   className = '',
 }: EditableInterviewNotesBlockProps) {
+  const [prevInitialUrl, setPrevInitialUrl] = useState(initialUrl);
   const [isEditing, setIsEditing] = useState(!initialUrl);
   const [inputUrl, setInputUrl] = useState(initialUrl);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSavingLocal, setIsSavingLocal] = useState(false);
 
-  useEffect(() => {
+  if (initialUrl !== prevInitialUrl) {
+    setPrevInitialUrl(initialUrl);
     setInputUrl(initialUrl || '');
     if (initialUrl) {
       setIsEditing(false);
     }
-  }, [initialUrl]);
+  }
 
   const handleSave = async () => {
     const trimmed = inputUrl.trim();
