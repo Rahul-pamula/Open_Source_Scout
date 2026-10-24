@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { join } from 'path';
-import { rm, readdir } from 'fs/promises';
+import { join, resolve } from 'path';
+import { rm, readdir, mkdir } from 'fs/promises';
 import { getLocalState } from './localState.js';
 
 const execAsync = promisify(exec);
@@ -63,6 +63,12 @@ export async function createWorktree(sessionId: string, cwd: string = process.cw
   await removeWorktree(sessionId, cwd);
 
   try {
+    const gitDirOut = await execAsync('git rev-parse --git-dir', { cwd });
+    const gitDir = resolve(cwd, gitDirOut.stdout.trim());
+    await mkdir(join(gitDir, 'worktrees'), { recursive: true });
+  } catch (_) {}
+
+  try {
     await execAsync(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
   } catch (e: any) {
     if (e.message.includes('already exists')) {
@@ -71,12 +77,19 @@ export async function createWorktree(sessionId: string, cwd: string = process.cw
       } catch (innerE: any) {
          throw new Error(`Failed to create worktree: ${innerE.message}`);
       }
+    } else if (e.message.includes('worktrees')) {
+      // Retry once if concurrent git worktree initialization race occurred
+      await new Promise(r => setTimeout(r, 50));
+      try {
+        await execAsync(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
+      } catch (retryE: any) {
+        throw new Error(`Failed to create worktree: ${retryE.message}`);
+      }
     } else {
       throw new Error(`Failed to create worktree: ${e.message}`);
     }
   }
 
-  
   return worktreePath;
 }
 
