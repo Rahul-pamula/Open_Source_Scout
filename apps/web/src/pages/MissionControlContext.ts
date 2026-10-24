@@ -22,6 +22,7 @@ export interface MissionControlContextType {
   handleClaimIssue: (githubUrl: string) => Promise<void>;
   handleUpdateState: (trackedId: string, newState: import('../types').IssueState) => Promise<void>;
   handleUpdateChecklist: (trackedId: string, checklist: any) => Promise<void>;
+  handleUpdateNotesUrl: (trackedId: string, notesUrl: string) => Promise<void>;
 
   // Sync
   isSyncing: boolean;
