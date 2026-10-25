@@ -156,6 +156,47 @@ export function calculateDifficultyScore(
 }
 
 /**
+ * Calculates penalty deductions P_penalties (>= 0).
+ * Penalizes stale repos, excessive comment clutter, and invalid/wontfix issues.
+ */
+export function calculatePenalties(
+  target: IssueScoringTarget,
+  referenceDate: Date = new Date(),
+): number {
+  let penalty = 0;
+
+  // 1. Wontfix / Invalid / Stale label penalties
+  const rawLabels = (target.labels || [])
+    .map((l) => (typeof l === 'string' ? l : l.name || ''))
+    .filter(Boolean);
+  const labelsText = rawLabels.join(' ').toLowerCase();
+  const titleText = (target.title || '').toLowerCase();
+  const combinedMarkers = `${labelsText} ${titleText}`;
+
+  if (/wontfix|won't fix|invalid|duplicate|stale/i.test(combinedMarkers)) {
+    penalty += 50;
+  }
+
+  // 2. Stale repo inactivity > 365 days
+  if (target.last_repo_activity_date) {
+    const activityDate = new Date(target.last_repo_activity_date);
+    if (!isNaN(activityDate.getTime())) {
+      const diffDays = (referenceDate.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays > 365) {
+        penalty += 25;
+      }
+    }
+  }
+
+  // 3. Extreme discussion clutter (> 25 comments on open issue)
+  if (typeof target.comments === 'number' && target.comments > 25) {
+    penalty += 10;
+  }
+
+  return penalty;
+}
+
+/**
  * Calculates language alignment score S_lang in range [0, maxWeight] (default 35).
  *
  * Logic:
