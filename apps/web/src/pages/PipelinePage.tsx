@@ -10,9 +10,13 @@ import {
   ChevronDown,
   FileText,
   Plus,
+  Check,
+  Loader2,
+  Save,
 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { IssueState } from '../types';
+import { persistInterviewNotes } from '../services/interviewNotesService';
 
 const STATE_FLOW: IssueState[] = [
   'DISCOVERED',
@@ -27,6 +31,27 @@ export function PipelinePage() {
   const ctx = useOutletContext<MissionControlContextType>();
   const [activeTab, setActiveTab] = useState<'PIPELINE' | 'HISTORY'>('PIPELINE');
   const [expandedPipelineId, setExpandedPipelineId] = useState<string | null>(null);
+  const [optimisticNotes, setOptimisticNotes] = useState<Record<string, string>>({});
+  const [savingNotesId, setSavingNotesId] = useState<string | null>(null);
+  const [savedNotesSuccess, setSavedNotesSuccess] = useState<Record<string, boolean>>({});
+
+  const handleSaveNotes = async (taskId: string, inputVal: string) => {
+    setSavingNotesId(taskId);
+    setOptimisticNotes((prev) => ({ ...prev, [taskId]: inputVal }));
+
+    const res = await persistInterviewNotes(taskId, inputVal);
+    setSavingNotesId(null);
+
+    if (res.success) {
+      setSavedNotesSuccess((prev) => ({ ...prev, [taskId]: true }));
+      setTimeout(() => {
+        setSavedNotesSuccess((prev) => ({ ...prev, [taskId]: false }));
+      }, 2000);
+      ctx.fetchPipeline();
+    } else {
+      alert(res.error || 'Failed to save interview notes.');
+    }
+  };
 
   const getAvailableTransitions = (currentState: string) => {
     switch (currentState) {
@@ -318,37 +343,74 @@ export function PipelinePage() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="url"
-                            placeholder="https://docs.google.com/document/d/... (Google Docs or preparation notes link)"
-                            defaultValue={issue.interview_notes_url || ''}
-                            id={`interview-notes-${issue.id}`}
-                            className="flex-1 px-3 py-1.5 text-xs font-mono bg-white border border-zinc-200 focus:outline-none focus:border-indigo-500 shadow-inner"
-                          />
-                          <a
-                            href="https://docs.google.com/document/u/0/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors"
-                            title="Open Google Docs home to start a new document"
-                          >
-                            <Plus size={12} />
-                            <span>New Doc</span>
-                          </a>
-                          {issue.interview_notes_url && (
-                            <a
-                              href={issue.interview_notes_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors"
-                              title="Open linked preparation document"
-                            >
-                              <ExternalLink size={12} />
-                              <span>Open Doc</span>
-                            </a>
-                          )}
-                        </div>
+                        {(() => {
+                          const currentNotesUrl =
+                            optimisticNotes[issue.id] !== undefined
+                              ? optimisticNotes[issue.id]
+                              : issue.interview_notes_url || '';
+                          const isSaving = savingNotesId === issue.id;
+                          const isSaved = savedNotesSuccess[issue.id];
+
+                          return (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="url"
+                                placeholder="https://docs.google.com/document/d/... (Google Docs or preparation notes link)"
+                                defaultValue={currentNotesUrl}
+                                id={`interview-notes-${issue.id}`}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveNotes(issue.id, (e.target as HTMLInputElement).value);
+                                  }
+                                }}
+                                className="flex-1 px-3 py-1.5 text-xs font-mono bg-white border border-zinc-200 focus:outline-none focus:border-indigo-500 shadow-inner"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById(
+                                    `interview-notes-${issue.id}`,
+                                  ) as HTMLInputElement;
+                                  if (el) handleSaveNotes(issue.id, el.value);
+                                }}
+                                disabled={isSaving}
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                                title="Save interview notes link"
+                              >
+                                {isSaving ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : isSaved ? (
+                                  <Check size={12} className="text-emerald-300" />
+                                ) : (
+                                  <Save size={12} />
+                                )}
+                                <span>{isSaving ? 'Saving...' : isSaved ? 'Saved!' : 'Save'}</span>
+                              </button>
+                              <a
+                                href="https://docs.google.com/document/u/0/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors"
+                                title="Open Google Docs home to start a new document"
+                              >
+                                <Plus size={12} />
+                                <span>New Doc</span>
+                              </a>
+                              {currentNotesUrl && (
+                                <a
+                                  href={currentNotesUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                                  title="Open linked preparation document"
+                                >
+                                  <ExternalLink size={12} />
+                                  <span>Open Doc</span>
+                                </a>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Transition Actions */}
