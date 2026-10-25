@@ -1,16 +1,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { type Session, type User, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, hasSupabaseConfig } from '../services/supabase';
+import type { UserProfile, ExperienceLevel } from '../types/user';
 
-export interface UserProfile {
-  bio: string;
-  skills: string[];
-  github_handle: string;
-  automation_count_today: number;
-  last_automation_date: string;
-  custom_comment_enabled: boolean;
-  custom_comment_text: string | null;
-}
+export type { UserProfile, ExperienceLevel };
 
 interface AuthContextType {
   session: Session | null;
