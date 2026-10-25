@@ -85,6 +85,30 @@ export function calculateRecencyScore(
 }
 
 /**
+ * Calculates competition and opportunity accessibility score S_competition in range [0, maxWeight] (default 15).
+ * Rewards issues with fewer comments where contributor claims are open.
+ */
+export function calculateCompetitionScore(target: IssueScoringTarget, maxWeight = 15): number {
+  if (target.comments === undefined || target.comments === null || isNaN(target.comments)) {
+    return Math.round(maxWeight * 0.7); // neutral fallback ~11 pts
+  }
+
+  const count = Math.max(0, target.comments);
+
+  if (count === 0) {
+    return maxWeight;
+  } else if (count === 1) {
+    return Math.round(maxWeight * 0.85);
+  } else if (count === 2) {
+    return Math.round(maxWeight * 0.65);
+  } else if (count <= 5) {
+    return Math.round(maxWeight * 0.4);
+  }
+
+  return Math.round(maxWeight * 0.15);
+}
+
+/**
  * Calculates language alignment score S_lang in range [0, maxWeight] (default 35).
  *
  * Logic:
