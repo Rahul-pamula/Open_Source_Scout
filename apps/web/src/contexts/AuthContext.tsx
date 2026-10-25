@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { type Session, type User, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, hasSupabaseConfig } from '../services/supabase';
 import type { UserProfile, ExperienceLevel } from '../types/user';
+import { normalizeExperienceLevel } from '../types/user';
 
 export type { UserProfile, ExperienceLevel };
 
@@ -34,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle();
 
-      if (data && !data.experience_level) {
-        data.experience_level = 'Beginner';
+      if (data) {
+        data.experience_level = normalizeExperienceLevel(data.experience_level);
       }
       setUserProfile(data || null);
     } catch (e) {
