@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useSearchParams, Outlet, Link, useLocation } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
-import { buildGitHubSearchQuery } from '../utils/queryBuilder';
+import { buildGitHubSearchQuery, buildRelaxedGitHubSearchQuery } from '../utils/queryBuilder';
 import type { ExperienceLevel } from '../types/user';
 
 type Toast = { id: number; type: 'success' | 'error'; message: string };
@@ -182,16 +182,34 @@ export function MissionControl() {
 
       if (searchError) throw new Error('Failed to fetch from GitHub: ' + searchError.message);
 
-      const rawEligibleIssues: NormalizedIssue[] = searchData.data || [];
+      let rawEligibleIssues: NormalizedIssue[] = searchData.data || [];
 
       if (rawEligibleIssues.length === 0) {
-        setDiscoveryStatus(null);
-        setDiscoveryError(
-          "Scout couldn't find a strong match yet. Try updating your Agent Directives.",
+        setDiscoveryStatus('Broadening search parameters...');
+        const relaxedQuery = buildRelaxedGitHubSearchQuery({
+          skills: userProfile?.skills || authProfile?.skills,
+          experienceLevel:
+            userProfile?.experience_level || authProfile?.experience_level || 'Beginner',
+        });
+        setActiveQueryTelemetry(relaxedQuery);
+
+        const { data: relaxedData, error: relaxedError } = await supabase.functions.invoke(
+          'search',
+          { body: { query: relaxedQuery, limit: 50 } },
         );
-        setLastScanTime(Date.now());
-        setIsDiscovering(false);
-        return;
+
+        if (!relaxedError && relaxedData?.data && relaxedData.data.length > 0) {
+          rawEligibleIssues = relaxedData.data;
+          showToast('success', 'Broadened search parameters to find opportunities');
+        } else {
+          setDiscoveryStatus(null);
+          setDiscoveryError(
+            "Scout couldn't find a strong match yet. Try updating your Agent Directives.",
+          );
+          setLastScanTime(Date.now());
+          setIsDiscovering(false);
+          return;
+        }
       }
 
       setDiscoveryStatus('Filtering candidates...');
