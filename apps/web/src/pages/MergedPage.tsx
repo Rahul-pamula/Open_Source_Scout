@@ -1,9 +1,12 @@
+import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { PartyPopper, ExternalLink, Undo2, Loader2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
 import { GoogleDocsLinkButton } from '../components/GoogleDocsLinkButton';
 import { EditableInterviewNotesBlock } from '../components/EditableInterviewNotesBlock';
+import { TabSearchBar } from '../components/TabSearchBar';
+import { filterTasksByQuery } from '../utils/taskFilter';
 import type { Task } from '../types';
 
 function MergedCard({
@@ -78,8 +81,13 @@ function MergedCard({
 
 export function MergedPage() {
   const ctx = useOutletContext<MissionControlContextType>();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const mergedIssues = ctx.trackedIssues.filter((i) => i.state === 'COMPLETED');
+  const filteredMerged = useMemo(
+    () => filterTasksByQuery(mergedIssues, searchQuery),
+    [mergedIssues, searchQuery],
+  );
 
   const handleMoveToReview = async (issue: Task) => {
     // Merged is 'COMPLETED', moving back to under review means state='ASSIGNED', under_review=true
@@ -90,14 +98,23 @@ export function MergedPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-2">
           <PartyPopper size={16} />
           Merged
           <span className="font-mono text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 border border-emerald-100">
-            {mergedIssues.length}
+            {searchQuery
+              ? `${filteredMerged.length} / ${mergedIssues.length}`
+              : mergedIssues.length}
           </span>
         </h2>
+        <TabSearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Filter merged by repo name..."
+          totalCount={mergedIssues.length}
+          filteredCount={filteredMerged.length}
+        />
       </div>
 
       {ctx.isTrackingLoading ? (
@@ -110,9 +127,21 @@ export function MergedPage() {
         <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
           <p className="text-zinc-500 font-mono text-sm">No merged contributions yet.</p>
         </div>
+      ) : filteredMerged.length === 0 ? (
+        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
+          <p className="text-zinc-500 font-mono text-sm mb-3">
+            No merged issues match repository or title query &ldquo;{searchQuery}&rdquo;.
+          </p>
+          <button
+            onClick={() => setSearchQuery('')}
+            className="text-xs font-mono font-bold text-zinc-900 border border-zinc-300 px-3 py-1.5 bg-white hover:bg-zinc-100 uppercase tracking-wider shadow-sm transition-all"
+          >
+            Clear Filter
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {mergedIssues.map((issue) => (
+          {filteredMerged.map((issue) => (
             <MergedCard
               key={issue.id}
               issue={issue}

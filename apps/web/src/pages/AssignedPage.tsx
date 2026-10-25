@@ -1,8 +1,11 @@
+import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 import { CheckSquare, ExternalLink, Loader2, Undo2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
+import { TabSearchBar } from '../components/TabSearchBar';
+import { filterTasksByQuery } from '../utils/taskFilter';
 import type { Task } from '../types';
 
 function AssignedCard({
@@ -91,9 +94,14 @@ function AssignedCard({
 
 export function AssignedPage() {
   const ctx = useOutletContext<MissionControlContextType>();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const assignedIssues = ctx.trackedIssues.filter(
     (i) => i.state === 'ASSIGNED' && !i.contribution_checklist?.under_review,
+  );
+  const filteredAssigned = useMemo(
+    () => filterTasksByQuery(assignedIssues, searchQuery),
+    [assignedIssues, searchQuery],
   );
 
   const handleMarkUnderReview = async (issue: Task) => {
@@ -103,14 +111,23 @@ export function AssignedPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-blue-700 uppercase tracking-widest flex items-center gap-2">
           <CheckSquare size={16} />
           Assigned Issues
           <span className="font-mono text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 border border-blue-100">
-            {assignedIssues.length}
+            {searchQuery
+              ? `${filteredAssigned.length} / ${assignedIssues.length}`
+              : assignedIssues.length}
           </span>
         </h2>
+        <TabSearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Filter assigned by repo name..."
+          totalCount={assignedIssues.length}
+          filteredCount={filteredAssigned.length}
+        />
       </div>
 
       {ctx.isTrackingLoading ? (
@@ -126,9 +143,21 @@ export function AssignedPage() {
             here.
           </p>
         </div>
+      ) : filteredAssigned.length === 0 ? (
+        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
+          <p className="text-zinc-500 font-mono text-sm mb-3">
+            No assigned issues match repository or title query &ldquo;{searchQuery}&rdquo;.
+          </p>
+          <button
+            onClick={() => setSearchQuery('')}
+            className="text-xs font-mono font-bold text-zinc-900 border border-zinc-300 px-3 py-1.5 bg-white hover:bg-zinc-100 uppercase tracking-wider shadow-sm transition-all"
+          >
+            Clear Filter
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {assignedIssues.map((issue) => (
+          {filteredAssigned.map((issue) => (
             <AssignedCard
               key={issue.id}
               issue={issue}
