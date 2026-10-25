@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useSearchParams, Outlet, Link, useLocation } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
+import { buildGitHubSearchQuery } from '../utils/queryBuilder';
 
 type Toast = { id: number; type: 'success' | 'error'; message: string };
 
@@ -158,12 +159,9 @@ export function MissionControl() {
       setDiscoveryError(null);
       setDiscoveryStatus('Searching GitHub...');
 
-      const skillsQuery =
-        userProfile && userProfile.skills.length > 0
-          ? userProfile.skills.map((s) => `language:${s}`).join(' ')
-          : 'language:typescript';
-      // Add sort:updated-desc to get the freshest issues
-      const dynamicSearchQuery = `is:open is:issue label:"good first issue" ${skillsQuery} sort:updated-desc`;
+      const dynamicSearchQuery = buildGitHubSearchQuery({
+        skills: userProfile?.skills,
+      });
 
       // Fetch 50 issues from GitHub search to give us a pool to shuffle from
       const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
