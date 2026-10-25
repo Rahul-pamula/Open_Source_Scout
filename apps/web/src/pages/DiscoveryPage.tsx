@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
@@ -10,6 +10,8 @@ export function DiscoveryPage() {
   const ctx = useOutletContext<MissionControlContextType>();
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
   const [minScoreThreshold, setMinScoreThreshold] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const PAGE_SIZE = 6;
 
   const filteredAndSortedIssues = useMemo(() => {
     let list = ctx.scoutedIssues;
@@ -30,6 +32,17 @@ export function DiscoveryPage() {
     }
     return cloned;
   }, [ctx.scoutedIssues, sortBy, minScoreThreshold]);
+
+  // Reset page when filtering or sorting changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortBy, minScoreThreshold, ctx.scoutedIssues]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedIssues.length / PAGE_SIZE));
+  const paginatedIssues = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredAndSortedIssues.slice(start, start + PAGE_SIZE);
+  }, [filteredAndSortedIssues, currentPage]);
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -118,16 +131,51 @@ export function DiscoveryPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredAndSortedIssues.map((issue) => (
-            <IssueCard
-              key={issue.id}
-              issue={issue}
-              onSave={ctx.handleSaveToPipeline}
-              onClaim={ctx.handleClaimIssue}
-              isClaiming={ctx.claimingIssueUrl === issue.url}
-            />
-          ))}
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {paginatedIssues.map((issue) => (
+              <IssueCard
+                key={issue.id}
+                issue={issue}
+                onSave={ctx.handleSaveToPipeline}
+                onClaim={ctx.handleClaimIssue}
+                isClaiming={ctx.claimingIssueUrl === issue.url}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t border-zinc-200 text-xs font-mono flex-wrap gap-2">
+              <span className="text-zinc-500">
+                Showing {(currentPage - 1) * PAGE_SIZE + 1} -{' '}
+                {Math.min(currentPage * PAGE_SIZE, filteredAndSortedIssues.length)} of{' '}
+                {filteredAndSortedIssues.length} candidates
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="pagination-prev"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 rounded disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="text-zinc-700 font-bold px-1">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  data-testid="pagination-next"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 rounded disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
