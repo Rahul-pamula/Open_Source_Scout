@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
+import type { ExperienceLevel } from '../../types/user';
+
+export type { ExperienceLevel };
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
@@ -47,8 +50,6 @@ const DOMAINS = [
   'Compilers',
   'Networking',
 ];
-
-export type ExperienceLevel = 'Beginner' | 'Intermediate' | 'Senior';
 
 const EXPERIENCE_LEVELS: ExperienceLevel[] = ['Beginner', 'Intermediate', 'Senior'];
 
@@ -116,7 +117,7 @@ function ChipGroup({
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function Skills({ onBack, onComplete, bio, githubHandle }: SkillsProps) {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
 
   const [languages, setLanguages] = useState<string[]>([]);
   const [frameworks, setFrameworks] = useState<string[]>([]);
@@ -165,6 +166,7 @@ export function Skills({ onBack, onComplete, bio, githubHandle }: SkillsProps) {
       });
 
       if (error) throw new Error(error.message);
+      await refreshProfile();
       onComplete();
     } catch (err) {
       const e = err as Error;
