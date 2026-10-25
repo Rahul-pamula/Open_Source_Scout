@@ -1,3 +1,5 @@
+export * from './types/user';
+
 export interface NormalizedIssue {
   id: string;
   url: string;
