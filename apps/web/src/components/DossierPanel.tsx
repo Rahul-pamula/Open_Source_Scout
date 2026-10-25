@@ -1,5 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Loader2, ExternalLink, Copy, Check, CheckCircle, Terminal } from 'lucide-react';
+import {
+  X,
+  Loader2,
+  ExternalLink,
+  Copy,
+  Check,
+  CheckCircle,
+  Terminal,
+  Calculator,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { NormalizedIssue, EvaluationResult } from '../types';
@@ -39,6 +50,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
   const [githubError, setGithubError] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
 
   // Engagement State
   const [draftState, setDraftState] = useState<DraftState>('IDLE');
@@ -451,6 +463,84 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                         {evaluation.explanation}
                       </p>
                     </div>
+
+                    {/* 100-Point Algorithmic Breakdown Section */}
+                    {relevanceBreakdown && (
+                      <div className="pt-3 border-t border-zinc-100">
+                        <button
+                          type="button"
+                          onClick={() => setShowScoreBreakdown(!showScoreBreakdown)}
+                          className="w-full flex items-center justify-between p-2.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-left transition-colors"
+                          aria-expanded={showScoreBreakdown}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calculator size={14} className="text-emerald-600" />
+                            <span className="font-mono text-xs font-semibold text-zinc-800">
+                              100-Point Match Arithmetic
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-emerald-600">
+                              {relevanceBreakdown.total}/100 pts
+                            </span>
+                            {showScoreBreakdown ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            )}
+                          </div>
+                        </button>
+
+                        {showScoreBreakdown && (
+                          <div className="mt-2 p-3 bg-zinc-50 border border-zinc-200 font-mono text-xs space-y-2">
+                            <div className="flex justify-between items-center text-zinc-600">
+                              <span>Language Alignment:</span>
+                              <span className="font-semibold text-zinc-900">
+                                {relevanceBreakdown.langScore} / 35
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-zinc-600">
+                              <span>Technology & Frameworks:</span>
+                              <span className="font-semibold text-zinc-900">
+                                {relevanceBreakdown.techScore} / 25
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-zinc-600">
+                              <span>Fresh Activity & Recency:</span>
+                              <span className="font-semibold text-zinc-900">
+                                {relevanceBreakdown.recencyScore} / 15
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-zinc-600">
+                              <span>Unclaimed Opportunity:</span>
+                              <span className="font-semibold text-zinc-900">
+                                {relevanceBreakdown.competitionScore} / 15
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-zinc-600">
+                              <span>Experience Level Match:</span>
+                              <span className="font-semibold text-zinc-900">
+                                {relevanceBreakdown.difficultyScore} / 10
+                              </span>
+                            </div>
+                            {relevanceBreakdown.penalties > 0 && (
+                              <div className="flex justify-between items-center text-red-600 border-t border-zinc-200 pt-1">
+                                <span>Penalties Deducted:</span>
+                                <span className="font-semibold">
+                                  -{relevanceBreakdown.penalties}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center border-t border-zinc-300 pt-2 font-bold text-zinc-900">
+                              <span>Deterministic Aggregate:</span>
+                              <span className="text-emerald-600">
+                                {relevanceBreakdown.total} / 100 pts
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-zinc-50 border border-zinc-200 p-4 text-zinc-500 font-mono text-sm">
