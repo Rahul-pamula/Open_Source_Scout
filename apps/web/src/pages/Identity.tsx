@@ -10,6 +10,7 @@ import {
   Award,
   AlertCircle,
   CheckCircle2,
+  HelpCircle,
 } from 'lucide-react';
 import type { ExperienceLevel } from '../types/user';
 
@@ -178,10 +179,19 @@ export function Identity() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-zinc-900 flex items-center gap-1.5">
-                  <Award className="w-4 h-4 text-zinc-700" />
-                  Experience Level
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-zinc-900 flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-zinc-700" />
+                    Experience Level
+                  </label>
+                  <span
+                    className="text-xs font-mono text-zinc-400 flex items-center gap-1 cursor-help hover:text-zinc-600 transition-colors"
+                    title="Calibrates discovery search: Beginners receive good-first-issues, Intermediates receive features, and Seniors receive core architecture tasks."
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    <span>How Scout uses this</span>
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {[
                     {
