@@ -3,8 +3,9 @@ import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
 import type { ExperienceLevel } from '../../types/user';
+import type { CategorizedSkillsCollection } from '../../types/skills';
 
-export type { ExperienceLevel };
+export type { ExperienceLevel, CategorizedSkillsCollection };
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,18 @@ interface SkillsProps {
   githubHandle: string;
 }
 
+export function buildCategorizedSkillPayload(
+  languages: string[],
+  frameworks: string[],
+  domains: string[],
+): CategorizedSkillsCollection {
+  return {
+    languages: Array.from(new Set(languages)),
+    frameworks: Array.from(new Set(frameworks)),
+    domains: Array.from(new Set(domains)),
+  };
+}
+
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function ChipGroup({
@@ -86,8 +99,13 @@ function ChipGroup({
 }) {
   return (
     <fieldset>
-      <legend className="block text-sm font-semibold text-zinc-900 mb-2 uppercase tracking-wide font-mono">
-        {label}
+      <legend className="flex items-center gap-2 text-sm font-semibold text-zinc-900 mb-2 uppercase tracking-wide font-mono">
+        <span>{label}</span>
+        {selected.length > 0 && (
+          <span className="text-xs px-2 py-0.5 bg-zinc-900 text-white font-mono">
+            {selected.length}
+          </span>
+        )}
       </legend>
       <div className="flex flex-wrap gap-2" id={id}>
         {options.map((opt) => {
@@ -154,7 +172,12 @@ export function Skills({ onBack, onComplete, bio, githubHandle }: SkillsProps) {
     setServerError(null);
 
     try {
-      const allSkills = [...languages, ...frameworks, ...domains];
+      const categorized = buildCategorizedSkillPayload(languages, frameworks, domains);
+      const allSkills = [
+        ...categorized.languages,
+        ...categorized.frameworks,
+        ...categorized.domains,
+      ];
 
       const { error } = await supabase.from('users').upsert({
         id: user.id,
