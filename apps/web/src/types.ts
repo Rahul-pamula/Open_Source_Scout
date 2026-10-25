@@ -1,5 +1,6 @@
 export * from './types/user';
 export * from './types/skills';
+export * from './types/relevance';
 
 export interface NormalizedIssue {
   id: string;
@@ -12,6 +13,10 @@ export interface NormalizedIssue {
   isAssigned: boolean;
   labels: string[];
   createdAt: string;
+  updatedAt?: string;
+  commentsCount?: number;
+  language?: string | null;
+  repositoryTopics?: string[];
 }
 
 export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD';
@@ -27,6 +32,8 @@ export interface EvaluationResult {
 // A combined type for the UI to consume
 export interface ScoutedIssue extends NormalizedIssue {
   evaluation?: EvaluationResult;
+  relevanceScore?: number;
+  relevanceBreakdown?: import('./types/relevance').RelevanceScoreBreakdown;
 }
 
 export interface NormalizedComment {
