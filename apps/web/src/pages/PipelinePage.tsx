@@ -16,7 +16,11 @@ import {
 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { IssueState } from '../types';
-import { persistInterviewNotes } from '../services/interviewNotesService';
+import {
+  persistInterviewNotes,
+  validateAndNormalizeNotesUrl,
+} from '../services/interviewNotesService';
+import { isValidGoogleDocsUrl } from '../utils/urlHelpers';
 
 const STATE_FLOW: IssueState[] = [
   'DISCOVERED',
@@ -34,8 +38,24 @@ export function PipelinePage() {
   const [optimisticNotes, setOptimisticNotes] = useState<Record<string, string>>({});
   const [savingNotesId, setSavingNotesId] = useState<string | null>(null);
   const [savedNotesSuccess, setSavedNotesSuccess] = useState<Record<string, boolean>>({});
+  const [notesToast, setNotesToast] = useState<{
+    taskId: string;
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   const handleSaveNotes = async (taskId: string, inputVal: string) => {
+    const { valid, error } = validateAndNormalizeNotesUrl(inputVal);
+    if (!valid) {
+      setNotesToast({
+        taskId,
+        type: 'error',
+        message: error || 'Please enter a valid HTTP or HTTPS document URL.',
+      });
+      setTimeout(() => setNotesToast(null), 4000);
+      return;
+    }
+
     setSavingNotesId(taskId);
     setOptimisticNotes((prev) => ({ ...prev, [taskId]: inputVal }));
 
@@ -44,12 +64,25 @@ export function PipelinePage() {
 
     if (res.success) {
       setSavedNotesSuccess((prev) => ({ ...prev, [taskId]: true }));
+      setNotesToast({
+        taskId,
+        type: 'success',
+        message: isValidGoogleDocsUrl(res.normalizedUrl)
+          ? 'Google Docs preparation link saved successfully!'
+          : 'Interview preparation notes URL saved successfully!',
+      });
       setTimeout(() => {
         setSavedNotesSuccess((prev) => ({ ...prev, [taskId]: false }));
-      }, 2000);
+        setNotesToast(null);
+      }, 3000);
       ctx.fetchPipeline();
     } else {
-      alert(res.error || 'Failed to save interview notes.');
+      setNotesToast({
+        taskId,
+        type: 'error',
+        message: res.error || 'Failed to save interview notes.',
+      });
+      setTimeout(() => setNotesToast(null), 4000);
     }
   };
 
@@ -352,63 +385,87 @@ export function PipelinePage() {
                           const isSaved = savedNotesSuccess[issue.id];
 
                           return (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="url"
-                                placeholder="https://docs.google.com/document/d/... (Google Docs or preparation notes link)"
-                                defaultValue={currentNotesUrl}
-                                id={`interview-notes-${issue.id}`}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleSaveNotes(issue.id, (e.target as HTMLInputElement).value);
-                                  }
-                                }}
-                                className="flex-1 px-3 py-1.5 text-xs font-mono bg-white border border-zinc-200 focus:outline-none focus:border-indigo-500 shadow-inner"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const el = document.getElementById(
-                                    `interview-notes-${issue.id}`,
-                                  ) as HTMLInputElement;
-                                  if (el) handleSaveNotes(issue.id, el.value);
-                                }}
-                                disabled={isSaving}
-                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
-                                title="Save interview notes link"
-                              >
-                                {isSaving ? (
-                                  <Loader2 size={12} className="animate-spin" />
-                                ) : isSaved ? (
-                                  <Check size={12} className="text-emerald-300" />
-                                ) : (
-                                  <Save size={12} />
-                                )}
-                                <span>{isSaving ? 'Saving...' : isSaved ? 'Saved!' : 'Save'}</span>
-                              </button>
-                              <a
-                                href="https://docs.google.com/document/u/0/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors"
-                                title="Open Google Docs home to start a new document"
-                              >
-                                <Plus size={12} />
-                                <span>New Doc</span>
-                              </a>
-                              {currentNotesUrl && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="url"
+                                  placeholder="https://docs.google.com/document/d/... (Google Docs or preparation notes link)"
+                                  defaultValue={currentNotesUrl}
+                                  id={`interview-notes-${issue.id}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleSaveNotes(
+                                        issue.id,
+                                        (e.target as HTMLInputElement).value,
+                                      );
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-1.5 text-xs font-mono bg-white border border-zinc-200 focus:outline-none focus:border-indigo-500 shadow-inner"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const el = document.getElementById(
+                                      `interview-notes-${issue.id}`,
+                                    ) as HTMLInputElement;
+                                    if (el) handleSaveNotes(issue.id, el.value);
+                                  }}
+                                  disabled={isSaving}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                                  title="Save interview notes link"
+                                >
+                                  {isSaving ? (
+                                    <Loader2 size={12} className="animate-spin" />
+                                  ) : isSaved ? (
+                                    <Check size={12} className="text-emerald-300" />
+                                  ) : (
+                                    <Save size={12} />
+                                  )}
+                                  <span>
+                                    {isSaving ? 'Saving...' : isSaved ? 'Saved!' : 'Save'}
+                                  </span>
+                                </button>
                                 <a
-                                  href={currentNotesUrl}
+                                  href="https://docs.google.com/document/u/0/"
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors"
-                                  title="Open linked preparation document"
+                                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors"
+                                  title="Open Google Docs home to start a new document"
                                 >
-                                  <ExternalLink size={12} />
-                                  <span>Open Doc</span>
+                                  <Plus size={12} />
+                                  <span>New Doc</span>
                                 </a>
+                                {currentNotesUrl && (
+                                  <a
+                                    href={currentNotesUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                                    title="Open linked preparation document"
+                                  >
+                                    <ExternalLink size={12} />
+                                    <span>Open Doc</span>
+                                  </a>
+                                )}
+                              </div>
+
+                              {notesToast && notesToast.taskId === issue.id && (
+                                <div
+                                  className={`p-2 text-xs font-mono border flex items-center gap-2 animate-in fade-in duration-150 ${
+                                    notesToast.type === 'success'
+                                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                      : 'bg-red-50 border-red-200 text-red-600'
+                                  }`}
+                                >
+                                  {notesToast.type === 'success' ? (
+                                    <Check size={13} className="text-emerald-600 shrink-0" />
+                                  ) : (
+                                    <Activity size={13} className="text-red-500 shrink-0" />
+                                  )}
+                                  <span>{notesToast.message}</span>
+                                </div>
                               )}
-                            </div>
+                            </>
                           );
                         })()}
                       </div>
