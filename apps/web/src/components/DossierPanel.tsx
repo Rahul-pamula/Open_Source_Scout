@@ -10,12 +10,14 @@ import {
   Calculator,
   ChevronDown,
   ChevronUp,
+  Shield,
 } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { NormalizedIssue, EvaluationResult } from '../types';
 import type { RelevanceScoreBreakdown, IssueScoringTarget } from '../types/relevance';
 import { calculateRelevanceScore } from '../utils/relevanceScorer';
+import { generateInterviewDefense } from '../utils/interviewDefenseGenerator';
 
 interface DossierPanelProps {
   owner: string;
@@ -548,6 +550,60 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                   </div>
                 )}
               </section>
+
+              {/* INTERVIEW DEFENSE TALKING POINTS SECTION */}
+              {issue && (
+                <section aria-labelledby="interview-defense-heading">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Shield size={16} className="text-indigo-600" />
+                    <h3
+                      id="interview-defense-heading"
+                      className="text-xs font-bold tracking-widest uppercase text-indigo-600"
+                    >
+                      INTERVIEW DEFENSE CHEAT-SHEET
+                    </h3>
+                  </div>
+
+                  {(() => {
+                    const defense = generateInterviewDefense(
+                      issue,
+                      userProfile,
+                      relevanceBreakdown,
+                    );
+                    return (
+                      <div className="bg-indigo-50/50 border-2 border-indigo-900 shadow-[4px_4px_0px_#312e81] p-5 flex flex-col gap-4">
+                        <div>
+                          <span className="block font-mono text-[10px] tracking-widest text-indigo-700 uppercase mb-1">
+                            Elevator Pitch (30-Second Summary)
+                          </span>
+                          <p className="text-sm text-zinc-800 leading-relaxed bg-white p-3 border border-indigo-100 font-sans">
+                            "{defense.elevatorPitch}"
+                          </p>
+                        </div>
+
+                        <div>
+                          <span className="block font-mono text-[10px] tracking-widest text-indigo-700 uppercase mb-2">
+                            Why I Chose This Issue (Key Talking Points)
+                          </span>
+                          <ul className="space-y-2">
+                            {defense.talkingPoints.map((point, idx) => (
+                              <li
+                                key={idx}
+                                className="text-xs text-zinc-700 bg-white p-2.5 border border-indigo-100 flex items-start gap-2"
+                              >
+                                <span className="font-mono text-indigo-600 font-bold">
+                                  0{idx + 1}.
+                                </span>
+                                <span>{point}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </section>
+              )}
 
               {/* GITHUB FACTS SECTION */}
               <section aria-labelledby="github-facts-heading">

@@ -6,13 +6,14 @@ import type { UserProfile } from '../types/user';
 
 describe('DossierPanel evaluation relevance injection', () => {
   const mockProfile: UserProfile = {
-    id: 'user-123',
-    email: 'dev@example.com',
-    experience_level: 'intermediate',
-    primary_language: 'TypeScript',
-    skills: ['TypeScript', 'React', 'Node.js', 'TailwindCSS'],
-    frameworks: ['React', 'Node.js'],
     bio: 'Fullstack developer specializing in React and TypeScript.',
+    skills: ['TypeScript', 'React', 'Node.js', 'TailwindCSS'],
+    github_handle: 'testdev',
+    automation_count_today: 0,
+    last_automation_date: '2026-10-25',
+    custom_comment_enabled: false,
+    custom_comment_text: null,
+    experience_level: 'Intermediate',
   };
 
   it('correctly calculates relevance breakdown for a dossier issue target', () => {
