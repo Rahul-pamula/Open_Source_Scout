@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowRight, ShieldCheck, Database, GitMerge } from 'lucide-react';
+import { Loader2, ArrowRight, ShieldCheck, Database, GitMerge, Award } from 'lucide-react';
+import type { ExperienceLevel } from '../types/user';
 
 const PREDEFINED_SKILLS = [
   'javascript',
@@ -18,12 +19,13 @@ const PREDEFINED_SKILLS = [
 ];
 
 export function Identity() {
-  const { user, userProfile, refreshProfile } = useAuth();
+  const { user, userProfile, refreshProfile, updateExperienceLevel } = useAuth();
 
   // Local state for editing
   const [bio, setBio] = useState('');
   const [githubHandle, setGithubHandle] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('Beginner');
   const [customSkill, setCustomSkill] = useState('');
 
   // Custom Comment State
@@ -41,6 +43,7 @@ export function Identity() {
       setBio(userProfile.bio || '');
       setGithubHandle(userProfile.github_handle || '');
       setSelectedSkills(userProfile.skills || []);
+      setExperienceLevel(userProfile.experience_level || 'Beginner');
       setCustomCommentEnabled(userProfile.custom_comment_enabled || false);
       setCustomCommentText(userProfile.custom_comment_text || '');
     }
@@ -74,6 +77,7 @@ export function Identity() {
       bio,
       github_handle: githubHandle,
       skills: selectedSkills,
+      experience_level: experienceLevel,
       custom_comment_enabled: customCommentEnabled,
       custom_comment_text: customCommentText,
     });
@@ -81,6 +85,7 @@ export function Identity() {
     if (error) {
       alert('Failed to save profile: ' + error.message);
     } else {
+      await updateExperienceLevel(experienceLevel);
       await refreshProfile();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -127,6 +132,53 @@ export function Identity() {
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                 />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-zinc-900 flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-zinc-700" />
+                  Experience Level
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[
+                    {
+                      id: 'Beginner' as const,
+                      label: 'Beginner',
+                      desc: 'Good first issues, documentation, and small bug fixes.',
+                    },
+                    {
+                      id: 'Intermediate' as const,
+                      label: 'Intermediate',
+                      desc: 'Feature requests, bug investigations, and help-wanted issues.',
+                    },
+                    {
+                      id: 'Senior' as const,
+                      label: 'Senior',
+                      desc: 'Complex architecture, core systems, and performance tuning.',
+                    },
+                  ].map((lvl) => {
+                    const active = experienceLevel === lvl.id;
+                    return (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => setExperienceLevel(lvl.id)}
+                        className={`text-left p-4 border-2 transition-all font-mono ${
+                          active
+                            ? 'bg-zinc-900 text-white border-zinc-900 shadow-[4px_4px_0px_#18181b]'
+                            : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-900'
+                        }`}
+                      >
+                        <div className="font-bold text-sm mb-1">{lvl.label}</div>
+                        <div
+                          className={`text-xs leading-relaxed ${active ? 'text-zinc-300' : 'text-zinc-500'}`}
+                        >
+                          {lvl.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
