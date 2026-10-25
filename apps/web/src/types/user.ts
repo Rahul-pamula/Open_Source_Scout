@@ -12,9 +12,10 @@ export interface UserProfile {
 }
 
 export function normalizeExperienceLevel(level: unknown): ExperienceLevel {
-  if (level === 'Intermediate' || level === 'Senior') {
-    return level;
-  }
+  if (typeof level !== 'string') return 'Beginner';
+  const lower = level.trim().toLowerCase();
+  if (lower === 'senior') return 'Senior';
+  if (lower === 'intermediate') return 'Intermediate';
   return 'Beginner';
 }
 
