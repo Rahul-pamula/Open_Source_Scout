@@ -1,5 +1,11 @@
-import type { IssueScoringTarget } from '../types/relevance';
-import type { ExperienceLevel } from '../types/user';
+import type {
+  IssueScoringTarget,
+  RelevanceScoreBreakdown,
+  ScoringWeights,
+} from '../types/relevance';
+import { DEFAULT_SCORING_WEIGHTS } from '../types/relevance';
+import type { ExperienceLevel, UserProfile } from '../types/user';
+import { classifySkills } from './skillClassifier';
 import { getTopicSynonyms } from './topicSynonyms';
 
 /**
@@ -246,4 +252,50 @@ export function calculateLanguageScore(
   }
 
   return 0;
+}
+
+/**
+ * Master 100-Point Mathematical Relevance Scoring Engine.
+ *
+ * Formula:
+ * Score = Clamp(0, 100, S_lang + S_tech + S_recency + S_competition + S_difficulty - P_penalties)
+ */
+export function calculateRelevanceScore(
+  target: IssueScoringTarget,
+  profile: Partial<UserProfile> | null | undefined,
+  customWeights?: Partial<ScoringWeights>,
+  referenceDate: Date = new Date(),
+): RelevanceScoreBreakdown {
+  const weights: ScoringWeights = {
+    ...DEFAULT_SCORING_WEIGHTS,
+    ...(customWeights || {}),
+  };
+
+  const userSkills = profile?.skills || [];
+  const { languages, frameworks } = classifySkills(userSkills);
+
+  const langScore = calculateLanguageScore(target, languages, weights.languageWeight);
+  const techScore = calculateTechScore(target, frameworks, weights.techWeight);
+  const recencyScore = calculateRecencyScore(target, referenceDate, weights.recencyWeight);
+  const competitionScore = calculateCompetitionScore(target, weights.competitionWeight);
+  const difficultyScore = calculateDifficultyScore(
+    target,
+    profile?.experience_level,
+    weights.difficultyWeight,
+  );
+  const penalties = calculatePenalties(target, referenceDate);
+
+  const rawTotal =
+    langScore + techScore + recencyScore + competitionScore + difficultyScore - penalties;
+  const total = Math.max(0, Math.min(100, Math.round(rawTotal)));
+
+  return {
+    langScore,
+    techScore,
+    recencyScore,
+    competitionScore,
+    difficultyScore,
+    penalties,
+    total,
+  };
 }
