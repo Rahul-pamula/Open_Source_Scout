@@ -10,3 +10,10 @@ export interface UserProfile {
   custom_comment_text: string | null;
   experience_level?: ExperienceLevel;
 }
+
+export function normalizeExperienceLevel(level: unknown): ExperienceLevel {
+  if (level === 'Intermediate' || level === 'Senior') {
+    return level;
+  }
+  return 'Beginner';
+}
