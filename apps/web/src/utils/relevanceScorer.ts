@@ -52,6 +52,39 @@ export function calculateTechScore(
 }
 
 /**
+ * Calculates recency and fresh activity score S_recency in range [0, maxWeight] (default 15).
+ * Rewards active, freshly updated issues and penalizes abandoned ones.
+ */
+export function calculateRecencyScore(
+  target: IssueScoringTarget,
+  referenceDate: Date = new Date(),
+  maxWeight = 15,
+): number {
+  const dateStr = target.updated_at || target.created_at;
+  if (!dateStr) return 0;
+
+  const issueDate = new Date(dateStr);
+  if (isNaN(issueDate.getTime())) return 0;
+
+  const diffMs = referenceDate.getTime() - issueDate.getTime();
+  if (diffMs < 0) return maxWeight;
+
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+  if (diffDays <= 7) {
+    return maxWeight;
+  } else if (diffDays <= 30) {
+    return Math.round(maxWeight * 0.8);
+  } else if (diffDays <= 90) {
+    return Math.round(maxWeight * 0.5);
+  } else if (diffDays <= 180) {
+    return Math.round(maxWeight * 0.25);
+  }
+
+  return 0;
+}
+
+/**
  * Calculates language alignment score S_lang in range [0, maxWeight] (default 35).
  *
  * Logic:
