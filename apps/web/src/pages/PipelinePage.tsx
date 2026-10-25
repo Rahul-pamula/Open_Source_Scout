@@ -8,6 +8,7 @@ import {
   ExternalLink,
   ChevronRight,
   ChevronDown,
+  FileText,
 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { IssueState } from '../types';
@@ -304,6 +305,27 @@ export function PipelinePage() {
                             </div>
                           );
                         })}
+                      </div>
+
+                      {/* Interview Notes / Prep Docs Block */}
+                      <div className="mt-2 pt-3 border-t border-zinc-200 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <FileText size={13} className="text-indigo-600" />
+                            <span className="font-mono text-[9px] text-zinc-700 uppercase tracking-widest font-bold">
+                              Interview Defense & Prep Notes
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="url"
+                            placeholder="https://docs.google.com/document/d/... (Google Docs or preparation notes link)"
+                            defaultValue={issue.interview_notes_url || ''}
+                            id={`interview-notes-${issue.id}`}
+                            className="flex-1 px-3 py-1.5 text-xs font-mono bg-white border border-zinc-200 focus:outline-none focus:border-indigo-500 shadow-inner"
+                          />
+                        </div>
                       </div>
 
                       {/* Transition Actions */}
