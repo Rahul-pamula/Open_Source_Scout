@@ -12,6 +12,8 @@ The Scout v1 Cloud Dashboard is publicly hosted and ready to use:
 
 Just bring your own Supabase backend and GitHub token. Setup takes about 5 minutes.
 
+> 📢 **New in v2.1.0:** 100-Point Mathematical Relevance Scoring Engine, Push-Down Query Taxonomy, and Structured Interview Defense Generator. Read the [v2.1.0 Release Notes](./docs/RELEASE_NOTES_v2.1.0.md).
+
 ---
 
 ## The Dual-Engine Architecture
