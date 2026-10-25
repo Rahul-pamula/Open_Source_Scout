@@ -17,7 +17,11 @@ export class GroqEvaluator {
    * Evaluate a single eligible issue against the user's profile.
    * Forces JSON output.
    */
-  async evaluateIssue(issue: NormalizedIssue, userProfile: string): Promise<EvaluationResult> {
+  async evaluateIssue(
+    issue: NormalizedIssue,
+    userProfile: string,
+    relevanceBreakdown?: any,
+  ): Promise<EvaluationResult> {
     const groq = this.client;
     if (!groq) {
       throw new Error('Groq client is not initialized (missing API key).');
@@ -39,9 +43,20 @@ You MUST output ONLY valid JSON in the following strict format, with no markdown
 }
 `;
 
+    const breakdownContext = relevanceBreakdown
+      ? `\nALGORITHMIC 100-POINT RELEVANCE BREAKDOWN:
+Total Score: ${relevanceBreakdown.total ?? 'N/A'}/100
+- Language Alignment: ${relevanceBreakdown.langScore ?? 0}/35
+- Tech & Frameworks: ${relevanceBreakdown.techScore ?? 0}/25
+- Recency & Activity: ${relevanceBreakdown.recencyScore ?? 0}/15
+- Competition & Opportunity: ${relevanceBreakdown.competitionScore ?? 0}/15
+- Difficulty Alignment: ${relevanceBreakdown.difficultyScore ?? 0}/10
+- Deductions: -${relevanceBreakdown.penalties ?? 0}\n`
+      : '';
+
     const userPrompt = `USER PROFILE:
 ${userProfile}
-
+${breakdownContext}
 --- BEGIN UNTRUSTED GITHUB ISSUE DATA ---
 Title: ${issue.title}
 Repository: ${issue.repoName}

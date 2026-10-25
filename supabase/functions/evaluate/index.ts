@@ -18,7 +18,7 @@ serve(async (req) => {
       })
     }
 
-    const { issue, issues, profile } = await req.json()
+    const { issue, issues, profile, relevanceBreakdown } = await req.json()
     
     if (!profile || (!issue && !issues)) {
       return new Response(JSON.stringify({ error: 'Either "issue" or "issues" array, plus "profile", are required' }), {
@@ -29,7 +29,7 @@ serve(async (req) => {
 
     // Backwards compatibility for single issue evaluation
     if (issue && !issues) {
-      const result = await groqEvaluator.evaluateIssue(issue, profile)
+      const result = await groqEvaluator.evaluateIssue(issue, profile, relevanceBreakdown)
       return new Response(JSON.stringify({ data: result }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -45,11 +45,15 @@ serve(async (req) => {
       const results = []
       for (const item of issuesToEvaluate) {
         try {
-          const evalResult = await groqEvaluator.evaluateIssue(item, profile)
+          const evalResult = await groqEvaluator.evaluateIssue(
+            item,
+            profile,
+            item.relevanceBreakdown || relevanceBreakdown,
+          )
           results.push({
             success: true,
             issueId: item.id || item.url, // Identify which issue this applies to
-            data: evalResult
+            data: evalResult,
           })
         } catch (err: any) {
           console.error(`[evaluate-function] Error evaluating issue ${item.id || item.url}:`, err)
