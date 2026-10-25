@@ -52,6 +52,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
   const [githubError, setGithubError] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [defenseCopied, setDefenseCopied] = useState(false);
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
 
   // Engagement State
@@ -554,52 +555,84 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
               {/* INTERVIEW DEFENSE TALKING POINTS SECTION */}
               {issue && (
                 <section aria-labelledby="interview-defense-heading">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Shield size={16} className="text-indigo-600" />
-                    <h3
-                      id="interview-defense-heading"
-                      className="text-xs font-bold tracking-widest uppercase text-indigo-600"
-                    >
-                      INTERVIEW DEFENSE CHEAT-SHEET
-                    </h3>
-                  </div>
-
                   {(() => {
                     const defense = generateInterviewDefense(
                       issue,
                       userProfile,
                       relevanceBreakdown,
                     );
+
+                    const handleCopyDefense = async () => {
+                      const text = `${defense.headline}\n\nElevator Pitch:\n${defense.elevatorPitch}\n\nTalking Points:\n${defense.talkingPoints
+                        .map((pt, idx) => `0${idx + 1}. ${pt}`)
+                        .join('\n')}`;
+                      await navigator.clipboard.writeText(text);
+                      setDefenseCopied(true);
+                      setTimeout(() => setDefenseCopied(false), 2000);
+                    };
+
                     return (
-                      <div className="bg-indigo-50/50 border-2 border-indigo-900 shadow-[4px_4px_0px_#312e81] p-5 flex flex-col gap-4">
-                        <div>
-                          <span className="block font-mono text-[10px] tracking-widest text-indigo-700 uppercase mb-1">
-                            Elevator Pitch (30-Second Summary)
-                          </span>
-                          <p className="text-sm text-zinc-800 leading-relaxed bg-white p-3 border border-indigo-100 font-sans">
-                            "{defense.elevatorPitch}"
-                          </p>
+                      <>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Shield size={16} className="text-indigo-600" />
+                            <h3
+                              id="interview-defense-heading"
+                              className="text-xs font-bold tracking-widest uppercase text-indigo-600"
+                            >
+                              INTERVIEW DEFENSE CHEAT-SHEET
+                            </h3>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleCopyDefense}
+                            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-medium text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50 transition-colors shadow-sm"
+                            title="Copy interview defense notes to clipboard"
+                          >
+                            {defenseCopied ? (
+                              <>
+                                <Check size={12} className="text-emerald-600" />
+                                <span className="text-emerald-700 font-semibold">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={12} />
+                                <span>Copy Notes</span>
+                              </>
+                            )}
+                          </button>
                         </div>
 
-                        <div>
-                          <span className="block font-mono text-[10px] tracking-widest text-indigo-700 uppercase mb-2">
-                            Why I Chose This Issue (Key Talking Points)
-                          </span>
-                          <ul className="space-y-2">
-                            {defense.talkingPoints.map((point, idx) => (
-                              <li
-                                key={idx}
-                                className="text-xs text-zinc-700 bg-white p-2.5 border border-indigo-100 flex items-start gap-2"
-                              >
-                                <span className="font-mono text-indigo-600 font-bold">
-                                  0{idx + 1}.
-                                </span>
-                                <span>{point}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="bg-indigo-50/50 border-2 border-indigo-900 shadow-[4px_4px_0px_#312e81] p-5 flex flex-col gap-4">
+                          <div>
+                            <span className="block font-mono text-[10px] tracking-widest text-indigo-700 uppercase mb-1">
+                              Elevator Pitch (30-Second Summary)
+                            </span>
+                            <p className="text-sm text-zinc-800 leading-relaxed bg-white p-3 border border-indigo-100 font-sans">
+                              "{defense.elevatorPitch}"
+                            </p>
+                          </div>
+
+                          <div>
+                            <span className="block font-mono text-[10px] tracking-widest text-indigo-700 uppercase mb-2">
+                              Why I Chose This Issue (Key Talking Points)
+                            </span>
+                            <ul className="space-y-2">
+                              {defense.talkingPoints.map((point, idx) => (
+                                <li
+                                  key={idx}
+                                  className="text-xs text-zinc-700 bg-white p-2.5 border border-indigo-100 flex items-start gap-2"
+                                >
+                                  <span className="font-mono text-indigo-600 font-bold">
+                                    0{idx + 1}.
+                                  </span>
+                                  <span>{point}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
-                      </div>
+                      </>
                     );
                   })()}
                 </section>
