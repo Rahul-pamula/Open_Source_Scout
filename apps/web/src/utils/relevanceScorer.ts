@@ -1,4 +1,55 @@
 import type { IssueScoringTarget } from '../types/relevance';
+import { getTopicSynonyms } from './topicSynonyms';
+
+/**
+ * Calculates technology and framework match score S_tech in range [0, maxWeight] (default 25).
+ * Matches user's frameworks/tools against repository topics, labels, and issue text.
+ */
+export function calculateTechScore(
+  target: IssueScoringTarget,
+  userFrameworks: string[],
+  maxWeight = 25,
+): number {
+  if (!userFrameworks || userFrameworks.length === 0) return 0;
+
+  const validFrameworks = userFrameworks.map((f) => f.trim().toLowerCase()).filter(Boolean);
+
+  if (validFrameworks.length === 0) return 0;
+
+  const repoTopics = (target.repository_topics || []).map((t) => t.toLowerCase());
+  const rawLabels = (target.labels || [])
+    .map((l) => (typeof l === 'string' ? l : l.name || ''))
+    .filter(Boolean);
+  const normalizedLabels = rawLabels.map((l) => l.toLowerCase());
+  const textContent = `${target.title || ''} ${(target.body || '').slice(0, 500)}`.toLowerCase();
+
+  let matchedFrameworkCount = 0;
+
+  for (const framework of validFrameworks) {
+    const synonyms = getTopicSynonyms(framework);
+    const hasMatch = synonyms.some((synonym) => {
+      // Topic match
+      if (repoTopics.includes(synonym)) return true;
+      // Label match
+      if (normalizedLabels.some((lbl) => lbl.includes(synonym))) return true;
+      // Text mention match
+      const regex = new RegExp(`\\b${synonym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return regex.test(textContent);
+    });
+
+    if (hasMatch) {
+      matchedFrameworkCount++;
+    }
+  }
+
+  if (matchedFrameworkCount >= 2) {
+    return maxWeight;
+  } else if (matchedFrameworkCount === 1) {
+    return Math.round(maxWeight * 0.75); // e.g. 19 pts
+  }
+
+  return 0;
+}
 
 /**
  * Calculates language alignment score S_lang in range [0, maxWeight] (default 35).
