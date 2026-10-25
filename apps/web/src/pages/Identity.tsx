@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowRight, ShieldCheck, Database, GitMerge, Award } from 'lucide-react';
+import {
+  Loader2,
+  ArrowRight,
+  ShieldCheck,
+  Database,
+  GitMerge,
+  Award,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
 import type { ExperienceLevel } from '../types/user';
 
 const PREDEFINED_SKILLS = [
@@ -34,6 +43,7 @@ export function Identity() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const supabaseUrl =
     localStorage.getItem('OSS_SUPABASE_URL') || import.meta.env.VITE_SUPABASE_URL || 'Unknown URL';
@@ -71,26 +81,30 @@ export function Identity() {
     if (!user) return;
     setIsSaving(true);
     setSaveSuccess(false);
+    setErrorMessage(null);
 
-    const { error } = await supabase.from('users').upsert({
-      id: user.id,
-      bio,
-      github_handle: githubHandle,
-      skills: selectedSkills,
-      experience_level: experienceLevel,
-      custom_comment_enabled: customCommentEnabled,
-      custom_comment_text: customCommentText,
-    });
+    try {
+      const { error } = await supabase.from('users').upsert({
+        id: user.id,
+        bio,
+        github_handle: githubHandle,
+        skills: selectedSkills,
+        experience_level: experienceLevel,
+        custom_comment_enabled: customCommentEnabled,
+        custom_comment_text: customCommentText,
+      });
 
-    if (error) {
-      alert('Failed to save profile: ' + error.message);
-    } else {
+      if (error) throw error;
+
       await updateExperienceLevel(experienceLevel);
       await refreshProfile();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to update profile settings.');
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   return (
@@ -242,20 +256,34 @@ export function Identity() {
                 </form>
               </div>
 
-              <div className="pt-6 mt-2 border-t-2 border-zinc-100">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving || saveSuccess}
-                  className={`px-6 py-2.5 font-bold flex items-center transition-all border-2 ${
-                    saveSuccess
-                      ? 'bg-emerald-500 text-white border-emerald-500 shadow-[4px_4px_0px_#064e3b]'
-                      : 'bg-zinc-900 text-white border-zinc-900 shadow-[4px_4px_0px_#18181b] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none'
-                  } disabled:opacity-50`}
-                >
-                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  {saveSuccess ? 'Saved' : 'Save Profile'}
-                  {!isSaving && !saveSuccess && <ArrowRight className="w-4 h-4 ml-2" />}
-                </button>
+              <div className="pt-6 mt-2 border-t-2 border-zinc-100 flex flex-col gap-3">
+                {saveSuccess && (
+                  <div className="p-3 bg-emerald-50 border-2 border-emerald-500 text-emerald-800 font-mono text-xs flex items-center gap-2 shadow-[2px_2px_0px_#059669]">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span>Profile settings and experience level updated successfully.</span>
+                  </div>
+                )}
+                {errorMessage && (
+                  <div className="p-3 bg-rose-50 border-2 border-rose-500 text-rose-800 font-mono text-xs flex items-center gap-2 shadow-[2px_2px_0px_#e11d48]">
+                    <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+                <div>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving || saveSuccess}
+                    className={`px-6 py-2.5 font-bold flex items-center transition-all border-2 ${
+                      saveSuccess
+                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-[4px_4px_0px_#064e3b]'
+                        : 'bg-zinc-900 text-white border-zinc-900 shadow-[4px_4px_0px_#18181b] hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#18181b] active:translate-x-1 active:translate-y-1 active:shadow-none'
+                    } disabled:opacity-50`}
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {saveSuccess ? 'Saved' : 'Save Profile'}
+                    {!isSaving && !saveSuccess && <ArrowRight className="w-4 h-4 ml-2" />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
