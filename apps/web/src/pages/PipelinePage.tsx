@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ChevronDown,
   FileText,
+  Plus,
 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import type { IssueState } from '../types';
@@ -325,6 +326,28 @@ export function PipelinePage() {
                             id={`interview-notes-${issue.id}`}
                             className="flex-1 px-3 py-1.5 text-xs font-mono bg-white border border-zinc-200 focus:outline-none focus:border-indigo-500 shadow-inner"
                           />
+                          <a
+                            href="https://docs.google.com/document/u/0/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 transition-colors"
+                            title="Open Google Docs home to start a new document"
+                          >
+                            <Plus size={12} />
+                            <span>New Doc</span>
+                          </a>
+                          {issue.interview_notes_url && (
+                            <a
+                              href={issue.interview_notes_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                              title="Open linked preparation document"
+                            >
+                              <ExternalLink size={12} />
+                              <span>Open Doc</span>
+                            </a>
+                          )}
                         </div>
                       </div>
 
