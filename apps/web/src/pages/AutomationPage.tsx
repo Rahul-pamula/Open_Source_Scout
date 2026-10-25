@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { Activity, AlertTriangle, ExternalLink, Loader2, Zap, Plus } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
+import { TabSearchBar } from '../components/TabSearchBar';
+import { filterTasksByQuery } from '../utils/taskFilter';
 import type { Task } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -103,7 +105,12 @@ function ClaimedCard({
 
 export function AutomationPage() {
   const ctx = useOutletContext<MissionControlContextType>();
+  const [searchQuery, setSearchQuery] = useState('');
   const claimedIssues = ctx.trackedIssues.filter((i) => i.state === 'ENGAGED');
+  const filteredClaimed = useMemo(
+    () => filterTasksByQuery(claimedIssues, searchQuery),
+    [claimedIssues, searchQuery],
+  );
 
   const [showExternalInput, setShowExternalInput] = useState(false);
   const [externalUrl, setExternalUrl] = useState('');
@@ -151,22 +158,33 @@ export function AutomationPage() {
   return (
     <div className="flex flex-col gap-6 w-full pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
-          <Activity
-            size={16}
-            className={ctx.isAutomating ? 'text-emerald-500 animate-pulse' : 'text-zinc-400'}
-          />
-          Claimed Issues
-          <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5">
-            {claimedIssues.length}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
+            <Activity
+              size={16}
+              className={ctx.isAutomating ? 'text-emerald-500 animate-pulse' : 'text-zinc-400'}
+            />
+            Claimed Issues
+            <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5">
+              {searchQuery
+                ? `${filteredClaimed.length} / ${claimedIssues.length}`
+                : claimedIssues.length}
+            </span>
+          </h2>
+          <span
+            className={`font-mono text-xs px-2 py-1 border ${ctx.automationCountToday >= 25 ? 'border-red-200 bg-red-50 text-red-600 font-bold' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}
+          >
+            {ctx.automationCountToday} / 25 TODAY
           </span>
-        </h2>
-        <span
-          className={`font-mono text-xs px-2 py-1 border ${ctx.automationCountToday >= 25 ? 'border-red-200 bg-red-50 text-red-600 font-bold' : 'border-zinc-200 bg-zinc-50 text-zinc-500'}`}
-        >
-          {ctx.automationCountToday} / 25 TODAY
-        </span>
+        </div>
+        <TabSearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Filter claimed by repo name..."
+          totalCount={claimedIssues.length}
+          filteredCount={filteredClaimed.length}
+        />
       </div>
 
       {/* Rate limit warning */}
@@ -294,9 +312,21 @@ export function AutomationPage() {
             </button>
           </div>
         </div>
+      ) : filteredClaimed.length === 0 ? (
+        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
+          <p className="text-zinc-500 font-mono text-sm mb-3">
+            No claimed issues match repository or title query &ldquo;{searchQuery}&rdquo;.
+          </p>
+          <button
+            onClick={() => setSearchQuery('')}
+            className="text-xs font-mono font-bold text-zinc-900 border border-zinc-300 px-3 py-1.5 bg-white hover:bg-zinc-100 uppercase tracking-wider shadow-sm transition-all"
+          >
+            Clear Filter
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {claimedIssues.map((issue) => (
+          {filteredClaimed.map((issue) => (
             <ClaimedCard
               key={issue.id}
               issue={issue}

@@ -1,7 +1,10 @@
+import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Eye, ExternalLink, Loader2, Undo2 } from 'lucide-react';
 import type { MissionControlContextType } from './MissionControlContext';
 import { IssueCardSkeleton } from '../components/IssueCard';
+import { TabSearchBar } from '../components/TabSearchBar';
+import { filterTasksByQuery } from '../utils/taskFilter';
 import type { Task } from '../types';
 
 function ReviewCard({
@@ -85,9 +88,14 @@ function ReviewCard({
 
 export function ReviewPage() {
   const ctx = useOutletContext<MissionControlContextType>();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const reviewIssues = ctx.trackedIssues.filter(
     (i) => i.state === 'ASSIGNED' && i.contribution_checklist?.under_review,
+  );
+  const filteredReview = useMemo(
+    () => filterTasksByQuery(reviewIssues, searchQuery),
+    [reviewIssues, searchQuery],
   );
 
   const handleMoveToAssigned = async (issue: Task) => {
@@ -97,14 +105,23 @@ export function ReviewPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
           <Eye size={16} className="text-zinc-400" />
           Under Review
           <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5">
-            {reviewIssues.length}
+            {searchQuery
+              ? `${filteredReview.length} / ${reviewIssues.length}`
+              : reviewIssues.length}
           </span>
         </h2>
+        <TabSearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Filter review by repo name..."
+          totalCount={reviewIssues.length}
+          filteredCount={filteredReview.length}
+        />
       </div>
 
       {ctx.isTrackingLoading ? (
@@ -117,9 +134,21 @@ export function ReviewPage() {
         <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
           <p className="text-zinc-500 font-mono text-sm">No pull requests under review yet.</p>
         </div>
+      ) : filteredReview.length === 0 ? (
+        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
+          <p className="text-zinc-500 font-mono text-sm mb-3">
+            No review issues match repository or title query &ldquo;{searchQuery}&rdquo;.
+          </p>
+          <button
+            onClick={() => setSearchQuery('')}
+            className="text-xs font-mono font-bold text-zinc-900 border border-zinc-300 px-3 py-1.5 bg-white hover:bg-zinc-100 uppercase tracking-wider shadow-sm transition-all"
+          >
+            Clear Filter
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {reviewIssues.map((issue) => (
+          {filteredReview.map((issue) => (
             <ReviewCard
               key={issue.id}
               issue={issue}
