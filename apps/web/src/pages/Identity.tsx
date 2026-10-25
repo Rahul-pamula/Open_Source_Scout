@@ -105,9 +105,23 @@ export function Identity() {
       <div className="flex flex-col gap-8">
         {/* Profile Section */}
         <section>
-          <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-900 mb-4 font-mono">
-            Profile
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-900 font-mono">
+              Profile
+            </h2>
+            <div
+              className={`px-2.5 py-1 text-xs font-mono font-bold uppercase tracking-wide border-2 flex items-center gap-1.5 shadow-[2px_2px_0px_rgba(0,0,0,0.1)] ${
+                experienceLevel === 'Senior'
+                  ? 'bg-purple-50 text-purple-800 border-purple-400'
+                  : experienceLevel === 'Intermediate'
+                    ? 'bg-blue-50 text-blue-800 border-blue-400'
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-400'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{experienceLevel} Tier</span>
+            </div>
+          </div>
           <div className="bg-white border-2 border-zinc-200 p-6 shadow-sm">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-2">
