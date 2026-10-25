@@ -4,6 +4,9 @@ import {
   getLabelQualifiersForLevel,
   buildGitHubSearchQuery,
   buildRelaxedGitHubSearchQuery,
+  validateGitHubQuery,
+  sanitizeGitHubQuery,
+  MAX_GITHUB_QUERY_LENGTH,
 } from './queryBuilder';
 
 describe('queryBuilder search query synthesis', () => {
@@ -125,6 +128,47 @@ describe('queryBuilder search query synthesis', () => {
       });
 
       assert.equal(relaxed, 'is:closed is:issue language:Rust sort:reactions-desc');
+    });
+  });
+
+  describe('validateGitHubQuery & sanitizeGitHubQuery', () => {
+    it('validates compliant standard queries', () => {
+      const query =
+        'is:open is:issue label:"good first issue" language:TypeScript sort:updated-desc';
+      const result = validateGitHubQuery(query);
+      assert.equal(result.isValid, true);
+      assert.equal(result.errors.length, 0);
+    });
+
+    it('flags empty query as invalid', () => {
+      const result = validateGitHubQuery('');
+      assert.equal(result.isValid, false);
+      assert.ok(result.errors.some((e) => e.includes('empty')));
+    });
+
+    it('flags query exceeding 256 characters', () => {
+      const longQuery = 'language:TypeScript '.repeat(20);
+      const result = validateGitHubQuery(longQuery);
+      assert.equal(result.isValid, false);
+      assert.ok(
+        result.errors.some((e) => e.includes('exceeds maximum allowable GitHub search length')),
+      );
+    });
+
+    it('flags excessive language qualifiers (> 5)', () => {
+      const tooManyLangs =
+        'is:open is:issue language:Go language:Rust language:Python language:TypeScript language:Ruby language:C++';
+      const result = validateGitHubQuery(tooManyLangs);
+      assert.equal(result.isValid, false);
+      assert.ok(result.errors.some((e) => e.includes('exceeding limit of 5')));
+    });
+
+    it('sanitizes oversized query strings to stay within character limits', () => {
+      const longQuery =
+        'is:open is:issue language:Go language:Rust language:Python language:TypeScript language:Ruby language:Java sort:updated-desc';
+      const sanitized = sanitizeGitHubQuery(longQuery, 80);
+      assert.ok(sanitized.length <= 80);
+      assert.ok(sanitized.startsWith('is:open is:issue'));
     });
   });
 });
