@@ -3,6 +3,8 @@ import { X, Loader2, ExternalLink, Copy, Check, CheckCircle, Terminal } from 'lu
 import { supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { NormalizedIssue, EvaluationResult } from '../types';
+import type { RelevanceScoreBreakdown, IssueScoringTarget } from '../types/relevance';
+import { calculateRelevanceScore } from '../utils/relevanceScorer';
 
 interface DossierPanelProps {
   owner: string;
@@ -24,10 +26,13 @@ type DraftState =
   | 'POST_ERROR';
 
 export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps) {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const [issue, setIssue] = useState<NormalizedIssue | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  const [relevanceBreakdown, setRelevanceBreakdown] = useState<RelevanceScoreBreakdown | null>(
+    null,
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState('Fetching GitHub facts...');
@@ -79,6 +84,23 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
         const fetchedIssue = issueResData.data;
         if (mounted) setIssue(fetchedIssue);
 
+        // Calculate 100-point mathematical relevance breakdown
+        let breakdown: RelevanceScoreBreakdown | null = null;
+        if (fetchedIssue) {
+          const scoringTarget: IssueScoringTarget = {
+            title: fetchedIssue.title,
+            body: fetchedIssue.body,
+            labels: fetchedIssue.labels,
+            language: fetchedIssue.language,
+            repository_topics: fetchedIssue.repositoryTopics,
+            updated_at: fetchedIssue.updatedAt || fetchedIssue.createdAt,
+            created_at: fetchedIssue.createdAt,
+            comments: fetchedIssue.commentsCount,
+          };
+          breakdown = calculateRelevanceScore(scoringTarget, userProfile);
+          if (mounted) setRelevanceBreakdown(breakdown);
+        }
+
         // Fetch Tracked Issue from database
         const { data: trackingData } = await supabase.functions.invoke('tracking', {
           body: { action: 'list' },
@@ -111,7 +133,11 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
         const { data: evalResData, error: evalError } = await supabase.functions.invoke(
           'evaluate',
           {
-            body: { issue: fetchedIssue, profile: profileStr },
+            body: {
+              issue: fetchedIssue,
+              profile: profileStr,
+              relevanceBreakdown: breakdown,
+            },
           },
         );
 
@@ -136,7 +162,7 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
     return () => {
       mounted = false;
     };
-  }, [owner, repo, number, user]);
+  }, [owner, repo, number, user, userProfile]);
 
   const handleCopy = async () => {
     if (issue?.body) {
@@ -385,6 +411,14 @@ export function DossierPanel({ owner, repo, number, onClose }: DossierPanelProps
                         >
                           {evaluation.matchScore}%
                         </span>
+                        {relevanceBreakdown && (
+                          <span
+                            className="block font-mono text-[10px] text-zinc-400 mt-1"
+                            title="Algorithmic 100-point relevance engine score"
+                          >
+                            Engine: {relevanceBreakdown.total}/100
+                          </span>
+                        )}
                       </div>
                     </div>
 
