@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
-import type { ScoutedIssue, Task, NormalizedIssue } from '../types';
+import type { Task } from '../types';
 import {
   Loader2,
   Activity,
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useSearchParams, Outlet, Link, useLocation } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
-import { buildGitHubSearchQuery, buildRelaxedGitHubSearchQuery } from '../utils/queryBuilder';
+import { useIssueDiscovery } from '../hooks/useIssueDiscovery';
 import type { ExperienceLevel } from '../types/user';
 
 type Toast = { id: number; type: 'success' | 'error'; message: string };
@@ -30,21 +30,6 @@ export function MissionControl() {
     skills: string[];
     experience_level?: ExperienceLevel;
   } | null>(null);
-
-  // -- Discovery State (Opportunities) --
-  // We use sessionStorage to cache discovered issues so they survive unmounts
-  const [scoutedIssues, setScoutedIssues] = useState<ScoutedIssue[]>(() => {
-    const cached = sessionStorage.getItem('scout_discovered_issues');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveryStatus, setDiscoveryStatus] = useState<string | null>(null);
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-  const [activeQueryTelemetry, setActiveQueryTelemetry] = useState<string | null>(null);
-  const [lastScanTime, setLastScanTime] = useState<number | null>(() => {
-    const cached = sessionStorage.getItem('scout_last_scan_time');
-    return cached ? parseInt(cached, 10) : null;
-  });
 
   // -- Tracking State (Active Pipeline) --
   const [isSyncing, setIsSyncing] = useState(false);
@@ -139,113 +124,23 @@ export function MissionControl() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // Save discovered issues to session storage when they update
-  useEffect(() => {
-    sessionStorage.setItem('scout_discovered_issues', JSON.stringify(scoutedIssues));
-    if (lastScanTime) {
-      sessionStorage.setItem('scout_last_scan_time', lastScanTime.toString());
-    }
-  }, [scoutedIssues, lastScanTime]);
-
-  // Auto-trigger discovery if we have a profile, no cached issues, and haven't scanned recently
-  const hasAutoScanned = useRef(false);
-  useEffect(() => {
-    if (userProfile && scoutedIssues.length === 0 && !isDiscovering && !hasAutoScanned.current) {
-      const now = Date.now();
-      const fifteenMinutes = 15 * 60 * 1000;
-      if (!lastScanTime || now - lastScanTime > fifteenMinutes) {
-        hasAutoScanned.current = true;
-        handleDiscover();
-      }
-    }
-  }, [userProfile, scoutedIssues.length, lastScanTime, isDiscovering]);
-
-  // --- Discovery Logic (Search only, no AI eval) ---
-  const handleDiscover = async () => {
-    if (isDiscovering) return;
-    try {
-      setIsDiscovering(true);
-      setDiscoveryError(null);
-      setDiscoveryStatus('Searching GitHub...');
-
-      const dynamicSearchQuery = buildGitHubSearchQuery({
-        skills: userProfile?.skills || authProfile?.skills,
-        experienceLevel:
-          userProfile?.experience_level || authProfile?.experience_level || 'Beginner',
-      });
-      setActiveQueryTelemetry(dynamicSearchQuery);
-
-      // Fetch 50 issues from GitHub search to give us a pool to shuffle from
-      const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
-        body: { query: dynamicSearchQuery, limit: 50 },
-      });
-
-      if (searchError) throw new Error('Failed to fetch from GitHub: ' + searchError.message);
-
-      let rawEligibleIssues: NormalizedIssue[] = searchData.data || [];
-
-      if (rawEligibleIssues.length === 0) {
-        setDiscoveryStatus('Broadening search parameters...');
-        const relaxedQuery = buildRelaxedGitHubSearchQuery({
-          skills: userProfile?.skills || authProfile?.skills,
-          experienceLevel:
-            userProfile?.experience_level || authProfile?.experience_level || 'Beginner',
-        });
-        setActiveQueryTelemetry(relaxedQuery);
-
-        const { data: relaxedData, error: relaxedError } = await supabase.functions.invoke(
-          'search',
-          { body: { query: relaxedQuery, limit: 50 } },
-        );
-
-        if (!relaxedError && relaxedData?.data && relaxedData.data.length > 0) {
-          rawEligibleIssues = relaxedData.data;
-          showToast('success', 'Broadened search parameters to find opportunities');
-        } else {
-          setDiscoveryStatus(null);
-          setDiscoveryError(
-            "Scout couldn't find a strong match yet. Try updating your Agent Directives.",
-          );
-          setLastScanTime(Date.now());
-          setIsDiscovering(false);
-          return;
-        }
-      }
-
-      setDiscoveryStatus('Filtering candidates...');
-
-      // Filter out issues already in the pipeline
-      const currentTrackedUrls = new Set(
-        trackedIssues.map((t) => t.external_url || t.github_issue_url).filter(Boolean),
-      );
-      const untrackedIssues = rawEligibleIssues.filter(
-        (issue) => !currentTrackedUrls.has(issue.url),
-      );
-
-      // Shuffle the untracked issues to give fresh results on each click
-      const shuffledIssues = untrackedIssues.sort(() => 0.5 - Math.random());
-      const newIssues = shuffledIssues.slice(0, 10);
-
-      if (newIssues.length === 0) {
-        setDiscoveryStatus(null);
-        setDiscoveryError('Found issues, but they are already in your Active Pipeline.');
-        setLastScanTime(Date.now());
-        setIsDiscovering(false);
-        return;
-      }
-
-      // Show issues directly — no AI analysis
-      setScoutedIssues(newIssues as ScoutedIssue[]);
-      setDiscoveryError(null);
-      setDiscoveryStatus(null);
-      setLastScanTime(Date.now());
-    } catch (err: any) {
-      setDiscoveryError(err.message || 'Scout encountered an error during discovery.');
-      setDiscoveryStatus(null);
-    } finally {
-      setIsDiscovering(false);
-    }
-  };
+  // -- Discovery Hook (Encapsulated Query, Relaxation & Telemetry) --
+  const {
+    scoutedIssues,
+    setScoutedIssues,
+    isDiscovering,
+    discoveryStatus,
+    discoveryError,
+    lastScanTime,
+    activeQueryTelemetry,
+    handleDiscover,
+  } = useIssueDiscovery({
+    userProfile,
+    authExperienceLevel: authProfile?.experience_level,
+    authSkills: authProfile?.skills,
+    trackedIssues,
+    onNotify: showToast,
+  });
 
   // --- Claim Issue (post default message, no AI) ---
   const [claimingIssueUrl, setClaimingIssueUrl] = useState<string | null>(null);
