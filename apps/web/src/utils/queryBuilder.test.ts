@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { getLabelQualifiersForLevel, buildGitHubSearchQuery } from './queryBuilder';
+import {
+  getLabelQualifiersForLevel,
+  buildGitHubSearchQuery,
+  buildRelaxedGitHubSearchQuery,
+} from './queryBuilder';
 
 describe('queryBuilder search query synthesis', () => {
   describe('getLabelQualifiersForLevel', () => {
@@ -85,6 +89,42 @@ describe('queryBuilder search query synthesis', () => {
       assert.ok(!query.includes('language:Ruby'));
       assert.ok(!query.includes('language:Go'));
       assert.ok(query.endsWith('sort:comments-desc'));
+    });
+  });
+
+  describe('buildRelaxedGitHubSearchQuery', () => {
+    it('constructs relaxed query defaulting to TypeScript with no label filters', () => {
+      const relaxed = buildRelaxedGitHubSearchQuery();
+      assert.equal(relaxed, 'is:open is:issue language:TypeScript sort:updated-desc');
+    });
+
+    it('relaxes constraints to top language and omits entry-level label for Beginner', () => {
+      const relaxed = buildRelaxedGitHubSearchQuery({
+        skills: ['Python', 'Go', 'React'],
+        experienceLevel: 'Beginner',
+      });
+
+      assert.equal(relaxed, 'is:open is:issue language:Python sort:updated-desc');
+      assert.ok(!relaxed.includes('label:'));
+    });
+
+    it('falls back to TypeScript when user only specifies frameworks without languages', () => {
+      const relaxed = buildRelaxedGitHubSearchQuery({
+        skills: ['React', 'Next.js', 'TailwindCSS'],
+        experienceLevel: 'Intermediate',
+      });
+
+      assert.equal(relaxed, 'is:open is:issue language:TypeScript sort:updated-desc');
+    });
+
+    it('respects custom state and sort options in relaxed queries', () => {
+      const relaxed = buildRelaxedGitHubSearchQuery({
+        skills: ['Rust'],
+        state: 'closed',
+        sort: 'reactions-desc',
+      });
+
+      assert.equal(relaxed, 'is:closed is:issue language:Rust sort:reactions-desc');
     });
   });
 });
