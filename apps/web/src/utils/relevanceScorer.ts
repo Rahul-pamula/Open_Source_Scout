@@ -1,4 +1,5 @@
 import type { IssueScoringTarget } from '../types/relevance';
+import type { ExperienceLevel } from '../types/user';
 import { getTopicSynonyms } from './topicSynonyms';
 
 /**
@@ -106,6 +107,52 @@ export function calculateCompetitionScore(target: IssueScoringTarget, maxWeight 
   }
 
   return Math.round(maxWeight * 0.15);
+}
+
+/**
+ * Calculates difficulty alignment score S_difficulty in range [0, maxWeight] (default 10).
+ * Matches user's experience tier against issue difficulty indicators.
+ */
+export function calculateDifficultyScore(
+  target: IssueScoringTarget,
+  experienceLevel: ExperienceLevel | string | null | undefined,
+  maxWeight = 10,
+): number {
+  const level = experienceLevel || 'Beginner';
+
+  const rawLabels = (target.labels || [])
+    .map((l) => (typeof l === 'string' ? l : l.name || ''))
+    .filter(Boolean);
+  const labelsText = rawLabels.join(' ').toLowerCase();
+  const titleText = (target.title || '').toLowerCase();
+  const combinedMarkers = `${labelsText} ${titleText}`;
+
+  const isEntryLevel =
+    /good.first.issue|beginner|starter|easy|first-timers-only|up-for-grabs/i.test(combinedMarkers);
+  const isAdvancedLevel =
+    /architecture|rfc|security|performance|hard|expert|complex|breaking.change/i.test(
+      combinedMarkers,
+    );
+  const isIntermediateLevel = /help.wanted|enhancement|feature|bug/i.test(combinedMarkers);
+
+  if (level === 'Beginner') {
+    if (isEntryLevel) return maxWeight;
+    if (isIntermediateLevel) return Math.round(maxWeight * 0.7);
+    if (isAdvancedLevel) return Math.round(maxWeight * 0.2);
+    return Math.round(maxWeight * 0.5);
+  }
+
+  if (level === 'Intermediate') {
+    if (isIntermediateLevel && !isEntryLevel) return maxWeight;
+    if (isEntryLevel) return Math.round(maxWeight * 0.6);
+    if (isAdvancedLevel) return Math.round(maxWeight * 0.7);
+    return Math.round(maxWeight * 0.8);
+  }
+
+  // Senior
+  if (isAdvancedLevel) return maxWeight;
+  if (isEntryLevel) return Math.round(maxWeight * 0.3);
+  return Math.round(maxWeight * 0.85);
 }
 
 /**
