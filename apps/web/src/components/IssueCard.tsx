@@ -35,24 +35,50 @@ export function IssueCard({
     }
   }
 
+  // 100-Point Mathematical Relevance Score Tier
+  const relevance = issue.relevanceScore;
+  let relevanceBadgeStyle = 'text-zinc-600 bg-zinc-100 border-zinc-200';
+  if (relevance !== undefined) {
+    if (relevance >= 80) {
+      relevanceBadgeStyle = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    } else if (relevance >= 50) {
+      relevanceBadgeStyle = 'text-amber-700 bg-amber-50 border-amber-200';
+    } else {
+      relevanceBadgeStyle = 'text-zinc-600 bg-zinc-100 border-zinc-200';
+    }
+  }
+
   return (
     <div className="bg-white border border-zinc-200 p-4 flex flex-col transition-shadow hover:shadow-md h-full">
       {/* Header: Match Score & Intent */}
       <div className="flex justify-between items-start mb-3 pb-3 border-b border-zinc-100">
-        <div className="flex flex-col">
-          <span className={`font-mono text-[10px] font-bold tracking-widest ${scoreColor}`}>
-            {scoreLabel}
-          </span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className={`font-mono text-[10px] font-bold tracking-widest ${scoreColor}`}>
+              {scoreLabel}
+            </span>
+            {relevance !== undefined && (
+              <span
+                data-testid="relevance-score-badge"
+                className={`inline-flex items-center gap-1 font-mono text-[10px] font-semibold px-2 py-0.5 rounded-full border ${relevanceBadgeStyle}`}
+              >
+                <span>⚡</span>
+                <span>{relevance}% Match</span>
+              </span>
+            )}
+          </div>
           {evaluation && (
             <span className="text-zinc-500 text-xs mt-0.5 leading-tight">{evaluation.intent}</span>
           )}
         </div>
 
-        {evaluation && (
+        {evaluation ? (
           <div className={`text-xl font-bold font-mono ${scoreColor}`}>
             {evaluation.matchScore}%
           </div>
-        )}
+        ) : relevance !== undefined ? (
+          <div className="text-lg font-bold font-mono text-zinc-700">{relevance}%</div>
+        ) : null}
       </div>
 
       {/* Title & Repo */}
