@@ -13,19 +13,33 @@ import {
 } from 'lucide-react';
 import type { ExperienceLevel } from '../types/user';
 
-const PREDEFINED_SKILLS = [
-  'javascript',
-  'typescript',
-  'python',
-  'java',
-  'c++',
-  'go',
-  'rust',
-  'ruby',
-  'php',
-  'swift',
-  'kotlin',
-];
+const SKILL_CATEGORIES: Record<string, string[]> = {
+  Languages: [
+    'TypeScript',
+    'JavaScript',
+    'Python',
+    'Go',
+    'Rust',
+    'Java',
+    'C++',
+    'Ruby',
+    'PHP',
+    'Swift',
+    'Kotlin',
+  ],
+  Frameworks: [
+    'React',
+    'Next.js',
+    'Vue',
+    'FastAPI',
+    'Django',
+    'Express',
+    'NestJS',
+    'Spring',
+    'Svelte',
+  ],
+  Domains: ['AI/ML', 'DevTools', 'CLI', 'Web3', 'Databases', 'Security', 'Cloud'],
+};
 
 export function Identity() {
   const { user, userProfile, refreshProfile, updateExperienceLevel } = useAuth();
@@ -60,8 +74,9 @@ export function Identity() {
   }, [userProfile]);
 
   const toggleSkill = (skill: string) => {
-    if (selectedSkills.includes(skill)) {
-      setSelectedSkills((prev) => prev.filter((s) => s !== skill));
+    const exists = selectedSkills.some((s) => s.toLowerCase() === skill.toLowerCase());
+    if (exists) {
+      setSelectedSkills((prev) => prev.filter((s) => s.toLowerCase() !== skill.toLowerCase()));
     } else {
       setSelectedSkills((prev) => [...prev, skill]);
     }
@@ -209,40 +224,82 @@ export function Identity() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-bold text-zinc-900 mb-1">Skills</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {PREDEFINED_SKILLS.map((skill) => (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-zinc-900">
+                    Skills & Technologies ({selectedSkills.length})
+                  </label>
+                  {selectedSkills.length > 0 && (
                     <button
-                      key={skill}
-                      onClick={() => toggleSkill(skill)}
-                      className={`px-3 py-1 font-mono text-xs uppercase tracking-wide border-2 transition-colors ${
-                        selectedSkills.includes(skill)
-                          ? 'bg-zinc-900 text-white border-zinc-900'
-                          : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-900 hover:text-zinc-900'
-                      }`}
+                      type="button"
+                      onClick={() => setSelectedSkills([])}
+                      className="text-xs font-mono text-zinc-500 hover:text-rose-600 transition-colors"
                     >
-                      {skill}
+                      Clear all
                     </button>
-                  ))}
-                  {selectedSkills
-                    .filter((s) => !PREDEFINED_SKILLS.includes(s))
-                    .map((skill) => (
+                  )}
+                </div>
+
+                {/* Selected Skills Summary */}
+                {selectedSkills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 p-3 bg-zinc-50 border-2 border-zinc-200">
+                    {selectedSkills.map((skill) => (
                       <button
                         key={skill}
+                        type="button"
                         onClick={() => toggleSkill(skill)}
-                        className="px-3 py-1 font-mono text-xs uppercase tracking-wide border-2 bg-zinc-900 text-white border-zinc-900"
-                        title="Remove skill"
+                        className="px-2.5 py-1 font-mono text-xs border-2 bg-zinc-900 text-white border-zinc-900 flex items-center gap-1.5 hover:bg-rose-700 hover:border-rose-700 transition-colors"
+                        title="Click to remove"
                       >
-                        {skill} &times;
+                        <span>{skill}</span>
+                        <span className="text-zinc-400 hover:text-white">&times;</span>
                       </button>
                     ))}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-zinc-50 border-2 border-dashed border-zinc-200 text-xs font-mono text-zinc-400 text-center">
+                    No skills selected yet. Click from the categories below or add custom skills.
+                  </div>
+                )}
+
+                {/* Categorized presets */}
+                <div className="flex flex-col gap-3">
+                  {Object.entries(SKILL_CATEGORIES).map(([category, skills]) => (
+                    <div key={category} className="flex flex-col gap-1.5">
+                      <div className="text-xs font-bold font-mono uppercase tracking-wider text-zinc-500">
+                        {category}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {skills.map((skill) => {
+                          const isSelected = selectedSkills.some(
+                            (s) => s.toLowerCase() === skill.toLowerCase(),
+                          );
+                          return (
+                            <button
+                              key={skill}
+                              type="button"
+                              onClick={() => toggleSkill(skill)}
+                              className={`px-2.5 py-1 font-mono text-xs border transition-colors ${
+                                isSelected
+                                  ? 'bg-zinc-900 text-white border-zinc-900'
+                                  : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-900 hover:text-zinc-900'
+                              }`}
+                            >
+                              {skill}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <form onSubmit={handleAddCustom} className="flex gap-2 items-center">
+
+                {/* Custom skill adder */}
+                <form onSubmit={handleAddCustom} className="flex gap-2 items-center mt-1">
                   <input
                     type="text"
                     className="flex-1 border-2 border-zinc-200 p-2 font-mono text-sm focus:border-zinc-900 focus:ring-0 outline-none transition-colors max-w-xs"
-                    placeholder="Custom skill..."
+                    placeholder="Add custom skill or tool..."
                     value={customSkill}
                     onChange={(e) => setCustomSkill(e.target.value)}
                   />
@@ -251,7 +308,7 @@ export function Identity() {
                     disabled={!customSkill.trim()}
                     className="bg-zinc-100 text-zinc-900 font-bold px-4 py-2 border-2 border-zinc-200 hover:border-zinc-900 hover:bg-white disabled:opacity-50 transition-colors font-mono text-sm uppercase tracking-wide"
                   >
-                    Add
+                    Add Skill
                   </button>
                 </form>
               </div>
