@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowLeft, HelpCircle } from 'lucide-react';
 import type { ExperienceLevel } from '../../types/user';
 import type { CategorizedSkillsCollection } from '../../types/skills';
 
@@ -261,8 +261,15 @@ export function Skills({ onBack, onComplete, bio, githubHandle }: SkillsProps) {
       {/* Experience Level */}
       <div className="flex flex-col gap-1">
         <fieldset>
-          <legend className="block text-sm font-semibold text-zinc-900 mb-2 uppercase tracking-wide font-mono">
-            Experience Level *
+          <legend className="flex items-center justify-between text-sm font-semibold text-zinc-900 mb-2 uppercase tracking-wide font-mono">
+            <span>Experience Level *</span>
+            <span
+              className="text-xs font-mono text-zinc-400 flex items-center gap-1 cursor-help hover:text-zinc-600 transition-colors normal-case"
+              title="Calibrates discovery search: Beginners receive good-first-issues, Intermediates receive features, and Seniors receive core architecture tasks."
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>How Scout uses this</span>
+            </span>
           </legend>
           <div className="flex gap-3" id="experience-level">
             {EXPERIENCE_LEVELS.map((level) => (
