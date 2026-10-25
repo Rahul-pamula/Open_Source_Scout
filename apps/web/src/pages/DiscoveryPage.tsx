@@ -9,22 +9,27 @@ export type SortOption = 'relevance' | 'recency' | 'competition';
 export function DiscoveryPage() {
   const ctx = useOutletContext<MissionControlContextType>();
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
+  const [minScoreThreshold, setMinScoreThreshold] = useState<number>(0);
 
-  const sortedIssues = useMemo(() => {
-    const list = [...ctx.scoutedIssues];
+  const filteredAndSortedIssues = useMemo(() => {
+    let list = ctx.scoutedIssues;
+    if (minScoreThreshold > 0) {
+      list = list.filter((i) => (i.relevanceScore ?? 0) >= minScoreThreshold);
+    }
+    const cloned = [...list];
     if (sortBy === 'relevance') {
-      return list.sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
+      return cloned.sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
     } else if (sortBy === 'recency') {
-      return list.sort((a, b) => {
+      return cloned.sort((a, b) => {
         const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
         const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
         return timeB - timeA;
       });
     } else if (sortBy === 'competition') {
-      return list.sort((a, b) => (a.commentsCount ?? 0) - (b.commentsCount ?? 0));
+      return cloned.sort((a, b) => (a.commentsCount ?? 0) - (b.commentsCount ?? 0));
     }
-    return list;
-  }, [ctx.scoutedIssues, sortBy]);
+    return cloned;
+  }, [ctx.scoutedIssues, sortBy, minScoreThreshold]);
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -32,20 +37,37 @@ export function DiscoveryPage() {
         <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-widest flex items-center gap-2">
           <Search size={16} className="text-zinc-400" /> Scouted Opportunities
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {ctx.scoutedIssues.length > 0 && (
-            <div className="flex items-center gap-1.5 text-xs font-mono">
-              <span className="text-zinc-500">Sort by:</span>
-              <select
-                data-testid="discovery-sort-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="bg-white border border-zinc-200 px-2 py-1 text-xs font-mono rounded text-zinc-700 hover:border-zinc-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-              >
-                <option value="relevance">Highest Relevance</option>
-                <option value="recency">Most Recent</option>
-                <option value="competition">Lowest Competition</option>
-              </select>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs font-mono">
+                <span className="text-zinc-500">Min Score:</span>
+                <select
+                  data-testid="relevance-threshold-select"
+                  value={minScoreThreshold}
+                  onChange={(e) => setMinScoreThreshold(Number(e.target.value))}
+                  className="bg-white border border-zinc-200 px-2 py-1 text-xs font-mono rounded text-zinc-700 hover:border-zinc-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value={0}>All ({ctx.scoutedIssues.length})</option>
+                  <option value={50}>≥ 50% Match</option>
+                  <option value={70}>≥ 70% Match</option>
+                  <option value={85}>≥ 85% High Match</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs font-mono">
+                <span className="text-zinc-500">Sort by:</span>
+                <select
+                  data-testid="discovery-sort-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="bg-white border border-zinc-200 px-2 py-1 text-xs font-mono rounded text-zinc-700 hover:border-zinc-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="relevance">Highest Relevance</option>
+                  <option value="recency">Most Recent</option>
+                  <option value="competition">Lowest Competition</option>
+                </select>
+              </div>
             </div>
           )}
           <button
@@ -82,9 +104,22 @@ export function DiscoveryPage() {
             Trigger Manual Scan
           </button>
         </div>
+      ) : filteredAndSortedIssues.length === 0 ? (
+        <div className="bg-zinc-50 border border-zinc-200 p-8 text-center flex flex-col items-center shadow-sm">
+          <p className="text-zinc-500 font-mono text-sm mb-4">
+            No issues meet the ≥{minScoreThreshold}% match threshold ({ctx.scoutedIssues.length}{' '}
+            candidates available).
+          </p>
+          <button
+            onClick={() => setMinScoreThreshold(0)}
+            className="text-xs font-mono border border-zinc-300 bg-white hover:bg-zinc-100 px-3 py-1.5 rounded"
+          >
+            Reset Threshold to 0%
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {sortedIssues.map((issue) => (
+          {filteredAndSortedIssues.map((issue) => (
             <IssueCard
               key={issue.id}
               issue={issue}
