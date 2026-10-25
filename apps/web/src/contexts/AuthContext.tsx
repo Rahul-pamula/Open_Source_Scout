@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { type Session, type User, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, hasSupabaseConfig } from '../services/supabase';
 import type { UserProfile, ExperienceLevel } from '../types/user';
@@ -25,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data } = await supabase
         .from('users')
@@ -38,17 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         data.experience_level = normalizeExperienceLevel(data.experience_level);
       }
-      setUserProfile(data || createDefaultUserProfile(user));
+      setUserProfile(data || createDefaultUserProfile(null));
     } catch (e) {
       console.error('Failed to fetch profile', e);
     }
-  };
+  }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
       await fetchProfile(user.id);
     }
-  };
+  }, [user, fetchProfile]);
 
   useEffect(() => {
     if (!hasSupabaseConfig()) {
@@ -99,9 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile]);
 
-  const signInWithGithub = async () => {
+  const signInWithGithub = useCallback(async () => {
     if (!hasSupabaseConfig()) throw new Error('Supabase is not configured.');
     await supabase.auth.signInWithOAuth({
       provider: 'github',
@@ -109,42 +117,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
       },
     });
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     if (!hasSupabaseConfig()) return;
     await supabase.auth.signOut();
-  };
+  }, []);
 
-  const updateExperienceLevel = async (level: ExperienceLevel) => {
-    if (!user) throw new Error('No authenticated user');
-    const previous = userProfile?.experience_level;
-    // Optimistic update
-    setUserProfile((prev) => (prev ? { ...prev, experience_level: level } : null));
+  const updateExperienceLevel = useCallback(
+    async (level: ExperienceLevel) => {
+      if (!user) throw new Error('No authenticated user');
+      const previous = userProfile?.experience_level;
+      // Optimistic update
+      setUserProfile((prev) => (prev ? { ...prev, experience_level: level } : null));
 
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ experience_level: level })
-        .eq('id', user.id);
-      if (error) throw error;
-    } catch (err) {
-      // Revert on error
-      setUserProfile((prev) => (prev ? { ...prev, experience_level: previous } : null));
-      throw err;
-    }
-  };
+      try {
+        const { error } = await supabase
+          .from('users')
+          .update({ experience_level: level })
+          .eq('id', user.id);
+        if (error) throw error;
+      } catch (err) {
+        // Revert on error
+        setUserProfile((prev) => (prev ? { ...prev, experience_level: previous } : null));
+        throw err;
+      }
+    },
+    [user, userProfile?.experience_level],
+  );
 
-  const value = {
-    session,
-    user,
-    userProfile,
-    loading,
-    signInWithGithub,
-    signOut,
-    refreshProfile,
-    updateExperienceLevel,
-  };
+  const value = useMemo(
+    () => ({
+      session,
+      user,
+      userProfile,
+      loading,
+      signInWithGithub,
+      signOut,
+      refreshProfile,
+      updateExperienceLevel,
+    }),
+    [
+      session,
+      user,
+      userProfile,
+      loading,
+      signInWithGithub,
+      signOut,
+      refreshProfile,
+      updateExperienceLevel,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
