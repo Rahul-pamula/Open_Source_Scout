@@ -1,4 +1,5 @@
-import { ExternalLink, Bookmark } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, Bookmark, Info } from 'lucide-react';
 import type { ScoutedIssue } from '../types';
 
 interface IssueCardProps {
@@ -17,6 +18,7 @@ export function IssueCard({
   claimLabel = '🙌 Claim This Issue',
 }: IssueCardProps) {
   const { evaluation } = issue;
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   // Determine score color
   let scoreColor = 'text-zinc-400';
@@ -37,6 +39,7 @@ export function IssueCard({
 
   // 100-Point Mathematical Relevance Score Tier
   const relevance = issue.relevanceScore;
+  const breakdown = issue.relevanceBreakdown;
   let relevanceBadgeStyle = 'text-zinc-600 bg-zinc-100 border-zinc-200';
   if (relevance !== undefined) {
     if (relevance >= 80) {
@@ -58,13 +61,71 @@ export function IssueCard({
               {scoreLabel}
             </span>
             {relevance !== undefined && (
-              <span
-                data-testid="relevance-score-badge"
-                className={`inline-flex items-center gap-1 font-mono text-[10px] font-semibold px-2 py-0.5 rounded-full border ${relevanceBadgeStyle}`}
-              >
-                <span>⚡</span>
-                <span>{relevance}% Match</span>
-              </span>
+              <div className="relative inline-block">
+                <button
+                  type="button"
+                  data-testid="relevance-score-badge"
+                  onClick={() => setShowBreakdown((prev) => !prev)}
+                  onMouseEnter={() => setShowBreakdown(true)}
+                  onMouseLeave={() => setShowBreakdown(false)}
+                  className={`inline-flex items-center gap-1 font-mono text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${relevanceBadgeStyle}`}
+                  title="Click to view mathematical relevance breakdown"
+                >
+                  <span>⚡</span>
+                  <span>{relevance}% Match</span>
+                  <Info size={10} className="ml-0.5 opacity-70" />
+                </button>
+
+                {showBreakdown && breakdown && (
+                  <div
+                    data-testid="relevance-breakdown-popover"
+                    className="absolute left-0 top-full mt-1.5 z-50 w-56 bg-zinc-900 text-zinc-100 rounded-lg shadow-xl border border-zinc-700 p-2.5 text-xs font-mono"
+                  >
+                    <div className="flex justify-between items-center pb-1.5 mb-1.5 border-b border-zinc-800 text-[11px] font-bold text-emerald-400">
+                      <span>100-PT RELEVANCE</span>
+                      <span>{breakdown.total}/100</span>
+                    </div>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between text-zinc-300">
+                        <span>Language Alignment</span>
+                        <span className="font-semibold text-zinc-100">
+                          {breakdown.langScore}/35
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-zinc-300">
+                        <span>Tech & Topics</span>
+                        <span className="font-semibold text-zinc-100">
+                          {breakdown.techScore}/25
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-zinc-300">
+                        <span>Fresh Activity</span>
+                        <span className="font-semibold text-zinc-100">
+                          {breakdown.recencyScore}/15
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-zinc-300">
+                        <span>Open Opportunity</span>
+                        <span className="font-semibold text-zinc-100">
+                          {breakdown.competitionScore}/15
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-zinc-300">
+                        <span>Difficulty Match</span>
+                        <span className="font-semibold text-zinc-100">
+                          {breakdown.difficultyScore}/10
+                        </span>
+                      </div>
+                      {breakdown.penalties > 0 && (
+                        <div className="flex justify-between text-red-400 pt-1 border-t border-zinc-800">
+                          <span>Penalties</span>
+                          <span className="font-semibold">-{breakdown.penalties}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           {evaluation && (
