@@ -1,4 +1,5 @@
 export * from './types/user';
+export * from './types/skills';
 
 export interface NormalizedIssue {
   id: string;
