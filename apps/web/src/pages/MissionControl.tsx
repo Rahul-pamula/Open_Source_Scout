@@ -40,6 +40,7 @@ export function MissionControl() {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveryStatus, setDiscoveryStatus] = useState<string | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [activeQueryTelemetry, setActiveQueryTelemetry] = useState<string | null>(null);
   const [lastScanTime, setLastScanTime] = useState<number | null>(() => {
     const cached = sessionStorage.getItem('scout_last_scan_time');
     return cached ? parseInt(cached, 10) : null;
@@ -172,6 +173,7 @@ export function MissionControl() {
         experienceLevel:
           userProfile?.experience_level || authProfile?.experience_level || 'Beginner',
       });
+      setActiveQueryTelemetry(dynamicSearchQuery);
 
       // Fetch 50 issues from GitHub search to give us a pool to shuffle from
       const { data: searchData, error: searchError } = await supabase.functions.invoke('search', {
@@ -860,6 +862,21 @@ export function MissionControl() {
             </button>
           </div>
         </div>
+
+        {/* Development Query Telemetry Inspector */}
+        {import.meta.env.DEV && activeQueryTelemetry && (
+          <div className="mb-3 px-3 py-1.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-300 font-mono text-xs flex items-center gap-2 overflow-x-auto shadow-sm">
+            <span className="bg-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded tracking-wider whitespace-nowrap">
+              DEV TELEMETRY
+            </span>
+            <span className="text-zinc-400 text-[11px] truncate flex-1">
+              {activeQueryTelemetry}
+            </span>
+            <span className="text-zinc-500 text-[10px] whitespace-nowrap">
+              Candidates: {scoutedIssues.length}
+            </span>
+          </div>
+        )}
 
         {/* Workflow Tabs - scrollable on mobile */}
         <div className="mb-4 border-b border-zinc-200 flex gap-3 md:gap-6 overflow-x-auto overflow-y-hidden pb-px">
