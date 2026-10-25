@@ -28,10 +28,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase
         .from('users')
         .select(
-          'bio, skills, github_handle, automation_count_today, last_automation_date, custom_comment_enabled, custom_comment_text',
+          'bio, skills, github_handle, automation_count_today, last_automation_date, custom_comment_enabled, custom_comment_text, experience_level',
         )
         .eq('id', userId)
         .maybeSingle();
+
+      if (data && !data.experience_level) {
+        data.experience_level = 'Beginner';
+      }
       setUserProfile(data || null);
     } catch (e) {
       console.error('Failed to fetch profile', e);
