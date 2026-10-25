@@ -51,10 +51,7 @@ export async function updateUserSkills(userId: string, skills: string[]): Promis
   }
 }
 
-export async function updateUserProfile(
-  userId: string,
-  updates: Partial<UserProfile>,
-): Promise<void> {
+export function buildProfileUpdatePayload(updates: Partial<UserProfile>): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
@@ -72,6 +69,14 @@ export async function updateUserProfile(
     payload.custom_comment_text = updates.custom_comment_text;
   }
 
+  return payload;
+}
+
+export async function updateUserProfile(
+  userId: string,
+  updates: Partial<UserProfile>,
+): Promise<void> {
+  const payload = buildProfileUpdatePayload(updates);
   const { error } = await supabase.from('users').update(payload).eq('id', userId);
 
   if (error) {
