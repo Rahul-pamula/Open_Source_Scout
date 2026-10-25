@@ -124,7 +124,9 @@ export function calculateDifficultyScore(
   experienceLevel: ExperienceLevel | string | null | undefined,
   maxWeight = 10,
 ): number {
-  const level = experienceLevel || 'Beginner';
+  const rawLevel = (experienceLevel || 'Beginner').toString().trim().toLowerCase();
+  const level =
+    rawLevel === 'senior' ? 'Senior' : rawLevel === 'intermediate' ? 'Intermediate' : 'Beginner';
 
   const rawLabels = (target.labels || [])
     .map((l) => (typeof l === 'string' ? l : l.name || ''))
