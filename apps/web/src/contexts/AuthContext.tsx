@@ -13,6 +13,7 @@ interface AuthContextType {
   signInWithGithub: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateExperienceLevel: (level: ExperienceLevel) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,6 +115,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const updateExperienceLevel = async (level: ExperienceLevel) => {
+    if (!user) throw new Error('No authenticated user');
+    const previous = userProfile?.experience_level;
+    // Optimistic update
+    setUserProfile((prev) => (prev ? { ...prev, experience_level: level } : null));
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ experience_level: level })
+        .eq('id', user.id);
+      if (error) throw error;
+    } catch (err) {
+      // Revert on error
+      setUserProfile((prev) => (prev ? { ...prev, experience_level: previous } : null));
+      throw err;
+    }
+  };
+
   const value = {
     session,
     user,
@@ -122,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGithub,
     signOut,
     refreshProfile,
+    updateExperienceLevel,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
