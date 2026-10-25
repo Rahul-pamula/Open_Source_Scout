@@ -4,6 +4,8 @@ import type { ScoutedIssue, Task, NormalizedIssue } from '../types';
 import type { ExperienceLevel } from '../types/user';
 import { buildGitHubSearchQuery, buildRelaxedGitHubSearchQuery } from '../utils/queryBuilder';
 
+import { calculateRelevanceScore } from '../utils/relevanceScorer';
+
 interface UseIssueDiscoveryOptions {
   userProfile: { bio?: string; skills?: string[]; experience_level?: ExperienceLevel } | null;
   authExperienceLevel?: ExperienceLevel | null;
@@ -101,9 +103,43 @@ export function useIssueDiscovery({
         (issue) => !currentTrackedUrls.has(issue.url),
       );
 
-      // Shuffle the untracked issues to give fresh results on each click
-      const shuffledIssues = untrackedIssues.sort(() => 0.5 - Math.random());
-      const newIssues = shuffledIssues.slice(0, 10);
+      // Score each candidate issue using the 100-point mathematical relevance engine
+      const scoredIssues: ScoutedIssue[] = untrackedIssues.map((issue) => {
+        const target = {
+          title: issue.title,
+          body: issue.body,
+          labels: issue.labels,
+          language: issue.language,
+          repository_topics: issue.repositoryTopics,
+          updated_at: issue.updatedAt || issue.createdAt,
+          created_at: issue.createdAt,
+          comments: issue.commentsCount,
+        };
+
+        const effectiveProfile = {
+          skills: userProfile?.skills || authSkills || [],
+          experience_level: userProfile?.experience_level || authExperienceLevel || 'Beginner',
+        };
+
+        const breakdown = calculateRelevanceScore(target, effectiveProfile);
+
+        return {
+          ...issue,
+          relevanceScore: breakdown.total,
+          relevanceBreakdown: breakdown,
+        };
+      });
+
+      // Deterministic ranking: Sort descending by relevanceScore, secondary by recency
+      const rankedIssues = scoredIssues.sort((a, b) => {
+        const scoreDiff = (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0);
+        if (scoreDiff !== 0) return scoreDiff;
+        const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+
+      const newIssues = rankedIssues.slice(0, 10);
 
       if (newIssues.length === 0) {
         setDiscoveryStatus(null);
