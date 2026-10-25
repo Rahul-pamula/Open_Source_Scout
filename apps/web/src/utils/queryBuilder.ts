@@ -67,7 +67,8 @@ export function buildGitHubSearchQuery(options?: GitHubSearchQueryOptions): stri
     parts.push(`sort:${sort}`);
   }
 
-  return parts.join(' ').trim();
+  const rawQuery = parts.join(' ').trim();
+  return sanitizeGitHubQuery(rawQuery);
 }
 
 /**
@@ -90,5 +91,72 @@ export function buildRelaxedGitHubSearchQuery(options?: GitHubSearchQueryOptions
     parts.push(`sort:${sort}`);
   }
 
-  return parts.join(' ').trim();
+  const rawQuery = parts.join(' ').trim();
+  return sanitizeGitHubQuery(rawQuery);
+}
+
+export const MAX_GITHUB_QUERY_LENGTH = 256;
+export const MAX_LANGUAGE_QUALIFIERS = 5;
+
+export interface QueryValidationResult {
+  isValid: boolean;
+  length: number;
+  errors: string[];
+}
+
+/**
+ * Validates a GitHub search query against GitHub Search API constraints:
+ * - Query string must not exceed 256 characters.
+ * - Language qualifiers should not exceed 5 items.
+ */
+export function validateGitHubQuery(query: string): QueryValidationResult {
+  const errors: string[] = [];
+  const clean = (query || '').trim();
+  const length = clean.length;
+
+  if (length === 0) {
+    errors.push('Query cannot be empty');
+  }
+
+  if (length > MAX_GITHUB_QUERY_LENGTH) {
+    errors.push(
+      `Query length (${length}) exceeds maximum allowable GitHub search length of ${MAX_GITHUB_QUERY_LENGTH} characters`,
+    );
+  }
+
+  const languageMatches = clean.match(/language:\S+/g) || [];
+  if (languageMatches.length > MAX_LANGUAGE_QUALIFIERS) {
+    errors.push(
+      `Query specifies ${languageMatches.length} language qualifiers, exceeding limit of ${MAX_LANGUAGE_QUALIFIERS}`,
+    );
+  }
+
+  return {
+    isValid: errors.length === 0,
+    length,
+    errors,
+  };
+}
+
+/**
+ * Sanitizes a search query string to ensure it satisfies GitHub's length constraints,
+ * consolidating excessive qualifiers if needed.
+ */
+export function sanitizeGitHubQuery(query: string, maxLength = MAX_GITHUB_QUERY_LENGTH): string {
+  if (!query) return '';
+  let clean = query.replace(/\s+/g, ' ').trim();
+
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+
+  // If query is overly long, iteratively prune secondary language qualifiers
+  const tokens = clean.split(' ');
+  while (clean.length > maxLength && tokens.length > 3) {
+    // Drop the token before the last sort token
+    tokens.splice(tokens.length - 2, 1);
+    clean = tokens.join(' ');
+  }
+
+  return clean.slice(0, maxLength).trim();
 }
