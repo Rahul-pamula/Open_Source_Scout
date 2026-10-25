@@ -16,15 +16,20 @@ import {
 import { useSearchParams, Outlet, Link, useLocation } from 'react-router-dom';
 import { DossierPanel } from '../components/DossierPanel';
 import { buildGitHubSearchQuery } from '../utils/queryBuilder';
+import type { ExperienceLevel } from '../types/user';
 
 type Toast = { id: number; type: 'success' | 'error'; message: string };
 
 export function MissionControl() {
   const location = useLocation();
-  const { session, user } = useAuth();
+  const { session, user, userProfile: authProfile } = useAuth();
 
   // -- Profile Data --
-  const [userProfile, setUserProfile] = useState<{ bio: string; skills: string[] } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    bio: string;
+    skills: string[];
+    experience_level?: ExperienceLevel;
+  } | null>(null);
 
   // -- Discovery State (Opportunities) --
   // We use sessionStorage to cache discovered issues so they survive unmounts
@@ -91,7 +96,9 @@ export function MissionControl() {
     let mounted = true;
     supabase
       .from('users')
-      .select('bio, skills, automation_count_today, last_automation_date, github_handle')
+      .select(
+        'bio, skills, automation_count_today, last_automation_date, github_handle, experience_level',
+      )
       .eq('id', user.id)
       .maybeSingle()
       .then(
@@ -104,6 +111,7 @@ export function MissionControl() {
             automation_count_today: number;
             last_automation_date: string;
             github_handle: string;
+            experience_level?: ExperienceLevel;
           } | null;
         }) => {
           if (mounted && data) {
@@ -160,7 +168,9 @@ export function MissionControl() {
       setDiscoveryStatus('Searching GitHub...');
 
       const dynamicSearchQuery = buildGitHubSearchQuery({
-        skills: userProfile?.skills,
+        skills: userProfile?.skills || authProfile?.skills,
+        experienceLevel:
+          userProfile?.experience_level || authProfile?.experience_level || 'Beginner',
       });
 
       // Fetch 50 issues from GitHub search to give us a pool to shuffle from
