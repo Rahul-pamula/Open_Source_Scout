@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { type Session, type User, type AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase, hasSupabaseConfig } from '../services/supabase';
 import type { UserProfile, ExperienceLevel } from '../types/user';
-import { normalizeExperienceLevel } from '../types/user';
+import { normalizeExperienceLevel, createDefaultUserProfile } from '../types/user';
 
 export type { UserProfile, ExperienceLevel };
 
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         data.experience_level = normalizeExperienceLevel(data.experience_level);
       }
-      setUserProfile(data || null);
+      setUserProfile(data || createDefaultUserProfile(user));
     } catch (e) {
       console.error('Failed to fetch profile', e);
     }

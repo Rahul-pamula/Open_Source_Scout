@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeExperienceLevel, type UserProfile } from '../types/user';
+import {
+  normalizeExperienceLevel,
+  createDefaultUserProfile,
+  type UserProfile,
+} from '../types/user';
 
 describe('AuthContext profile & experience level parsing', () => {
   describe('normalizeExperienceLevel', () => {
@@ -53,6 +57,13 @@ describe('AuthContext profile & experience level parsing', () => {
 
       assert.equal(legacyProfile.experience_level, undefined);
       assert.equal(normalizeExperienceLevel(legacyProfile.experience_level), 'Beginner');
+    });
+
+    it('creates default profile with Beginner tier and empty collections', () => {
+      const defaultProf = createDefaultUserProfile(null);
+      assert.equal(defaultProf.experience_level, 'Beginner');
+      assert.deepEqual(defaultProf.skills, []);
+      assert.equal(defaultProf.bio, '');
     });
   });
 });
