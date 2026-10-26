@@ -122,4 +122,13 @@ test('JSON-RPC 2.0 Error Formatting', async (t) => {
     sessionWorkspaces.delete('cleanup-sess-id');
     assert.strictEqual(sessionWorkspaces.has('cleanup-sess-id'), false);
   });
+
+  await t.test('deletes workspace mapping when cancel_session is called', async () => {
+    const { sessionWorkspaces } = await import('./index.js');
+    sessionWorkspaces.set('cancel-sess-id', '/tmp/mock-dir');
+    assert.strictEqual(sessionWorkspaces.has('cancel-sess-id'), true);
+
+    sessionWorkspaces.delete('cancel-sess-id');
+    assert.strictEqual(sessionWorkspaces.has('cancel-sess-id'), false);
+  });
 });

@@ -370,6 +370,7 @@ ${JSON.stringify(result, null, 2)}`
       case 'cancel_session': {
         const { session_id } = CancelSessionSchema.parse(request.params.arguments);
         await localHarness.cancelSession(session_id);
+        sessionWorkspaces.delete(session_id);
 
         return {
           content: [
