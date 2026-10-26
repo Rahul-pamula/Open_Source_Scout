@@ -110,5 +110,23 @@ test('validatePathBoundary', async (t) => {
     assert.throws(() => validatePathBoundary(worktree, '.ssh/authorized_keys'), /Access to sensitive credential directory/);
   });
 
+  await t.test('normalizes cross-platform Windows and Unix path separators', () => {
+    // Windows backslash traversal blocked
+    assert.throws(() => validatePathBoundary(worktree, '..\\..\\secret'), /Path boundary violation/);
+    assert.throws(() => validatePathBoundary(worktree, 'sub\\..\\..\\external'), /Path boundary violation/);
+
+    // Windows drive letters blocked
+    assert.throws(() => validatePathBoundary(worktree, 'C:\\Windows\\System32'), /Windows absolute drive traversal detected/);
+    assert.throws(() => validatePathBoundary(worktree, 'D:/secrets'), /Windows absolute drive traversal detected/);
+
+    // CommandBoundaryGuard Windows paths
+    assert.throws(() => CommandBoundaryGuard.validate('cd ..\\..'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('cd C:\\tools'), /Absolute directory traversal detected/);
+
+    // Valid Windows relative paths permitted
+    assert.doesNotThrow(() => validatePathBoundary(worktree, 'src\\index.ts'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '.\\package.json'));
+  });
+
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
