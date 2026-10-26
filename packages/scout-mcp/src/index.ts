@@ -106,6 +106,10 @@ const CleanupSessionSchema = z.object({
   session_id: z.string().uuid(),
 });
 
+const GetSessionInfoSchema = z.object({
+  session_id: z.string().uuid(),
+});
+
 const ReadFileSchema = z.object({
   session_id: z.string().uuid(),
   path: z.string(),
@@ -217,6 +221,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object',
         properties: {
           session_id: { type: 'string', description: 'The UUID of the session to clean up.' },
+        },
+        required: ['session_id'],
+      },
+    },
+    {
+      name: 'get_session_info',
+      description: 'Get status and metadata for an active or past Scout session.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          session_id: { type: 'string', description: 'The UUID of the session.' },
         },
         required: ['session_id'],
       },
@@ -394,6 +409,43 @@ ${JSON.stringify(result, null, 2)}`
               type: 'text',
               text: JSON.stringify(
                 { message: 'Successfully cleaned up session processes and worktree.' },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      case 'get_session_info': {
+        const { session_id } = GetSessionInfoSchema.parse(request.params.arguments);
+        const state = await getLocalState();
+        const session = state.sessions[session_id];
+        if (!session) {
+          throw new Error(`Session not found in local state: ${session_id}`);
+        }
+        const workspace_path = sessionWorkspaces.get(session_id) || session.workspace_path || process.cwd();
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  session_id,
+                  status: session.status,
+                  starting_commit_hash: session.starting_commit_hash,
+                  task_description: session.task_description,
+                  source: session.source,
+                  task_id: session.task_id,
+                  pr_url: session.pr_url,
+                  blocked_reason: session.blocked_reason,
+                  last_heartbeat_at: session.last_heartbeat_at,
+                  created_at: session.created_at,
+                  client_id: session.client_id,
+                  workspace_path,
+                },
                 null,
                 2,
               ),
