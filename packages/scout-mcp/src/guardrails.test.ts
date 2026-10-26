@@ -29,6 +29,16 @@ test('CommandBoundaryGuard', async (t) => {
     assert.throws(() => CommandBoundaryGuard.validate('cd src; cd ../..'), /Directory escape detected/);
     assert.throws(() => CommandBoundaryGuard.validate('echo hello || cd /'), /Absolute directory traversal detected/);
   });
+
+  await t.test('destructive commands blocked', () => {
+    assert.throws(() => CommandBoundaryGuard.validate('rm -rf /'), /Destructive root\/system recursive deletion detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('rm -rf /*'), /Destructive root\/system recursive deletion detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('rm -fr ~'), /Destructive root\/system recursive deletion detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('mkfs /dev/sda1'), /Filesystem formatting command detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('mkfs.ext4 /dev/nvme0n1'), /Filesystem formatting command detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('dd if=/dev/zero of=/dev/sda'), /Raw block device overwrite detected/);
+    assert.throws(() => CommandBoundaryGuard.validate(':(){ :|:& };:'), /Fork bomb pattern detected/);
+  });
 });
 
 import fs from 'fs';

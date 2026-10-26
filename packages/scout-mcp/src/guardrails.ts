@@ -1,5 +1,44 @@
+import path from 'node:path';
+import fs from 'node:fs';
+
+export class GuardrailError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GuardrailError';
+  }
+}
+
 export class CommandBoundaryGuard {
+  private static readonly DESTRUCTIVE_PATTERNS: Array<{ regex: RegExp; message: string }> = [
+    {
+      regex: /:\s*\(\s*\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:/,
+      message: 'Fork bomb pattern detected',
+    },
+    {
+      regex: /\brm\s+-[a-zA-Z]*r[a-zA-Z]*f?[a-zA-Z]*\s+(?:--no-preserve-root\s+)?(?:\/|\/\*|~|\$HOME|\/etc(?:\/.*)?|\/boot(?:\/.*)?|\/sys(?:\/.*)?|\/root(?:\/.*)?)(?:\s|$)/,
+      message: 'Destructive root/system recursive deletion detected',
+    },
+    {
+      regex: /\brm\s+-[a-zA-Z]*f[a-zA-Z]*r[a-zA-Z]*\s+(?:--no-preserve-root\s+)?(?:\/|\/\*|~|\$HOME|\/etc(?:\/.*)?|\/boot(?:\/.*)?|\/sys(?:\/.*)?|\/root(?:\/.*)?)(?:\s|$)/,
+      message: 'Destructive root/system recursive deletion detected',
+    },
+    {
+      regex: /\bmkfs(?:\.[a-zA-Z0-9]+)?\b/,
+      message: 'Filesystem formatting command detected (mkfs)',
+    },
+    {
+      regex: /\bdd\s+.*(?:if|of)=\/dev\//,
+      message: 'Raw block device overwrite detected (dd)',
+    },
+  ];
+
   static validate(command: string): void {
+    for (const pattern of this.DESTRUCTIVE_PATTERNS) {
+      if (pattern.regex.test(command)) {
+        throw new GuardrailError(`CommandBoundaryGuard: ${pattern.message}`);
+      }
+    }
+
     // Split command by shell operators to check individual segments
     const segments = command.split(/(?:&&|\|\||;|\n|\|)/).map(s => s.trim()).filter(Boolean);
 
@@ -9,31 +48,23 @@ export class CommandBoundaryGuard {
         
         // Prevent traversing up
         if (target.includes('..')) {
-          throw new Error(`CommandBoundaryGuard: Directory escape detected (${target})`);
+          throw new GuardrailError(`CommandBoundaryGuard: Directory escape detected (${target})`);
         }
         
         // Prevent absolute path navigation
         if (target.startsWith('/')) {
-          throw new Error(`CommandBoundaryGuard: Absolute directory traversal detected (${target})`);
+          throw new GuardrailError(`CommandBoundaryGuard: Absolute directory traversal detected (${target})`);
         }
 
         // Prevent home directory navigation
         if (target.startsWith('~')) {
-          throw new Error(`CommandBoundaryGuard: Home directory traversal detected (${target})`);
+          throw new GuardrailError(`CommandBoundaryGuard: Home directory traversal detected (${target})`);
         }
       }
     }
   }
 }
-import path from 'path';
-import fs from 'fs';
 
-export class GuardrailError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'GuardrailError';
-  }
-}
 
 export function validatePathBoundary(worktreePath: string, targetPath: string): string {
   const absoluteWorktree = path.resolve(worktreePath);
