@@ -169,15 +169,26 @@ export async function cleanupOrphanedWorktrees(cwd: string = process.cwd()): Pro
 
 export async function getGitDiff(cwd: string = process.cwd()): Promise<string> {
   try {
+    try {
+      await execAsync('git add -N .', { cwd });
+    } catch {}
     const { stdout } = await execAsync('git diff HEAD', { cwd });
     return stdout;
   } catch (e: any) {
-    return '';
+    try {
+      const { stdout } = await execAsync('git diff', { cwd });
+      return stdout;
+    } catch {
+      return '';
+    }
   }
 }
 
 export async function getChangedFiles(cwd: string = process.cwd()): Promise<string[]> {
   try {
+    try {
+      await execAsync('git add -N .', { cwd });
+    } catch {}
     const { stdout } = await execAsync('git diff --name-only HEAD', { cwd });
     return stdout.trim().split('\n').filter(Boolean);
   } catch (e: any) {
@@ -188,8 +199,7 @@ export async function getChangedFiles(cwd: string = process.cwd()): Promise<stri
 export async function getWorktreeDiff(sessionId: string, cwd: string = process.cwd()): Promise<string> {
   try {
     const worktreePath = await getWorktreePath(sessionId, cwd);
-    const { stdout } = await execAsync('git diff HEAD', { cwd: worktreePath });
-    return stdout;
+    return await getGitDiff(worktreePath);
   } catch (e: any) {
     return '';
   }
