@@ -16,11 +16,35 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { validatePathBoundary } from './guardrails.js';
 import { getWorktreePath } from './git.js';
+import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
 
 const localHarness = new LocalHarness();
-const sessionWorkspaces = new Map<string, string>();
+export const sessionWorkspaces = new Map<string, string>();
+
+/**
+ * Hydrate in-memory sessionWorkspaces map from persisted state.json on disk.
+ * Returns the count of active sessions restored.
+ */
+export async function hydrateSessionWorkspaces(cwd: string = process.cwd()): Promise<number> {
+  try {
+    const state = await getLocalState(cwd);
+    let count = 0;
+    for (const [id, session] of Object.entries(state.sessions)) {
+      if (session.workspace_path && (session.status === 'ACTIVE' || session.status === 'BLOCKED')) {
+        sessionWorkspaces.set(id, session.workspace_path);
+        count++;
+      }
+    }
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+// Auto-hydrate on bootstrap
+hydrateSessionWorkspaces().catch(() => {});
 
 async function resolveSessionWorkspace(sessionId: string, fallbackCwd: string = process.cwd()): Promise<string> {
   const cached = sessionWorkspaces.get(sessionId);
@@ -476,13 +500,21 @@ ${JSON.stringify(result, null, 2)}`
 // Entry point
 // ---------------------------------------------------------------------------
 
-async function run() {
+export async function run() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('Scout MCP Server running on stdio');
 }
 
-run().catch((error) => {
-  console.error('Fatal error in main():', error);
-  process.exit(1);
-});
+const isDirectExecution =
+  process.argv[1] &&
+  (process.argv[1] === fileURLToPath(import.meta.url) ||
+    process.argv[1].endsWith('/index.js') ||
+    process.argv[1].endsWith('/index.ts'));
+
+if (isDirectExecution && !process.env.NODE_TEST_CONTEXT) {
+  run().catch((error) => {
+    console.error('Fatal error in main():', error);
+    process.exit(1);
+  });
+}
