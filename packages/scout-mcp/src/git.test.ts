@@ -32,12 +32,15 @@ test('Git Adapter', async (t) => {
     await assert.rejects(() => getGitInfo(testDir), /Git error:/);
   });
 
-  await t.test('fails on detached HEAD', async () => {
+  await t.test('detects detached HEAD and generates fallback branch', async () => {
     execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git remote add origin https://github.com/test/repo', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
     execSync('git checkout --detach HEAD', { cwd: testDir });
-    await assert.rejects(() => getGitInfo(testDir), /Detached HEAD state/);
+    const info = await getGitInfo(testDir);
+    assert.strictEqual(info.isDetached, true);
+    assert.match(info.branch, /^scout-detached-[a-f0-9]{7}$/);
+    assert.strictEqual(info.remoteUrl, 'https://github.com/test/repo');
   });
 
   await t.test('succeeds on valid git repository', async () => {
