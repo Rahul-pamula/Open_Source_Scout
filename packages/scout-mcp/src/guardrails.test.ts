@@ -140,5 +140,12 @@ test('validatePathBoundary', async (t) => {
     assert.doesNotThrow(() => validatePathBoundary(worktree, '.\\package.json'));
   });
 
+  await t.test('blocks read_file attempts against hidden system paths', () => {
+    assert.throws(() => validatePathBoundary(worktree, '/etc/hosts'), /Access to system path/);
+    assert.throws(() => validatePathBoundary(worktree, '/proc/cpuinfo'), /Access to system path/);
+    assert.throws(() => validatePathBoundary(worktree, '/sys/kernel'), /Access to system path/);
+    assert.throws(() => validatePathBoundary(worktree, '/dev/urandom'), /Access to system path/);
+  });
+
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });

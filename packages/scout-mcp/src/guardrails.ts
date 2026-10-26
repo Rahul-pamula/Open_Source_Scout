@@ -86,6 +86,13 @@ export function validatePathBoundary(worktreePath: string, targetPath: string): 
 
   // Normalize Windows backslashes to standard forward slashes to prevent traversal bypasses across platforms
   const normalizedTarget = targetPath.replace(/\\/g, '/');
+
+  // Prevent access to hidden root system directories
+  const HIDDEN_SYSTEM_PATHS = ['/etc', '/proc', '/sys', '/dev', '/var/run', '/private/etc'];
+  if (HIDDEN_SYSTEM_PATHS.some((sysPath) => normalizedTarget === sysPath || normalizedTarget.startsWith(sysPath + '/'))) {
+    throw new GuardrailError(`Path boundary violation. Access to system path ${targetPath} is strictly forbidden.`);
+  }
+
   const absoluteWorktree = path.resolve(worktreePath);
   const absoluteTarget = path.resolve(absoluteWorktree, normalizedTarget);
   
