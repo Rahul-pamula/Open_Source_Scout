@@ -131,4 +131,11 @@ test('JSON-RPC 2.0 Error Formatting', async (t) => {
     sessionWorkspaces.delete('cancel-sess-id');
     assert.strictEqual(sessionWorkspaces.has('cancel-sess-id'), false);
   });
+
+  await t.test('validates GetSessionInfoSchema correctly', async () => {
+    const { z } = await import('zod');
+    const schema = z.object({ session_id: z.string().uuid() });
+    assert.doesNotThrow(() => schema.parse({ session_id: '123e4567-e89b-12d3-a456-426614174000' }));
+    assert.throws(() => schema.parse({ session_id: 'invalid-id' }));
+  });
 });
