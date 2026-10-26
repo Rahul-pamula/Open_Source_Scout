@@ -45,13 +45,46 @@ export async function getGitInfo(cwd: string = process.cwd()) {
   }
 }
 
+/**
+ * Executes a git command with retry backoff when git lockfile races
+ * (index.lock, worktrees/locked, concurrent git process) occur.
+ */
+export async function execWithGitLockRetry(
+  command: string,
+  options: { cwd: string; maxRetries?: number; delayMs?: number },
+): Promise<{ stdout: string; stderr: string }> {
+  const maxRetries = options.maxRetries ?? 5;
+  let delay = options.delayMs ?? 100;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await execAsync(command, { cwd: options.cwd });
+    } catch (err: any) {
+      const msg = err.message || '';
+      const isLockError =
+        msg.includes('index.lock') ||
+        msg.includes('.lock') ||
+        msg.includes('locked') ||
+        msg.includes('Another git process') ||
+        msg.includes('worktrees');
+
+      if (isLockError && attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, delay + Math.random() * 50));
+        delay *= 2;
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error(`Command failed after ${maxRetries} lock retries: ${command}`);
+}
+
 export async function createWorktree(sessionId: string, cwd: string = process.cwd()): Promise<string> {
   const repoRootOut = await execAsync('git rev-parse --show-toplevel', { cwd });
   const repoRoot = repoRootOut.stdout.trim();
   
   const worktreePath = join(repoRoot, '.scout-tmp', 'worktrees', sessionId);
   const branchName = `scout-session-${sessionId}`;
-  
   
   try {
     const { stdout } = await execAsync('git worktree list', { cwd });
@@ -69,21 +102,13 @@ export async function createWorktree(sessionId: string, cwd: string = process.cw
   } catch (_) {}
 
   try {
-    await execAsync(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
+    await execWithGitLockRetry(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
   } catch (e: any) {
     if (e.message.includes('already exists')) {
       try {
-        await execAsync(`git worktree add ${worktreePath} ${branchName}`, { cwd });
+        await execWithGitLockRetry(`git worktree add ${worktreePath} ${branchName}`, { cwd });
       } catch (innerE: any) {
          throw new Error(`Failed to create worktree: ${innerE.message}`);
-      }
-    } else if (e.message.includes('worktrees')) {
-      // Retry once if concurrent git worktree initialization race occurred
-      await new Promise(r => setTimeout(r, 50));
-      try {
-        await execAsync(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
-      } catch (retryE: any) {
-        throw new Error(`Failed to create worktree: ${retryE.message}`);
       }
     } else {
       throw new Error(`Failed to create worktree: ${e.message}`);
@@ -101,14 +126,14 @@ export async function removeWorktree(sessionId: string, cwd: string = process.cw
   const branchName = `scout-session-${sessionId}`;
 
   try {
-    await execAsync(`git worktree remove --force ${worktreePath}`, { cwd });
+    await execWithGitLockRetry(`git worktree remove --force ${worktreePath}`, { cwd });
   } catch (e) {
     await rm(worktreePath, { recursive: true, force: true }).catch(() => {});
-    await execAsync(`git worktree prune`, { cwd }).catch(() => {});
+    await execWithGitLockRetry(`git worktree prune`, { cwd }).catch(() => {});
   }
 
   try {
-    await execAsync(`git branch -D ${branchName}`, { cwd });
+    await execWithGitLockRetry(`git branch -D ${branchName}`, { cwd });
   } catch (e) {
     // Ignore
   }
