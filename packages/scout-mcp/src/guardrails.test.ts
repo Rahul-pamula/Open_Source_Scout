@@ -39,6 +39,18 @@ test('CommandBoundaryGuard', async (t) => {
     assert.throws(() => CommandBoundaryGuard.validate('dd if=/dev/zero of=/dev/sda'), /Raw block device overwrite detected/);
     assert.throws(() => CommandBoundaryGuard.validate(':(){ :|:& };:'), /Fork bomb pattern detected/);
   });
+
+  await t.test('subshell escape patterns blocked ($(), backticks)', () => {
+    assert.throws(() => CommandBoundaryGuard.validate('echo $(cd .. && pwd)'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('echo `cd ../.. && ls`'), /Directory escape detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('VAR=$(cd /etc && ls)'), /Absolute directory traversal detected/);
+    assert.throws(() => CommandBoundaryGuard.validate('RESULT=`rm -rf /`'), /Destructive root\/system recursive deletion detected/);
+
+    // Benign subshells allowed
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('echo $(date)'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('echo `git rev-parse HEAD`'));
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('echo $(cd src && ls)'));
+  });
 });
 
 import fs from 'fs';
