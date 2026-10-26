@@ -44,21 +44,22 @@ export class CommandBoundaryGuard {
 
     for (const segment of segments) {
       if (segment.startsWith('cd ') || segment.startsWith('pushd ')) {
-        const target = segment.slice(segment.indexOf(' ') + 1).trim();
+        const rawTarget = segment.slice(segment.indexOf(' ') + 1).trim();
+        const target = rawTarget.replace(/\\/g, '/');
         
         // Prevent traversing up
         if (target.includes('..')) {
-          throw new GuardrailError(`CommandBoundaryGuard: Directory escape detected (${target})`);
+          throw new GuardrailError(`CommandBoundaryGuard: Directory escape detected (${rawTarget})`);
         }
         
         // Prevent absolute path navigation
-        if (target.startsWith('/')) {
-          throw new GuardrailError(`CommandBoundaryGuard: Absolute directory traversal detected (${target})`);
+        if (target.startsWith('/') || /^[a-zA-Z]:[/\\]/.test(rawTarget)) {
+          throw new GuardrailError(`CommandBoundaryGuard: Absolute directory traversal detected (${rawTarget})`);
         }
 
         // Prevent home directory navigation
         if (target.startsWith('~')) {
-          throw new GuardrailError(`CommandBoundaryGuard: Home directory traversal detected (${target})`);
+          throw new GuardrailError(`CommandBoundaryGuard: Home directory traversal detected (${rawTarget})`);
         }
       }
     }
@@ -67,8 +68,15 @@ export class CommandBoundaryGuard {
 
 
 export function validatePathBoundary(worktreePath: string, targetPath: string): string {
+  // Check Windows absolute drive path (e.g. C:/ or D:\)
+  if (/^[a-zA-Z]:[/\\]/.test(targetPath)) {
+    throw new GuardrailError(`Path boundary violation. Windows absolute drive traversal detected (${targetPath}).`);
+  }
+
+  // Normalize Windows backslashes to standard forward slashes to prevent traversal bypasses across platforms
+  const normalizedTarget = targetPath.replace(/\\/g, '/');
   const absoluteWorktree = path.resolve(worktreePath);
-  const absoluteTarget = path.resolve(absoluteWorktree, targetPath);
+  const absoluteTarget = path.resolve(absoluteWorktree, normalizedTarget);
   
   if (absoluteTarget !== absoluteWorktree && !absoluteTarget.startsWith(absoluteWorktree + path.sep)) {
     throw new GuardrailError(`Path boundary violation. Access to ${targetPath} is strictly forbidden outside of the worktree.`);
