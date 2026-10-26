@@ -74,4 +74,38 @@ describe('ProcessManager', () => {
     assert.strictEqual(manager.getActiveProcessCount('session-5'), 0);
   });
 
+  it('should sanitize sensitive host credentials from environment', async () => {
+    const { sanitizeEnvironment } = await import('./harness.js');
+    const mockEnv = {
+      PATH: '/usr/bin:/bin',
+      HOME: '/Users/test',
+      USER: 'tester',
+      NODE_ENV: 'test',
+      GITHUB_TOKEN: 'ghp_secret_token_12345',
+      GH_TOKEN: 'ghp_secret_token_67890',
+      AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
+      AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+      OPENAI_API_KEY: 'sk-proj-super-secret-key',
+      DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
+      SLACK_BOT_TOKEN: 'xoxb-secret-token',
+    };
+
+    const sanitized = sanitizeEnvironment(mockEnv);
+
+    // Standard dev variables preserved
+    assert.strictEqual(sanitized.PATH, '/usr/bin:/bin');
+    assert.strictEqual(sanitized.HOME, '/Users/test');
+    assert.strictEqual(sanitized.USER, 'tester');
+    assert.strictEqual(sanitized.NODE_ENV, 'test');
+
+    // Sensitive credentials stripped
+    assert.strictEqual(sanitized.GITHUB_TOKEN, undefined);
+    assert.strictEqual(sanitized.GH_TOKEN, undefined);
+    assert.strictEqual(sanitized.AWS_ACCESS_KEY_ID, undefined);
+    assert.strictEqual(sanitized.AWS_SECRET_ACCESS_KEY, undefined);
+    assert.strictEqual(sanitized.OPENAI_API_KEY, undefined);
+    assert.strictEqual(sanitized.DATABASE_URL, undefined);
+    assert.strictEqual(sanitized.SLACK_BOT_TOKEN, undefined);
+  });
 });
+

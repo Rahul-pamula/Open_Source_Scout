@@ -8,6 +8,43 @@ export class TimeoutError extends Error {
   }
 }
 
+/**
+ * Strips secrets, access tokens, and sensitive credential environment variables
+ * before passing host environment to spawned child processes.
+ */
+export function sanitizeEnvironment(rawEnv: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const sanitized: Record<string, string> = {};
+  const SENSITIVE_KEY_PATTERNS = [
+    /TOKEN/i,
+    /SECRET/i,
+    /PASSWORD/i,
+    /API_?KEY/i,
+    /AUTH/i,
+    /CREDENTIAL/i,
+    /PRIVATE_?KEY/i,
+    /^GH_/i,
+    /^GITHUB_/i,
+    /^AWS_/i,
+    /^DATABASE_URL$/i,
+    /^REDIS_URL$/i,
+  ];
+
+  for (const [key, value] of Object.entries(rawEnv)) {
+    if (value === undefined) continue;
+    const isSensitive = SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(key));
+    if (!isSensitive) {
+      sanitized[key] = value;
+    }
+  }
+
+  // Preserve critical execution paths
+  if (rawEnv.PATH && !sanitized.PATH) sanitized.PATH = rawEnv.PATH;
+  if (rawEnv.HOME && !sanitized.HOME) sanitized.HOME = rawEnv.HOME;
+  if (rawEnv.SHELL && !sanitized.SHELL) sanitized.SHELL = rawEnv.SHELL;
+
+  return sanitized;
+}
+
 export class ProcessManager {
   private activeProcesses: Map<string, ChildProcess[]> = new Map();
 
@@ -15,10 +52,12 @@ export class ProcessManager {
     sessionId: string,
     command: string,
     cwd: string,
-    timeoutMs: number = 600000
+    timeoutMs: number = 600000,
+    customEnv?: Record<string, string>,
   ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return new Promise((resolve, reject) => {
-      const child = spawn('sh', ['-c', command], { cwd, shell: false });
+      const childEnv = customEnv ? { ...sanitizeEnvironment(), ...customEnv } : sanitizeEnvironment();
+      const child = spawn('sh', ['-c', command], { cwd, shell: false, env: childEnv });
       let timeoutId: NodeJS.Timeout | undefined;
 
       if (!this.activeProcesses.has(sessionId)) {
