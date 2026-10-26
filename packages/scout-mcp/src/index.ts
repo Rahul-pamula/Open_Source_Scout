@@ -79,6 +79,7 @@ const InitializeExecutionSchema = z.object({
   task_id: z.string().optional(),
   source: z.string().optional().default('manual'),
   cwd: z.string().optional(),
+  client_id: z.string().optional(),
 });
 
 const SubmitForReviewSchema = z.object({

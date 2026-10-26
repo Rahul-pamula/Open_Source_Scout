@@ -22,6 +22,8 @@ export interface SessionState {
   blocked_reason?: string;
   last_heartbeat_at?: string;
   workspace_path?: string;
+  created_at?: string;
+  client_id?: string;
 }
 
 export interface StateFile {
@@ -244,6 +246,7 @@ export async function getOrCreateLocalSession(
   taskId?: string,
   cwd: string = process.cwd(),
   workspacePath?: string,
+  clientId?: string,
 ): Promise<string> {
   const state = await getLocalState(cwd);
   if (state.sessions[sessionId]) {
@@ -262,14 +265,17 @@ export async function getOrCreateLocalSession(
     }
     return sessionId;
   }
+  const now = new Date().toISOString();
   state.sessions[sessionId] = {
     status: 'ACTIVE',
     starting_commit_hash: commitHash,
     task_description: taskDescription,
     source,
-    last_heartbeat_at: new Date().toISOString(),
+    created_at: now,
+    last_heartbeat_at: now,
     workspace_path: workspacePath || cwd,
     ...(taskId ? { task_id: taskId } : {}),
+    ...(clientId ? { client_id: clientId } : {}),
   };
   await saveLocalState(state, cwd);
   return sessionId;

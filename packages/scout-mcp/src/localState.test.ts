@@ -494,4 +494,25 @@ test('Cancellation Lifecycle Tests', async (t) => {
     const state = await getLocalState(tmpDir);
     assert.strictEqual(state.sessions['s-debounce']?.task_description, 'Debounce Task');
   });
+
+  await t.test('records created_at timestamp and client_id metadata', async () => {
+    const before = new Date().toISOString();
+    await getOrCreateLocalSession(
+      'sess-meta',
+      'c-meta',
+      'Task Meta',
+      'manual',
+      undefined,
+      tmpDir,
+      undefined,
+      'cursor-editor',
+    );
+    const after = new Date().toISOString();
+
+    const state = await getLocalState(tmpDir);
+    const session = state.sessions['sess-meta'];
+    assert.ok(session.created_at);
+    assert.ok(session.created_at >= before && session.created_at <= after);
+    assert.strictEqual(session.client_id, 'cursor-editor');
+  });
 });
