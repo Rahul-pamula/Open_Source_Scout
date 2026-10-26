@@ -55,6 +55,20 @@ test('Git Adapter', async (t) => {
     assert.ok(info.commitHash.length > 0);
   });
 
+  await t.test('resolves git info accurately from nested subdirectories', async () => {
+    execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
+    execSync('git remote add origin https://github.com/test/repo', { cwd: testDir });
+    execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });
+
+    const nestedDir = path.join(testDir, 'packages', 'deep', 'core');
+    fs.mkdirSync(nestedDir, { recursive: true });
+
+    const info = await getGitInfo(nestedDir);
+    assert.strictEqual(info.remoteUrl, 'https://github.com/test/repo');
+    assert.strictEqual(info.subDirectory, 'packages/deep/core');
+    assert.ok(info.repoRoot.length > 0);
+  });
+
   await t.test('creates and removes worktree safely', async () => {
     execSync('git init && git config user.email "test@example.com" && git config user.name "Test"', { cwd: testDir });
     execSync('git commit --allow-empty -m "Initial commit"', { cwd: testDir });

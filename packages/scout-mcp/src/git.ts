@@ -15,7 +15,13 @@ export async function getGitInfo(cwd: string = process.cwd()) {
   }
 
   try {
-    const { stdout: originOut } = await execAsync('git remote get-url origin', { cwd });
+    const { stdout: repoRootOut } = await execAsync('git rev-parse --show-toplevel', { cwd });
+    const repoRoot = resolve(repoRootOut.trim());
+
+    const { stdout: prefixOut } = await execAsync('git rev-parse --show-prefix', { cwd });
+    const subDirectory = prefixOut.trim().replace(/\/$/, '');
+
+    const { stdout: originOut } = await execAsync('git remote get-url origin', { cwd: repoRoot });
     let remoteUrl = originOut.trim();
     
     // Normalize SSH to HTTPS
@@ -26,11 +32,11 @@ export async function getGitInfo(cwd: string = process.cwd()) {
       remoteUrl = remoteUrl.slice(0, -4);
     }
     
-    const { stdout: commitOut } = await execAsync('git rev-parse HEAD', { cwd });
+    const { stdout: commitOut } = await execAsync('git rev-parse HEAD', { cwd: repoRoot });
     const commitHash = commitOut.trim();
     const shortCommit = commitHash.slice(0, 7);
 
-    const { stdout: branchOut } = await execAsync('git branch --show-current', { cwd });
+    const { stdout: branchOut } = await execAsync('git branch --show-current', { cwd: repoRoot });
     let branch = branchOut.trim();
     let isDetached = false;
 
@@ -45,6 +51,8 @@ export async function getGitInfo(cwd: string = process.cwd()) {
       branch,
       commitHash,
       isDetached,
+      repoRoot,
+      subDirectory,
     };
   } catch (e: any) {
     throw new Error(`Git error: ${e.message}`);
