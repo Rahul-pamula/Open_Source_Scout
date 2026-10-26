@@ -181,3 +181,5 @@ export function validatePathBoundary(worktreePath: string, targetPath: string, l
   
   return absoluteTarget;
 }
+
+export { sanitizeEnvironment } from './harness.js';
