@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join, resolve } from 'path';
-import { rm, readdir, mkdir, access } from 'fs/promises';
+import { rm, readdir, mkdir, access, stat } from 'fs/promises';
 import { getLocalState } from './localState.js';
 
 const execAsync = promisify(exec);
@@ -166,6 +166,63 @@ export async function checkDirtyWorkingTree(cwd: string = process.cwd()) {
 export async function getWorktreePath(sessionId: string, cwd: string = process.cwd()): Promise<string> {
   const { stdout } = await execAsync('git rev-parse --show-toplevel', { cwd });
   return join(stdout.trim(), '.scout-tmp', 'worktrees', sessionId);
+}
+
+/**
+ * Calculates total size in bytes of a directory recursively.
+ */
+export async function getDirectorySize(dirPath: string): Promise<number> {
+  let totalBytes = 0;
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        totalBytes += await getDirectorySize(fullPath);
+      } else if (entry.isFile()) {
+        const stats = await stat(fullPath);
+        totalBytes += stats.size;
+      }
+    }
+  } catch {
+    // Graceful skip
+  }
+  return totalBytes;
+}
+
+export interface WorktreeDiskTelemetry {
+  worktreePath: string;
+  sizeBytes: number;
+  sizeMb: number;
+  warning?: string;
+}
+
+export const WORKTREE_SIZE_WARNING_THRESHOLD_MB = 500;
+
+/**
+ * Evaluates worktree disk footprint and returns telemetry warning if quota exceeded.
+ */
+export async function checkWorktreeDiskUsage(
+  sessionId: string,
+  cwd: string = process.cwd(),
+  thresholdMb: number = WORKTREE_SIZE_WARNING_THRESHOLD_MB,
+): Promise<WorktreeDiskTelemetry> {
+  const worktreePath = await getWorktreePath(sessionId, cwd);
+  const sizeBytes = await getDirectorySize(worktreePath);
+  const sizeMb = Math.round((sizeBytes / (1024 * 1024)) * 100) / 100;
+
+  let warning: string | undefined;
+  if (sizeMb > thresholdMb) {
+    warning = `Worktree size (${sizeMb} MB) exceeds recommended warning threshold of ${thresholdMb} MB.`;
+    console.warn(`[Worktree Disk Warning] ${warning} (sessionId: ${sessionId})`);
+  }
+
+  return {
+    worktreePath,
+    sizeBytes,
+    sizeMb,
+    warning,
+  };
 }
 
 export async function cleanupOrphanedWorktrees(cwd: string = process.cwd()): Promise<void> {

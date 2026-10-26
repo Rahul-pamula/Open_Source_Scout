@@ -15,7 +15,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
-import { getWorktreePath, autoPruneWorktreesOnStartup } from './git.js';
+import { getWorktreePath, autoPruneWorktreesOnStartup, checkWorktreeDiskUsage } from './git.js';
 import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
@@ -443,6 +443,11 @@ ${JSON.stringify(result, null, 2)}`
           throw new Error(`Session not found in local state: ${session_id}`);
         }
         const workspace_path = sessionWorkspaces.get(session_id) || session.workspace_path || process.cwd();
+        let disk_usage: { size_mb: number; warning?: string } | undefined;
+        try {
+          const telemetry = await checkWorktreeDiskUsage(session_id, workspace_path);
+          disk_usage = { size_mb: telemetry.sizeMb, warning: telemetry.warning };
+        } catch {}
 
         return {
           content: [
@@ -462,6 +467,7 @@ ${JSON.stringify(result, null, 2)}`
                   created_at: session.created_at,
                   client_id: session.client_id,
                   workspace_path,
+                  ...(disk_usage ? { disk_usage } : {}),
                 },
                 null,
                 2,
