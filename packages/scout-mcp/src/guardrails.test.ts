@@ -147,5 +147,26 @@ test('validatePathBoundary', async (t) => {
     assert.throws(() => validatePathBoundary(worktree, '/dev/urandom'), /Access to system path/);
   });
 
+  await t.test('supports configurable guardrail override levels (strict, standard, audit)', async () => {
+    const { getGuardrailLevel } = await import('./guardrails.js');
+    
+    // Default level is strict
+    delete process.env.SCOUT_GUARDRAIL_LEVEL;
+    assert.strictEqual(getGuardrailLevel(), 'strict');
+
+    process.env.SCOUT_GUARDRAIL_LEVEL = 'audit';
+    assert.strictEqual(getGuardrailLevel(), 'audit');
+
+    // Audit mode logs warning without throwing GuardrailError
+    assert.doesNotThrow(() => CommandBoundaryGuard.validate('cd /etc', 'audit'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '/etc/hosts', 'audit'));
+
+    // Strict mode throws
+    assert.throws(() => CommandBoundaryGuard.validate('cd /etc', 'strict'), /Absolute directory traversal detected/);
+    assert.throws(() => validatePathBoundary(worktree, '/etc/hosts', 'strict'), /Access to system path/);
+
+    delete process.env.SCOUT_GUARDRAIL_LEVEL;
+  });
+
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });

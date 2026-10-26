@@ -1,11 +1,38 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
+export type GuardrailLevel = 'strict' | 'standard' | 'audit';
+
 export class GuardrailError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'GuardrailError';
   }
+}
+
+/**
+ * Resolves current guardrail policy level from SCOUT_GUARDRAIL_LEVEL env var.
+ * Defaults to 'strict'.
+ */
+export function getGuardrailLevel(): GuardrailLevel {
+  const envLevel = (process.env.SCOUT_GUARDRAIL_LEVEL || 'strict').toLowerCase();
+  if (envLevel === 'audit' || envLevel === 'standard') {
+    return envLevel;
+  }
+  return 'strict';
+}
+
+/**
+ * Handles security violation according to active policy level.
+ * In 'audit' mode: logs warning and continues without throwing.
+ * In 'strict' and 'standard' modes: raises GuardrailError.
+ */
+export function handleGuardrailViolation(message: string, level: GuardrailLevel = getGuardrailLevel()): void {
+  if (level === 'audit') {
+    console.warn(`[Guardrail Audit Warning] ${message}`);
+    return;
+  }
+  throw new GuardrailError(message);
 }
 
 export class CommandBoundaryGuard {
@@ -32,10 +59,12 @@ export class CommandBoundaryGuard {
     },
   ];
 
-  static validate(command: string): void {
+  static validate(command: string, level?: GuardrailLevel): void {
+    const activeLevel = level || getGuardrailLevel();
+
     for (const pattern of this.DESTRUCTIVE_PATTERNS) {
       if (pattern.regex.test(command)) {
-        throw new GuardrailError(`CommandBoundaryGuard: ${pattern.message}`);
+        handleGuardrailViolation(`CommandBoundaryGuard: ${pattern.message}`, activeLevel);
       }
     }
 
@@ -47,7 +76,7 @@ export class CommandBoundaryGuard {
 
     for (const subshellCmd of subshellMatches) {
       // Recursively validate inner subshell command
-      this.validate(subshellCmd);
+      this.validate(subshellCmd, activeLevel);
     }
 
     // Split command by shell operators to check individual segments
@@ -60,17 +89,17 @@ export class CommandBoundaryGuard {
         
         // Prevent traversing up
         if (target.includes('..')) {
-          throw new GuardrailError(`CommandBoundaryGuard: Directory escape detected (${rawTarget})`);
+          handleGuardrailViolation(`CommandBoundaryGuard: Directory escape detected (${rawTarget})`, activeLevel);
         }
         
         // Prevent absolute path navigation
         if (target.startsWith('/') || /^[a-zA-Z]:[/\\]/.test(rawTarget)) {
-          throw new GuardrailError(`CommandBoundaryGuard: Absolute directory traversal detected (${rawTarget})`);
+          handleGuardrailViolation(`CommandBoundaryGuard: Absolute directory traversal detected (${rawTarget})`, activeLevel);
         }
 
         // Prevent home directory navigation
         if (target.startsWith('~') || target.startsWith('$HOME')) {
-          throw new GuardrailError(`CommandBoundaryGuard: Home directory traversal detected (${rawTarget})`);
+          handleGuardrailViolation(`CommandBoundaryGuard: Home directory traversal detected (${rawTarget})`, activeLevel);
         }
       }
     }
@@ -78,10 +107,12 @@ export class CommandBoundaryGuard {
 }
 
 
-export function validatePathBoundary(worktreePath: string, targetPath: string): string {
+export function validatePathBoundary(worktreePath: string, targetPath: string, level?: GuardrailLevel): string {
+  const activeLevel = level || getGuardrailLevel();
+
   // Check Windows absolute drive path (e.g. C:/ or D:\)
   if (/^[a-zA-Z]:[/\\]/.test(targetPath)) {
-    throw new GuardrailError(`Path boundary violation. Windows absolute drive traversal detected (${targetPath}).`);
+    handleGuardrailViolation(`Path boundary violation. Windows absolute drive traversal detected (${targetPath}).`, activeLevel);
   }
 
   // Normalize Windows backslashes to standard forward slashes to prevent traversal bypasses across platforms
@@ -90,26 +121,26 @@ export function validatePathBoundary(worktreePath: string, targetPath: string): 
   // Prevent access to hidden root system directories
   const HIDDEN_SYSTEM_PATHS = ['/etc', '/proc', '/sys', '/dev', '/var/run', '/private/etc'];
   if (HIDDEN_SYSTEM_PATHS.some((sysPath) => normalizedTarget === sysPath || normalizedTarget.startsWith(sysPath + '/'))) {
-    throw new GuardrailError(`Path boundary violation. Access to system path ${targetPath} is strictly forbidden.`);
+    handleGuardrailViolation(`Path boundary violation. Access to system path ${targetPath} is strictly forbidden.`, activeLevel);
   }
 
   const absoluteWorktree = path.resolve(worktreePath);
   const absoluteTarget = path.resolve(absoluteWorktree, normalizedTarget);
   
   if (absoluteTarget !== absoluteWorktree && !absoluteTarget.startsWith(absoluteWorktree + path.sep)) {
-    throw new GuardrailError(`Path boundary violation. Access to ${targetPath} is strictly forbidden outside of the worktree.`);
+    handleGuardrailViolation(`Path boundary violation. Access to ${targetPath} is strictly forbidden outside of the worktree.`, activeLevel);
   }
 
   // Prevent access to .git internals and hooks
   const relativeFromWorktree = path.relative(absoluteWorktree, absoluteTarget);
   const pathSegments = relativeFromWorktree.split(/[/\\]/);
   if (pathSegments.includes('.git')) {
-    throw new GuardrailError(`Path boundary violation. Access to .git directory or Git internals is strictly forbidden (${targetPath}).`);
+    handleGuardrailViolation(`Path boundary violation. Access to .git directory or Git internals is strictly forbidden (${targetPath}).`, activeLevel);
   }
 
   // Prevent access to cloud/CLI credential directories (.aws, .ssh, .azure, .kube)
   if (pathSegments.some((seg) => ['.ssh', '.aws', '.azure', '.kube'].includes(seg.toLowerCase()))) {
-    throw new GuardrailError(`Path boundary violation. Access to sensitive credential directory is strictly forbidden (${targetPath}).`);
+    handleGuardrailViolation(`Path boundary violation. Access to sensitive credential directory is strictly forbidden (${targetPath}).`, activeLevel);
   }
 
   const baseName = path.basename(absoluteTarget).toLowerCase();
@@ -119,12 +150,12 @@ export function validatePathBoundary(worktreePath: string, targetPath: string): 
     baseName === '.env' ||
     (baseName.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(baseName))
   ) {
-    throw new GuardrailError(`Path boundary violation. Access to sensitive environment file ${baseName} is strictly forbidden.`);
+    handleGuardrailViolation(`Path boundary violation. Access to sensitive environment file ${baseName} is strictly forbidden.`, activeLevel);
   }
 
   // Prevent access to private SSH or TLS key files
   if (/^(?:id_rsa|id_ed25519|id_ecdsa|id_dsa)(?:\.pub)?$/.test(baseName) || /\.(?:pem|key|pfx|p12)$/i.test(baseName)) {
-    throw new GuardrailError(`Path boundary violation. Access to sensitive key or credential file ${baseName} is strictly forbidden.`);
+    handleGuardrailViolation(`Path boundary violation. Access to sensitive key or credential file ${baseName} is strictly forbidden.`, activeLevel);
   }
 
   // Symlink escape prevention
@@ -137,7 +168,7 @@ export function validatePathBoundary(worktreePath: string, targetPath: string): 
     const realCheckPath = fs.realpathSync(checkPath);
     const realWorktree = fs.realpathSync(absoluteWorktree);
     if (realCheckPath !== realWorktree && !realCheckPath.startsWith(realWorktree + path.sep)) {
-      throw new GuardrailError(`Path boundary violation (symlink escape). Access to ${targetPath} is strictly forbidden outside of the worktree.`);
+      handleGuardrailViolation(`Path boundary violation (symlink escape). Access to ${targetPath} is strictly forbidden outside of the worktree.`, activeLevel);
     }
   }
   
