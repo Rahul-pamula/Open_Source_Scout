@@ -606,6 +606,8 @@ export function formatJsonRpcError(error: any) {
     code = McpErrorCode.InvalidParams;
     message = `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
     data = error.errors;
+  } else if (message.includes('Search string not found')) {
+    code = McpErrorCode.InvalidParams;
   } else if (message.includes('Unknown tool')) {
     code = McpErrorCode.MethodNotFound;
   } else if (

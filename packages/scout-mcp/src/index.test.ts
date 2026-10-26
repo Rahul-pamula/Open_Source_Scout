@@ -184,6 +184,21 @@ test('JSON-RPC 2.0 Error Formatting', async (t) => {
     const parsed = JSON.parse(formatted.content[0].text);
     assert.strictEqual(parsed.error.code, McpErrorCode.GuardrailViolation);
   });
+
+  await t.test('edit_file guardrail rejects traversal above worktree and search mismatch', async () => {
+    const { formatJsonRpcError, McpErrorCode } = await import('./index.js');
+    const { validatePathBoundary } = await import('./guardrails.js');
+    assert.throws(
+      () => validatePathBoundary('/tmp/worktree', '../../parent-repo/package.json'),
+      /Path boundary violation/,
+    );
+
+    const searchError = new Error('Search string not found in file.');
+    const formatted = formatJsonRpcError(searchError);
+    assert.strictEqual(formatted.isError, true);
+    const parsed = JSON.parse(formatted.content[0].text);
+    assert.strictEqual(parsed.error.code, McpErrorCode.InvalidParams);
+  });
 });
 
 
