@@ -85,12 +85,34 @@ export async function execWithGitLockRetry(
   throw new Error(`Command failed after ${maxRetries} lock retries: ${command}`);
 }
 
-export async function createWorktree(sessionId: string, cwd: string = process.cwd()): Promise<string> {
+/**
+ * Sanitizes a task description into a git-compliant branch slug.
+ */
+export function sanitizeBranchSlug(taskDescription?: string, maxLength: number = 30): string {
+  if (!taskDescription) return '';
+  return taskDescription
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, maxLength)
+    .replace(/-+$/, '');
+}
+
+/**
+ * Generates a deterministic branch name from sessionId and optional task description.
+ */
+export function generateWorktreeBranchName(sessionId: string, taskDescription?: string): string {
+  const shortId = sessionId.slice(0, 8);
+  const slug = sanitizeBranchSlug(taskDescription);
+  return slug ? `scout/${shortId}-${slug}` : `scout-session-${sessionId}`;
+}
+
+export async function createWorktree(sessionId: string, cwd: string = process.cwd(), taskDescription?: string): Promise<string> {
   const repoRootOut = await execAsync('git rev-parse --show-toplevel', { cwd });
   const repoRoot = repoRootOut.stdout.trim();
   
   const worktreePath = join(repoRoot, '.scout-tmp', 'worktrees', sessionId);
-  const branchName = `scout-session-${sessionId}`;
+  const branchName = generateWorktreeBranchName(sessionId, taskDescription);
   
   try {
     const { stdout } = await execAsync('git worktree list', { cwd });
@@ -99,7 +121,7 @@ export async function createWorktree(sessionId: string, cwd: string = process.cw
     }
   } catch(e) {}
 
-  await removeWorktree(sessionId, cwd);
+  await removeWorktree(sessionId, cwd, taskDescription);
 
   try {
     const gitDirOut = await execAsync('git rev-parse --git-dir', { cwd });
@@ -135,12 +157,13 @@ export async function createWorktree(sessionId: string, cwd: string = process.cw
   return worktreePath;
 }
 
-export async function removeWorktree(sessionId: string, cwd: string = process.cwd()): Promise<void> {
+export async function removeWorktree(sessionId: string, cwd: string = process.cwd(), taskDescription?: string): Promise<void> {
   const repoRootOut = await execAsync('git rev-parse --show-toplevel', { cwd });
   const repoRoot = repoRootOut.stdout.trim();
   
   const worktreePath = join(repoRoot, '.scout-tmp', 'worktrees', sessionId);
-  const branchName = `scout-session-${sessionId}`;
+  const branchName = generateWorktreeBranchName(sessionId, taskDescription);
+  const legacyBranch = `scout-session-${sessionId}`;
 
   try {
     await execWithGitLockRetry(`git worktree remove --force ${worktreePath}`, { cwd });
@@ -153,6 +176,14 @@ export async function removeWorktree(sessionId: string, cwd: string = process.cw
     await execWithGitLockRetry(`git branch -D ${branchName}`, { cwd });
   } catch (e) {
     // Ignore
+  }
+
+  if (branchName !== legacyBranch) {
+    try {
+      await execWithGitLockRetry(`git branch -D ${legacyBranch}`, { cwd });
+    } catch {
+      // Ignore
+    }
   }
 }
 
