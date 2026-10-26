@@ -76,5 +76,17 @@ test('validatePathBoundary', async (t) => {
     assert.throws(() => validatePathBoundary(worktree, 'link-out/external.txt'), /symlink escape/);
   });
 
+  await t.test('blocks access to .git metadata and hooks while permitting .gitignore', () => {
+    assert.throws(() => validatePathBoundary(worktree, '.git'), /\.git directory or Git internals is strictly forbidden/);
+    assert.throws(() => validatePathBoundary(worktree, '.git/hooks/pre-commit'), /\.git directory or Git internals is strictly forbidden/);
+    assert.throws(() => validatePathBoundary(worktree, '.git/config'), /\.git directory or Git internals is strictly forbidden/);
+    assert.throws(() => validatePathBoundary(worktree, 'subdir/.git/HEAD'), /\.git directory or Git internals is strictly forbidden/);
+    
+    // Legitimate project files starting with .git must remain accessible
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '.gitignore'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '.gitattributes'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '.github/workflows/test.yml'));
+  });
+
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });

@@ -74,6 +74,13 @@ export function validatePathBoundary(worktreePath: string, targetPath: string): 
     throw new GuardrailError(`Path boundary violation. Access to ${targetPath} is strictly forbidden outside of the worktree.`);
   }
 
+  // Prevent access to .git internals and hooks
+  const relativeFromWorktree = path.relative(absoluteWorktree, absoluteTarget);
+  const pathSegments = relativeFromWorktree.split(/[/\\]/);
+  if (pathSegments.includes('.git')) {
+    throw new GuardrailError(`Path boundary violation. Access to .git directory or Git internals is strictly forbidden (${targetPath}).`);
+  }
+
   // Symlink escape prevention
   let checkPath = absoluteTarget;
   while (!fs.existsSync(checkPath) && checkPath !== path.parse(checkPath).root) {
