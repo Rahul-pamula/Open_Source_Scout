@@ -486,15 +486,62 @@ ${JSON.stringify(result, null, 2)}`
 
       // -----------------------------------------------------------------------
       default:
-        throw new Error('Unknown tool');
+        throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error: any) {
-    return {
-      content: [{ type: 'text', text: `Error: ${error.message}` }],
-      isError: true,
-    };
+    return formatJsonRpcError(error);
   }
 });
+
+export enum McpErrorCode {
+  ParseError = -32700,
+  InvalidRequest = -32600,
+  MethodNotFound = -32601,
+  InvalidParams = -32602,
+  InternalError = -32603,
+  ResourceNotFound = -32001,
+  SessionNotFound = -32002,
+  GuardrailViolation = -32003,
+}
+
+export function formatJsonRpcError(error: any) {
+  let code = McpErrorCode.InternalError;
+  let message = error?.message || 'Internal server error';
+  let data: any = undefined;
+
+  if (error instanceof z.ZodError) {
+    code = McpErrorCode.InvalidParams;
+    message = `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
+    data = error.errors;
+  } else if (message.includes('Unknown tool')) {
+    code = McpErrorCode.MethodNotFound;
+  } else if (message.includes('boundary') || message.includes('Escape') || message.includes('denied') || message.includes('blocked')) {
+    code = McpErrorCode.GuardrailViolation;
+  } else if (message.includes('Session not found') || message.includes('STALE') || message.includes('CANCELLED')) {
+    code = McpErrorCode.SessionNotFound;
+  }
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify(
+          {
+            jsonrpc: '2.0',
+            error: {
+              code,
+              message,
+              ...(data ? { data } : {}),
+            },
+          },
+          null,
+          2,
+        ),
+      },
+    ],
+    isError: true,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Entry point
