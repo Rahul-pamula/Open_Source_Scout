@@ -88,5 +88,27 @@ test('validatePathBoundary', async (t) => {
     assert.doesNotThrow(() => validatePathBoundary(worktree, '.github/workflows/test.yml'));
   });
 
+  await t.test('blocks sensitive credentials while permitting examples', () => {
+    // Secret env files
+    assert.throws(() => validatePathBoundary(worktree, '.env'), /Access to sensitive environment file/);
+    assert.throws(() => validatePathBoundary(worktree, '.env.local'), /Access to sensitive environment file/);
+    assert.throws(() => validatePathBoundary(worktree, '.env.production'), /Access to sensitive environment file/);
+
+    // Permitted templates
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '.env.example'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '.env.sample'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, '.env.template'));
+
+    // SSH and private keys
+    assert.throws(() => validatePathBoundary(worktree, 'id_rsa'), /Access to sensitive key or credential file/);
+    assert.throws(() => validatePathBoundary(worktree, 'id_ed25519'), /Access to sensitive key or credential file/);
+    assert.throws(() => validatePathBoundary(worktree, 'server.key'), /Access to sensitive key or credential file/);
+    assert.throws(() => validatePathBoundary(worktree, 'cert.pem'), /Access to sensitive key or credential file/);
+
+    // Cloud credential directories
+    assert.throws(() => validatePathBoundary(worktree, '.aws/credentials'), /Access to sensitive credential directory/);
+    assert.throws(() => validatePathBoundary(worktree, '.ssh/authorized_keys'), /Access to sensitive credential directory/);
+  });
+
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });

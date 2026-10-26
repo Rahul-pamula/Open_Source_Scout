@@ -81,6 +81,26 @@ export function validatePathBoundary(worktreePath: string, targetPath: string): 
     throw new GuardrailError(`Path boundary violation. Access to .git directory or Git internals is strictly forbidden (${targetPath}).`);
   }
 
+  // Prevent access to cloud/CLI credential directories (.aws, .ssh, .azure, .kube)
+  if (pathSegments.some((seg) => ['.ssh', '.aws', '.azure', '.kube'].includes(seg.toLowerCase()))) {
+    throw new GuardrailError(`Path boundary violation. Access to sensitive credential directory is strictly forbidden (${targetPath}).`);
+  }
+
+  const baseName = path.basename(absoluteTarget).toLowerCase();
+
+  // Prevent access to sensitive environment variable files (allow .env.example, .env.sample, .env.template)
+  if (
+    baseName === '.env' ||
+    (baseName.startsWith('.env.') && !['.env.example', '.env.sample', '.env.template'].includes(baseName))
+  ) {
+    throw new GuardrailError(`Path boundary violation. Access to sensitive environment file ${baseName} is strictly forbidden.`);
+  }
+
+  // Prevent access to private SSH or TLS key files
+  if (/^(?:id_rsa|id_ed25519|id_ecdsa|id_dsa)(?:\.pub)?$/.test(baseName) || /\.(?:pem|key|pfx|p12)$/i.test(baseName)) {
+    throw new GuardrailError(`Path boundary violation. Access to sensitive key or credential file ${baseName} is strictly forbidden.`);
+  }
+
   // Symlink escape prevention
   let checkPath = absoluteTarget;
   while (!fs.existsSync(checkPath) && checkPath !== path.parse(checkPath).root) {
