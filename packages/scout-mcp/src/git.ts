@@ -138,31 +138,44 @@ export async function createWorktree(sessionId: string, cwd: string = process.cw
   } catch (_) {}
 
   try {
-    await execWithGitLockRetry(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
-  } catch (e: any) {
-    if (e.message.includes('already exists')) {
-      try {
+    try {
+      await execWithGitLockRetry(`git worktree add -b ${branchName} ${worktreePath}`, { cwd });
+    } catch (e: any) {
+      if (e.message.includes('already exists')) {
         await execWithGitLockRetry(`git worktree add ${worktreePath} ${branchName}`, { cwd });
-      } catch (innerE: any) {
-         throw new Error(`Failed to create worktree: ${innerE.message}`);
+      } else {
+        throw e;
       }
-    } else {
-      throw new Error(`Failed to create worktree: ${e.message}`);
     }
-  }
 
-  // Support git submodules if repository defines .gitmodules
-  try {
-    const gitmodulesPath = join(worktreePath, '.gitmodules');
-    const hasSubmodules = await access(gitmodulesPath).then(() => true).catch(() => false);
-    if (hasSubmodules) {
-      await execWithGitLockRetry('git submodule update --init --recursive', { cwd: worktreePath });
+    // Support git submodules if repository defines .gitmodules
+    try {
+      const gitmodulesPath = join(worktreePath, '.gitmodules');
+      const hasSubmodules = await access(gitmodulesPath).then(() => true).catch(() => false);
+      if (hasSubmodules) {
+        await execWithGitLockRetry('git submodule update --init --recursive', { cwd: worktreePath });
+      }
+    } catch (_) {
+      // Graceful fallback if submodule remote is unreachable
     }
-  } catch (_) {
-    // Graceful fallback if submodule remote is unreachable
-  }
 
-  return worktreePath;
+    return worktreePath;
+  } catch (error: any) {
+    // Rollback worktree on failure
+    await rollbackWorktreeCreation(sessionId, cwd, taskDescription).catch(() => {});
+    throw new Error(`Failed to create worktree: ${error.message}`);
+  }
+}
+
+/**
+ * Rolls back a failed or partial worktree creation by forcing removal and cleanup.
+ */
+export async function rollbackWorktreeCreation(
+  sessionId: string,
+  cwd: string = process.cwd(),
+  taskDescription?: string,
+): Promise<void> {
+  await removeWorktree(sessionId, cwd, taskDescription);
 }
 
 export async function removeWorktree(sessionId: string, cwd: string = process.cwd(), taskDescription?: string): Promise<void> {
