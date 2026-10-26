@@ -14,7 +14,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { validatePathBoundary } from './guardrails.js';
+import { validatePathBoundary, GuardrailError } from './guardrails.js';
 import { getWorktreePath } from './git.js';
 import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
@@ -606,8 +606,18 @@ export function formatJsonRpcError(error: any) {
     data = error.errors;
   } else if (message.includes('Unknown tool')) {
     code = McpErrorCode.MethodNotFound;
-  } else if (message.includes('boundary') || message.includes('Escape') || message.includes('denied') || message.includes('blocked')) {
+  } else if (
+    error instanceof GuardrailError ||
+    error?.name === 'GuardrailError' ||
+    message.includes('boundary') ||
+    message.includes('Escape') ||
+    message.includes('denied') ||
+    message.includes('blocked') ||
+    message.includes('forbidden')
+  ) {
     code = McpErrorCode.GuardrailViolation;
+  } else if (error?.code === 'ENOENT' || message.includes('ENOENT') || message.includes('no such file')) {
+    code = McpErrorCode.ResourceNotFound;
   } else if (message.includes('Session not found') || message.includes('STALE') || message.includes('CANCELLED')) {
     code = McpErrorCode.SessionNotFound;
   }
