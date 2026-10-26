@@ -138,4 +138,13 @@ test('JSON-RPC 2.0 Error Formatting', async (t) => {
     assert.doesNotThrow(() => schema.parse({ session_id: '123e4567-e89b-12d3-a456-426614174000' }));
     assert.throws(() => schema.parse({ session_id: 'invalid-id' }));
   });
+
+  await t.test('get_session_info formats error with SessionNotFound when session absent', async () => {
+    const { formatJsonRpcError, McpErrorCode } = await import('./index.js');
+    const err = new Error('Session not found in local state: non-existent');
+    const formatted = formatJsonRpcError(err);
+    assert.strictEqual(formatted.isError, true);
+    const parsed = JSON.parse(formatted.content[0].text);
+    assert.strictEqual(parsed.error.code, McpErrorCode.SessionNotFound);
+  });
 });
