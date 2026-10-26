@@ -15,7 +15,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
-import { getWorktreePath } from './git.js';
+import { getWorktreePath, autoPruneWorktreesOnStartup } from './git.js';
 import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
@@ -43,8 +43,9 @@ export async function hydrateSessionWorkspaces(cwd: string = process.cwd()): Pro
   }
 }
 
-// Auto-hydrate on bootstrap
+// Auto-hydrate and prune stale worktrees on bootstrap
 hydrateSessionWorkspaces().catch(() => {});
+autoPruneWorktreesOnStartup().catch(() => {});
 
 async function resolveSessionWorkspace(sessionId: string, fallbackCwd: string = process.cwd()): Promise<string> {
   const cached = sessionWorkspaces.get(sessionId);

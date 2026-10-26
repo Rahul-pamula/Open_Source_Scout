@@ -191,6 +191,19 @@ export async function cleanupOrphanedWorktrees(cwd: string = process.cwd()): Pro
   }
 }
 
+/**
+ * Automatically prunes detached and orphaned git worktrees on server startup.
+ */
+export async function autoPruneWorktreesOnStartup(cwd: string = process.cwd()): Promise<{ pruned: boolean }> {
+  try {
+    await execWithGitLockRetry('git worktree prune', { cwd });
+    await cleanupOrphanedWorktrees(cwd);
+    return { pruned: true };
+  } catch {
+    return { pruned: false };
+  }
+}
+
 
 export async function getGitDiff(cwd: string = process.cwd()): Promise<string> {
   try {
