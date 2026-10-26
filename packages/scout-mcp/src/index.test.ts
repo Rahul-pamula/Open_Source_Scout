@@ -71,3 +71,46 @@ test('Session Workspaces Hydration', async (t) => {
     assert.strictEqual(sessionWorkspaces.has('sess-submitted-1'), false);
   });
 });
+
+test('JSON-RPC 2.0 Error Formatting', async (t) => {
+  const { formatJsonRpcError, McpErrorCode } = await import('./index.js');
+  const { z } = await import('zod');
+
+  await t.test('formats Zod validation error as InvalidParams (-32602)', () => {
+    const schema = z.object({ id: z.string().uuid() });
+    try {
+      schema.parse({ id: '123' });
+    } catch (err) {
+      const formatted = formatJsonRpcError(err);
+      assert.strictEqual(formatted.isError, true);
+      const parsed = JSON.parse(formatted.content[0].text);
+      assert.strictEqual(parsed.jsonrpc, '2.0');
+      assert.strictEqual(parsed.error.code, McpErrorCode.InvalidParams);
+      assert.ok(parsed.error.data);
+    }
+  });
+
+  await t.test('formats Unknown tool as MethodNotFound (-32601)', () => {
+    const formatted = formatJsonRpcError(new Error('Unknown tool: foo_bar'));
+    const parsed = JSON.parse(formatted.content[0].text);
+    assert.strictEqual(parsed.error.code, McpErrorCode.MethodNotFound);
+  });
+
+  await t.test('formats Guardrail violation as GuardrailViolation (-32003)', () => {
+    const formatted = formatJsonRpcError(new Error('Path boundary escape detected'));
+    const parsed = JSON.parse(formatted.content[0].text);
+    assert.strictEqual(parsed.error.code, McpErrorCode.GuardrailViolation);
+  });
+
+  await t.test('formats Session not found as SessionNotFound (-32002)', () => {
+    const formatted = formatJsonRpcError(new Error('Session not found in local state'));
+    const parsed = JSON.parse(formatted.content[0].text);
+    assert.strictEqual(parsed.error.code, McpErrorCode.SessionNotFound);
+  });
+
+  await t.test('defaults generic error to InternalError (-32603)', () => {
+    const formatted = formatJsonRpcError(new Error('Disk read fault'));
+    const parsed = JSON.parse(formatted.content[0].text);
+    assert.strictEqual(parsed.error.code, McpErrorCode.InternalError);
+  });
+});
