@@ -90,6 +90,51 @@ export async function saveLocalState(state: StateFile, cwd: string = process.cwd
   }
 }
 
+let pendingFlushTimer: NodeJS.Timeout | null = null;
+let pendingState: StateFile | null = null;
+let pendingCwd: string = process.cwd();
+
+/**
+ * Flush any queued debounced state write immediately to disk.
+ */
+export async function flushLocalState(): Promise<void> {
+  if (pendingFlushTimer) {
+    clearTimeout(pendingFlushTimer);
+    pendingFlushTimer = null;
+  }
+  if (pendingState) {
+    const stateToSave = pendingState;
+    pendingState = null;
+    await saveLocalState(stateToSave, pendingCwd);
+  }
+}
+
+/**
+ * Queue a state write with configurable debounce interval (default 50ms).
+ */
+export function queueLocalStateFlush(
+  state: StateFile,
+  delayMs: number = 50,
+  cwd: string = process.cwd(),
+): Promise<void> {
+  pendingState = state;
+  pendingCwd = cwd;
+  return new Promise((resolve) => {
+    if (pendingFlushTimer) {
+      clearTimeout(pendingFlushTimer);
+    }
+    pendingFlushTimer = setTimeout(async () => {
+      pendingFlushTimer = null;
+      if (pendingState) {
+        const stateToSave = pendingState;
+        pendingState = null;
+        await saveLocalState(stateToSave, cwd);
+      }
+      resolve();
+    }, delayMs);
+  });
+}
+
 /**
  * Update the `last_heartbeat_at` timestamp for a session in local state.
  * Returns true if the session was found and updated, false otherwise.

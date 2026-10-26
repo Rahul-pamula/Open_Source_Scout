@@ -15,6 +15,8 @@ import {
   updateSessionWorkspace,
   saveLocalState,
   acquireLock,
+  queueLocalStateFlush,
+  flushLocalState,
 } from './localState.js';
 
 // --------------------------------------------------------------------------
@@ -469,5 +471,27 @@ test('Cancellation Lifecycle Tests', async (t) => {
 
     const state = await getLocalState(tmpDir);
     assert.ok(state.sessions['s-1'] || state.sessions['s-2']);
+  });
+
+  await t.test('queueLocalStateFlush debounces writes and flushLocalState forces write', async () => {
+    const testState = {
+      sessions: {
+        's-debounce': {
+          status: 'ACTIVE' as const,
+          starting_commit_hash: 'c-deb',
+          task_description: 'Debounce Task',
+          source: 'manual',
+        },
+      },
+    };
+
+    // Queue flush
+    queueLocalStateFlush(testState, 200, tmpDir);
+
+    // Immediately flush before timeout fires
+    await flushLocalState();
+
+    const state = await getLocalState(tmpDir);
+    assert.strictEqual(state.sessions['s-debounce']?.task_description, 'Debounce Task');
   });
 });
