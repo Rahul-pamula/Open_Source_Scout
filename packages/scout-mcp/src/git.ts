@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join, resolve } from 'path';
-import { rm, readdir, mkdir } from 'fs/promises';
+import { rm, readdir, mkdir, access } from 'fs/promises';
 import { getLocalState } from './localState.js';
 
 const execAsync = promisify(exec);
@@ -119,6 +119,17 @@ export async function createWorktree(sessionId: string, cwd: string = process.cw
     } else {
       throw new Error(`Failed to create worktree: ${e.message}`);
     }
+  }
+
+  // Support git submodules if repository defines .gitmodules
+  try {
+    const gitmodulesPath = join(worktreePath, '.gitmodules');
+    const hasSubmodules = await access(gitmodulesPath).then(() => true).catch(() => false);
+    if (hasSubmodules) {
+      await execWithGitLockRetry('git submodule update --init --recursive', { cwd: worktreePath });
+    }
+  } catch (_) {
+    // Graceful fallback if submodule remote is unreachable
   }
 
   return worktreePath;
