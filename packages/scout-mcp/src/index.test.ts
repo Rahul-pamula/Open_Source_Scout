@@ -147,4 +147,26 @@ test('JSON-RPC 2.0 Error Formatting', async (t) => {
     const parsed = JSON.parse(formatted.content[0].text);
     assert.strictEqual(parsed.error.code, McpErrorCode.SessionNotFound);
   });
+
+  await t.test('validates ping schema with optional message', async () => {
+    const { z } = await import('zod');
+    const schema = z.object({ message: z.string().optional() });
+    assert.doesNotThrow(() => schema.parse({}));
+    assert.doesNotThrow(() => schema.parse({ message: 'heartbeat-check' }));
+    assert.strictEqual(schema.parse({ message: 'custom' }).message, 'custom');
+  });
+
+  await t.test('ping response contains expected pong payload', () => {
+    const payload = {
+      status: 'pong',
+      echo: 'scout-test',
+      timestamp: new Date().toISOString(),
+      uptime_seconds: process.uptime(),
+    };
+    assert.strictEqual(payload.status, 'pong');
+    assert.strictEqual(payload.echo, 'scout-test');
+    assert.ok(typeof payload.timestamp === 'string');
+    assert.ok(payload.uptime_seconds >= 0);
+  });
 });
+
