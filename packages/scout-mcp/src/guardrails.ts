@@ -39,8 +39,19 @@ export class CommandBoundaryGuard {
       }
     }
 
+    // Inspect and extract command substitutions: $(...) and `...`
+    const subshellMatches = [
+      ...Array.from(command.matchAll(/\$\(([^)]+)\)/g), (m) => m[1]),
+      ...Array.from(command.matchAll(/`([^`]+)`/g), (m) => m[1]),
+    ];
+
+    for (const subshellCmd of subshellMatches) {
+      // Recursively validate inner subshell command
+      this.validate(subshellCmd);
+    }
+
     // Split command by shell operators to check individual segments
-    const segments = command.split(/(?:&&|\|\||;|\n|\|)/).map(s => s.trim()).filter(Boolean);
+    const segments = command.split(/(?:&&|\|\||;|\n|\|)/).map((s) => s.trim()).filter(Boolean);
 
     for (const segment of segments) {
       if (segment.startsWith('cd ') || segment.startsWith('pushd ')) {
