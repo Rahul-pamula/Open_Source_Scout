@@ -27,6 +27,12 @@ export function sanitizeEnvironment(rawEnv: NodeJS.ProcessEnv = process.env): Re
     /^AWS_/i,
     /^DATABASE_URL$/i,
     /^REDIS_URL$/i,
+    /^LD_PRELOAD$/i,
+    /^LD_LIBRARY_PATH$/i,
+    /^DYLD_INSERT_LIBRARIES$/i,
+    /^DYLD_LIBRARY_PATH$/i,
+    /^NODE_OPTIONS$/i,
+    /^PYTHONPATH$/i,
   ];
 
   for (const [key, value] of Object.entries(rawEnv)) {
