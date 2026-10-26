@@ -37,13 +37,57 @@ export async function getLocalState(cwd: string = process.cwd()): Promise<StateF
   }
 }
 
+export async function acquireLock(
+  lockFile: string,
+  maxRetries: number = 20,
+  delayMs: number = 25,
+): Promise<() => Promise<void>> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const handle = await fs.open(lockFile, 'wx');
+      await handle.write(String(process.pid));
+      await handle.close();
+      return async () => {
+        try {
+          await fs.unlink(lockFile);
+        } catch {}
+      };
+    } catch (err: any) {
+      if (err.code === 'EEXIST') {
+        try {
+          const stat = await fs.stat(lockFile);
+          if (Date.now() - stat.mtimeMs > 5000) {
+            await fs.unlink(lockFile);
+            continue;
+          }
+        } catch {}
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        throw err;
+      }
+    }
+  }
+  return async () => {
+    try {
+      await fs.unlink(lockFile);
+    } catch {}
+  };
+}
+
 export async function saveLocalState(state: StateFile, cwd: string = process.cwd()): Promise<void> {
   const dir = getLocalStateDir(cwd);
   const file = getLocalStateFile(cwd);
+  const lockFile = `${file}.lock`;
   await fs.mkdir(dir, { recursive: true });
-  const tmpFile = `${file}.tmp`;
-  await fs.writeFile(tmpFile, JSON.stringify(state, null, 2), 'utf8');
-  await fs.rename(tmpFile, file);
+
+  const releaseLock = await acquireLock(lockFile);
+  try {
+    const tmpFile = `${file}.${process.pid}.${Date.now()}-${Math.random().toString(36).slice(2, 6)}.tmp`;
+    await fs.writeFile(tmpFile, JSON.stringify(state, null, 2), 'utf8');
+    await fs.rename(tmpFile, file);
+  } finally {
+    await releaseLock();
+  }
 }
 
 /**

@@ -13,6 +13,8 @@ import {
   findStaleSession,
   DEFAULT_STALE_TIMEOUT_MS,
   updateSessionWorkspace,
+  saveLocalState,
+  acquireLock,
 } from './localState.js';
 
 // --------------------------------------------------------------------------
@@ -448,5 +450,24 @@ test('Cancellation Lifecycle Tests', async (t) => {
 
     const notFound = await updateSessionWorkspace('non-existent', updatedWorkspace, tmpDir);
     assert.strictEqual(notFound, false);
+  });
+
+  await t.test('acquireLock handles concurrent writes and cleans up lockfile', async () => {
+    const lockFile = path.join(tmpDir, 'test.lock');
+    const release1 = await acquireLock(lockFile, 5, 10);
+    assert.strictEqual(await fs.stat(lockFile).then(() => true).catch(() => false), true);
+
+    // Concurrently release and verify release
+    await release1();
+    assert.strictEqual(await fs.stat(lockFile).then(() => true).catch(() => false), false);
+
+    // Verify concurrent saves do not corrupt state.json
+    await Promise.all([
+      saveLocalState({ sessions: { 's-1': { status: 'ACTIVE', starting_commit_hash: 'c1', task_description: 'T1', source: 'manual' } } }, tmpDir),
+      saveLocalState({ sessions: { 's-2': { status: 'ACTIVE', starting_commit_hash: 'c2', task_description: 'T2', source: 'manual' } } }, tmpDir),
+    ]);
+
+    const state = await getLocalState(tmpDir);
+    assert.ok(state.sessions['s-1'] || state.sessions['s-2']);
   });
 });
