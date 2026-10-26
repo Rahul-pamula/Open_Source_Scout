@@ -69,7 +69,7 @@ export class CommandBoundaryGuard {
         }
 
         // Prevent home directory navigation
-        if (target.startsWith('~')) {
+        if (target.startsWith('~') || target.startsWith('$HOME')) {
           throw new GuardrailError(`CommandBoundaryGuard: Home directory traversal detected (${rawTarget})`);
         }
       }
