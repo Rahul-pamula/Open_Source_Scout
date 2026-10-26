@@ -12,6 +12,7 @@ import {
   checkStaleSessions,
   findStaleSession,
   DEFAULT_STALE_TIMEOUT_MS,
+  updateSessionWorkspace,
 } from './localState.js';
 
 // --------------------------------------------------------------------------
@@ -429,5 +430,23 @@ test('Cancellation Lifecycle Tests', async (t) => {
       () => getOrCreateLocalSession('sess-cancel-reuse', 'commit-1', 'Task', 'manual', undefined, tmpDir),
       /CANCELLED/
     );
+  });
+
+  await t.test('persists workspace_path in local state and allows updates', async () => {
+    const customWorkspace = path.join(tmpDir, 'custom-workspace');
+    await getOrCreateLocalSession('sess-ws', 'commit-1', 'Task', 'manual', undefined, tmpDir, customWorkspace);
+    
+    let state = await getLocalState(tmpDir);
+    assert.strictEqual(state.sessions['sess-ws'].workspace_path, customWorkspace);
+
+    const updatedWorkspace = path.join(tmpDir, 'updated-worktree');
+    const updated = await updateSessionWorkspace('sess-ws', updatedWorkspace, tmpDir);
+    assert.strictEqual(updated, true);
+
+    state = await getLocalState(tmpDir);
+    assert.strictEqual(state.sessions['sess-ws'].workspace_path, updatedWorkspace);
+
+    const notFound = await updateSessionWorkspace('non-existent', updatedWorkspace, tmpDir);
+    assert.strictEqual(notFound, false);
   });
 });

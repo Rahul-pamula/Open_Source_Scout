@@ -21,6 +21,7 @@ export interface SessionState {
   pr_url?: string;
   blocked_reason?: string;
   last_heartbeat_at?: string;
+  workspace_path?: string;
 }
 
 export interface StateFile {
@@ -56,6 +57,24 @@ export async function updateLocalHeartbeat(sessionId: string, cwd: string = proc
     return false;
   }
   session.last_heartbeat_at = new Date().toISOString();
+  await saveLocalState(state, cwd);
+  return true;
+}
+
+/**
+ * Update or record the workspace directory path for a session.
+ */
+export async function updateSessionWorkspace(
+  sessionId: string,
+  workspacePath: string,
+  cwd: string = process.cwd(),
+): Promise<boolean> {
+  const state = await getLocalState(cwd);
+  const session = state.sessions[sessionId];
+  if (!session) {
+    return false;
+  }
+  session.workspace_path = workspacePath;
   await saveLocalState(state, cwd);
   return true;
 }
@@ -135,6 +154,7 @@ export async function getOrCreateLocalSession(
   source: string,
   taskId?: string,
   cwd: string = process.cwd(),
+  workspacePath?: string,
 ): Promise<string> {
   const state = await getLocalState(cwd);
   if (state.sessions[sessionId]) {
@@ -159,6 +179,7 @@ export async function getOrCreateLocalSession(
     task_description: taskDescription,
     source,
     last_heartbeat_at: new Date().toISOString(),
+    workspace_path: workspacePath || cwd,
     ...(taskId ? { task_id: taskId } : {}),
   };
   await saveLocalState(state, cwd);

@@ -17,9 +17,24 @@ import { z } from 'zod';
 import { validatePathBoundary } from './guardrails.js';
 import { getWorktreePath } from './git.js';
 import { LocalHarness } from './harness/LocalHarness.js';
+import { getLocalState } from './localState.js';
 
 const localHarness = new LocalHarness();
 const sessionWorkspaces = new Map<string, string>();
+
+async function resolveSessionWorkspace(sessionId: string, fallbackCwd: string = process.cwd()): Promise<string> {
+  const cached = sessionWorkspaces.get(sessionId);
+  if (cached) return cached;
+  try {
+    const state = await getLocalState(fallbackCwd);
+    const session = state.sessions[sessionId];
+    if (session?.workspace_path) {
+      sessionWorkspaces.set(sessionId, session.workspace_path);
+      return session.workspace_path;
+    }
+  } catch {}
+  return fallbackCwd;
+}
 import fs from 'fs/promises';
 
 // ---------------------------------------------------------------------------
@@ -266,7 +281,7 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'run_command': {
         const { session_id, command, cwd } = RunCommandSchema.parse(request.params.arguments);
-        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
 
         let validatedCwd = worktreePath;
@@ -284,7 +299,7 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'read_file': {
         const { session_id, path } = ReadFileSchema.parse(request.params.arguments);
-        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
@@ -297,7 +312,7 @@ ${JSON.stringify(result, null, 2)}`
         const { session_id, path, content: fileContent } = WriteFileSchema.parse(
           request.params.arguments,
         );
-        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
@@ -310,7 +325,7 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'edit_file': {
         const { session_id, path, search, replace } = EditFileSchema.parse(request.params.arguments);
-        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
@@ -363,7 +378,7 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'submit_for_review': {
         const { session_id, pr_url } = SubmitForReviewSchema.parse(request.params.arguments);
-        const repoCwd = sessionWorkspaces.get(session_id) || process.cwd();
+        const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
 
         const result = await localHarness.submitForReview(

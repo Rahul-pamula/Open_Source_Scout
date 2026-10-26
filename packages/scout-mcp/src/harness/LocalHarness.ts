@@ -28,6 +28,7 @@ import {
   processLocalMarkBlocked,
   updateLocalHeartbeat,
   processLocalCancel,
+  updateSessionWorkspace,
 } from '../localState.js';
 import {
   recordGitDiff,
@@ -129,6 +130,7 @@ export class LocalHarness {
     );
 
     const worktreePath = await createWorktree(sessionId, cwd);
+    await updateSessionWorkspace(sessionId, worktreePath, cwd);
     const skills = loadSkills(taskDescription, cwd);
 
     // The Task Slicer / Orchestrator Intercept:
