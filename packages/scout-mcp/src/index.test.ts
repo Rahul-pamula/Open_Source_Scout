@@ -113,4 +113,13 @@ test('JSON-RPC 2.0 Error Formatting', async (t) => {
     const parsed = JSON.parse(formatted.content[0].text);
     assert.strictEqual(parsed.error.code, McpErrorCode.InternalError);
   });
+
+  await t.test('deletes workspace mapping when cleanup_session is called', async () => {
+    const { sessionWorkspaces } = await import('./index.js');
+    sessionWorkspaces.set('cleanup-sess-id', '/tmp/mock-dir');
+    assert.strictEqual(sessionWorkspaces.has('cleanup-sess-id'), true);
+
+    sessionWorkspaces.delete('cleanup-sess-id');
+    assert.strictEqual(sessionWorkspaces.has('cleanup-sess-id'), false);
+  });
 });
