@@ -368,3 +368,88 @@ export async function getWorktreeDiff(sessionId: string, cwd: string = process.c
     return '';
   }
 }
+
+export interface WorktreeInfo {
+  path: string;
+  head: string;
+  branch?: string;
+  isBare?: boolean;
+  isDetached?: boolean;
+  isLocked?: boolean;
+  lockReason?: string;
+  isScoutSession?: boolean;
+  sessionId?: string;
+}
+
+/**
+ * Lists all active git worktrees with metadata for orphaned worktree auditing.
+ */
+export async function listWorktrees(cwd: string = process.cwd()): Promise<WorktreeInfo[]> {
+  try {
+    const { stdout } = await execAsync('git worktree list --porcelain', { cwd });
+    const records = stdout.trim().split(/\n\n+/);
+    const worktrees: WorktreeInfo[] = [];
+
+    for (const record of records) {
+      if (!record.trim()) continue;
+      const lines = record.split('\n').map((l) => l.trim()).filter(Boolean);
+      let worktreePath = '';
+      let head = '';
+      let branch: string | undefined = undefined;
+      let isBare = false;
+      let isDetached = false;
+      let isLocked = false;
+      let lockReason: string | undefined = undefined;
+
+      for (const line of lines) {
+        if (line.startsWith('worktree ')) {
+          worktreePath = line.substring('worktree '.length).trim();
+        } else if (line.startsWith('HEAD ')) {
+          head = line.substring('HEAD '.length).trim();
+        } else if (line.startsWith('branch ')) {
+          const ref = line.substring('branch '.length).trim();
+          branch = ref.replace(/^refs\/heads\//, '');
+        } else if (line === 'bare') {
+          isBare = true;
+        } else if (line === 'detached') {
+          isDetached = true;
+        } else if (line.startsWith('locked')) {
+          isLocked = true;
+          const reason = line.substring('locked'.length).trim();
+          if (reason) lockReason = reason;
+        }
+      }
+
+      if (worktreePath) {
+        const isScoutPath = worktreePath.includes('.scout-tmp/worktrees/');
+        const isScoutBranch = branch?.startsWith('scout-session-');
+        const isScoutSession = isScoutPath || Boolean(isScoutBranch);
+
+        let sessionId: string | undefined = undefined;
+        if (isScoutPath) {
+          const match = worktreePath.match(/\.scout-tmp[\\/]worktrees[\\/]([^\\/]+)/);
+          if (match) sessionId = match[1];
+        } else if (isScoutBranch && branch) {
+          sessionId = branch.replace('scout-session-', '').split('-')[0];
+        }
+
+        worktrees.push({
+          path: worktreePath,
+          head,
+          ...(branch ? { branch } : {}),
+          ...(isBare ? { isBare } : {}),
+          ...(isDetached ? { isDetached } : {}),
+          ...(isLocked ? { isLocked } : {}),
+          ...(lockReason ? { lockReason } : {}),
+          ...(isScoutSession ? { isScoutSession } : {}),
+          ...(sessionId ? { sessionId } : {}),
+        });
+      }
+    }
+
+    return worktrees;
+  } catch (error: any) {
+    return [];
+  }
+}
+
