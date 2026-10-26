@@ -15,7 +15,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
-import { getWorktreePath, autoPruneWorktreesOnStartup, checkWorktreeDiskUsage } from './git.js';
+import { getWorktreePath, autoPruneWorktreesOnStartup, checkWorktreeDiskUsage, listWorktrees } from './git.js';
 import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
@@ -136,6 +136,10 @@ const EditFileSchema = z.object({
 
 const SessionHeartbeatSchema = z.object({
   session_id: z.string().uuid(),
+});
+
+const ListWorktreesSchema = z.object({
+  cwd: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -285,6 +289,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           reason: { type: 'string', description: 'The reason why the task is blocked.' },
         },
         required: ['session_id', 'reason'],
+      },
+    },
+    {
+      name: 'list_worktrees',
+      description: 'Audit and list all active git worktrees with scout session metadata.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          cwd: { type: 'string', description: 'Optional repository working directory.' },
+        },
       },
     },
   ],
@@ -575,6 +589,28 @@ ${JSON.stringify(result, null, 2)}`
                     ? 'Successfully marked session as blocked. (Idempotent)'
                     : 'Successfully marked session as blocked.',
                   reason,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      case 'list_worktrees': {
+        const { cwd } = ListWorktreesSchema.parse(request.params.arguments || {});
+        const worktrees = await listWorktrees(cwd || process.cwd());
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  worktrees,
+                  count: worktrees.length,
                 },
                 null,
                 2,
