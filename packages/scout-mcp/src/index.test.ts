@@ -168,5 +168,22 @@ test('JSON-RPC 2.0 Error Formatting', async (t) => {
     assert.ok(typeof payload.timestamp === 'string');
     assert.ok(payload.uptime_seconds >= 0);
   });
+
+  await t.test('write_file guardrail error formatting returns GuardrailViolation', async () => {
+    const { formatJsonRpcError, McpErrorCode } = await import('./index.js');
+    const { validatePathBoundary } = await import('./guardrails.js');
+    let thrownError: any;
+    try {
+      validatePathBoundary('/tmp/worktree', '/etc/cron.d/malicious');
+    } catch (err) {
+      thrownError = err;
+    }
+    assert.ok(thrownError);
+    const formatted = formatJsonRpcError(thrownError);
+    assert.strictEqual(formatted.isError, true);
+    const parsed = JSON.parse(formatted.content[0].text);
+    assert.strictEqual(parsed.error.code, McpErrorCode.GuardrailViolation);
+  });
 });
+
 

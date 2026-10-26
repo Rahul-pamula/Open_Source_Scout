@@ -60,6 +60,7 @@ async function resolveSessionWorkspace(sessionId: string, fallbackCwd: string = 
   return fallbackCwd;
 }
 import fs from 'fs/promises';
+import path from 'path';
 
 // ---------------------------------------------------------------------------
 // MCP Server bootstrap
@@ -363,13 +364,14 @@ ${JSON.stringify(result, null, 2)}`
 
       // -----------------------------------------------------------------------
       case 'write_file': {
-        const { session_id, path, content: fileContent } = WriteFileSchema.parse(
+        const { session_id, path: targetPath, content: fileContent } = WriteFileSchema.parse(
           request.params.arguments,
         );
         const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
-        const validatedPath = validatePathBoundary(worktreePath, path);
+        const validatedPath = validatePathBoundary(worktreePath, targetPath);
 
+        await fs.mkdir(path.dirname(validatedPath), { recursive: true });
         await fs.writeFile(validatedPath, fileContent, 'utf8');
         return {
           content: [{ type: 'text', text: JSON.stringify({ message: 'File written successfully.' }) }],
