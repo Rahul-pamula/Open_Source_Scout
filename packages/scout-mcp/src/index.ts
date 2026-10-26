@@ -110,6 +110,10 @@ const GetSessionInfoSchema = z.object({
   session_id: z.string().uuid(),
 });
 
+const PingSchema = z.object({
+  message: z.string().optional(),
+});
+
 const ReadFileSchema = z.object({
   session_id: z.string().uuid(),
   path: z.string(),
@@ -234,6 +238,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           session_id: { type: 'string', description: 'The UUID of the session.' },
         },
         required: ['session_id'],
+      },
+    },
+    {
+      name: 'ping',
+      description: 'Diagnostic keep-alive check to verify Scout MCP server responsiveness and uptime.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', description: 'Optional echo message.' },
+        },
       },
     },
     {
@@ -445,6 +459,28 @@ ${JSON.stringify(result, null, 2)}`
                   created_at: session.created_at,
                   client_id: session.client_id,
                   workspace_path,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      case 'ping': {
+        const { message } = PingSchema.parse(request.params.arguments || {});
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  status: 'pong',
+                  echo: message || 'pong',
+                  timestamp: new Date().toISOString(),
+                  uptime_seconds: process.uptime(),
                 },
                 null,
                 2,
