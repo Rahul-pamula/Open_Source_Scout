@@ -26,19 +26,25 @@ export async function getGitInfo(cwd: string = process.cwd()) {
       remoteUrl = remoteUrl.slice(0, -4);
     }
     
-    const { stdout: branchOut } = await execAsync('git branch --show-current', { cwd });
-    const branch = branchOut.trim();
-    if (!branch) {
-      throw new Error('Detached HEAD state. Please checkout a branch.');
-    }
-
     const { stdout: commitOut } = await execAsync('git rev-parse HEAD', { cwd });
     const commitHash = commitOut.trim();
+    const shortCommit = commitHash.slice(0, 7);
+
+    const { stdout: branchOut } = await execAsync('git branch --show-current', { cwd });
+    let branch = branchOut.trim();
+    let isDetached = false;
+
+    if (!branch) {
+      isDetached = true;
+      // Auto-fallback branch for detached HEAD checkouts (e.g. CI environments)
+      branch = `scout-detached-${shortCommit}`;
+    }
 
     return {
       remoteUrl,
       branch,
-      commitHash
+      commitHash,
+      isDetached,
     };
   } catch (e: any) {
     throw new Error(`Git error: ${e.message}`);
