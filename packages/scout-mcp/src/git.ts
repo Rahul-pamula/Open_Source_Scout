@@ -422,15 +422,17 @@ export async function listWorktrees(cwd: string = process.cwd()): Promise<Worktr
 
       if (worktreePath) {
         const isScoutPath = worktreePath.includes('.scout-tmp/worktrees/');
-        const isScoutBranch = branch?.startsWith('scout-session-');
+        const isScoutBranch = branch?.startsWith('scout-session-') || branch?.startsWith('scout/');
         const isScoutSession = isScoutPath || Boolean(isScoutBranch);
 
         let sessionId: string | undefined = undefined;
         if (isScoutPath) {
           const match = worktreePath.match(/\.scout-tmp[\\/]worktrees[\\/]([^\\/]+)/);
           if (match) sessionId = match[1];
-        } else if (isScoutBranch && branch) {
+        } else if (branch?.startsWith('scout-session-')) {
           sessionId = branch.replace('scout-session-', '').split('-')[0];
+        } else if (branch?.startsWith('scout/')) {
+          sessionId = branch.replace('scout/', '').split('-')[0];
         }
 
         worktrees.push({
