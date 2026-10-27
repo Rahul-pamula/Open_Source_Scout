@@ -162,6 +162,12 @@ export function resolveValidationCommand(cwd: string = process.cwd()): string | 
     return javaCmd;
   }
 
+  // 8. Makefile test target
+  const makeCmd = detectMakefileTestTarget(cwd);
+  if (makeCmd) {
+    return makeCmd;
+  }
+
   return null;
 }
 
@@ -170,6 +176,30 @@ export function resolveValidationCommand(cwd: string = process.cwd()): string | 
  */
 export function detectGoProject(cwd: string = process.cwd()): boolean {
   return fs.existsSync(path.join(cwd, 'go.mod')) || fs.existsSync(path.join(cwd, 'go.work'));
+}
+
+/**
+ * Checks whether the project has a Makefile with a test or check target.
+ */
+export function detectMakefileTestTarget(cwd: string = process.cwd()): string | null {
+  const makefiles = ['Makefile', 'makefile', 'GNUmakefile'];
+  for (const mf of makefiles) {
+    const fullPath = path.join(cwd, mf);
+    if (fs.existsSync(fullPath)) {
+      try {
+        const content = fs.readFileSync(fullPath, 'utf8');
+        if (/^test\s*:/m.test(content)) {
+          return 'make test';
+        }
+        if (/^check\s*:/m.test(content)) {
+          return 'make check';
+        }
+      } catch {
+        // Ignore read errors
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -202,7 +232,7 @@ export async function runAdvisoryValidation(cwd: string = process.cwd()) {
       validation_ran: false,
       validation_passed: true,
       stdout:
-        'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, go test, gradle, or mvn). Skipping validation.',
+        'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, go test, gradle, mvn, or make test). Skipping validation.',
       stderr: '',
       exit_code: null,
     };

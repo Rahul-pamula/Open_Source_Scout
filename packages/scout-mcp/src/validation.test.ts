@@ -10,6 +10,7 @@ import {
   detectNodeTestRunner,
   detectGoProject,
   detectJavaProject,
+  detectMakefileTestTarget,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -193,6 +194,22 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     assert.strictEqual(detectJavaProject(testDir), 'mvn test');
     assert.strictEqual(resolveValidationCommand(testDir), 'mvn test');
     fs.rmSync(path.join(testDir, 'pom.xml'));
+  });
+
+  await t.test('detects Makefile test and check targets', () => {
+    assert.strictEqual(detectMakefileTestTarget(testDir), null);
+
+    // Makefile with test target
+    fs.writeFileSync(path.join(testDir, 'Makefile'), 'all:\n\techo all\n\ntest:\n\techo test\n');
+    assert.strictEqual(detectMakefileTestTarget(testDir), 'make test');
+    assert.strictEqual(resolveValidationCommand(testDir), 'make test');
+    fs.rmSync(path.join(testDir, 'Makefile'));
+
+    // GNUmakefile with check target
+    fs.writeFileSync(path.join(testDir, 'GNUmakefile'), 'check:\n\techo check\n');
+    assert.strictEqual(detectMakefileTestTarget(testDir), 'make check');
+    assert.strictEqual(resolveValidationCommand(testDir), 'make check');
+    fs.rmSync(path.join(testDir, 'GNUmakefile'));
   });
 
   await t.test('runs scout:validate and captures failure', async () => {
