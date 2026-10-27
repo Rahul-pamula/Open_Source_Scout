@@ -18,6 +18,7 @@ import {
   capValidationOutput,
   MAX_VALIDATION_OUTPUT_BYTES,
   parseTestOutputSummary,
+  loadScoutConfigValidationCommand,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -314,6 +315,28 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     assert.strictEqual(cargoSummary.passed, 8);
     assert.strictEqual(cargoSummary.failed, 0);
     assert.strictEqual(cargoSummary.duration_ms, 40);
+  });
+
+  await t.test('scout.json validation_command overrides auto-detected test pipelines', () => {
+    assert.strictEqual(loadScoutConfigValidationCommand(testDir), null);
+
+    // Provide default package.json
+    fs.writeFileSync(
+      path.join(testDir, 'package.json'),
+      JSON.stringify({ scripts: { test: 'npm test' } }),
+    );
+    assert.strictEqual(resolveValidationCommand(testDir), 'npm test');
+
+    // Add scout.json override
+    fs.writeFileSync(
+      path.join(testDir, 'scout.json'),
+      JSON.stringify({ validation_command: './scripts/custom-verify.sh' }),
+    );
+    assert.strictEqual(loadScoutConfigValidationCommand(testDir), './scripts/custom-verify.sh');
+    assert.strictEqual(resolveValidationCommand(testDir), './scripts/custom-verify.sh');
+
+    fs.rmSync(path.join(testDir, 'scout.json'));
+    fs.rmSync(path.join(testDir, 'package.json'));
   });
 
   await t.test('runs scout:validate and captures failure', async () => {
