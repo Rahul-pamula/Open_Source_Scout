@@ -45,6 +45,65 @@ export function normalizeEol(text: string, targetEol: '\r\n' | '\n'): string {
 /**
  * Applies search and replace to file content with ambiguity detection, line-range targeting, and EOL normalization.
  */
+/**
+ * Searches for a unique match ignoring leading/trailing indentation and inner whitespace differences.
+ */
+export function findFuzzyWhitespaceMatch(
+  content: string,
+  search: string,
+): { start: number; end: number } | null {
+  const eol = detectEol(content);
+  const contentLines = content.split(eol);
+  const searchLines = search.split(/\r?\n/).map((l) => l.trim().replace(/[ \t]+/g, ' '));
+
+  if (searchLines.length === 0 || searchLines.every((l) => l === '')) return null;
+
+  const matches: Array<{ startLine: number; endLine: number }> = [];
+
+  for (let i = 0; i <= contentLines.length - searchLines.length; i++) {
+    let matched = true;
+    for (let j = 0; j < searchLines.length; j++) {
+      const cLineNorm = contentLines[i + j].trim().replace(/[ \t]+/g, ' ');
+      if (cLineNorm !== searchLines[j]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) {
+      matches.push({ startLine: i, endLine: i + searchLines.length - 1 });
+    }
+  }
+
+  if (matches.length === 1) {
+    const { startLine, endLine } = matches[0];
+    const searchHasTrailingNewline = search.endsWith('\n') || search.endsWith('\r');
+    let offset = 0;
+    for (let i = 0; i < startLine; i++) {
+      offset += contentLines[i].length + eol.length;
+    }
+    let endOffset = offset;
+    for (let i = startLine; i <= endLine; i++) {
+      endOffset += contentLines[i].length;
+      if (i < endLine) {
+        endOffset += eol.length;
+      }
+    }
+    if (searchHasTrailingNewline && endLine < contentLines.length - 1) {
+      endOffset += eol.length;
+    }
+    return { start: offset, end: endOffset };
+  } else if (matches.length > 1) {
+    throw new Error(
+      `Ambiguous match: found ${matches.length} occurrences matching with flexible whitespace. Provide more context to make the match unique.`,
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Applies search and replace to file content with ambiguity detection, line-range targeting, and EOL normalization.
+ */
 export function applyStringEdit(content: string, options: EditOptions): string {
   const fileEol = detectEol(content);
   const rawSearch = options.search;
@@ -72,6 +131,13 @@ export function applyStringEdit(content: string, options: EditOptions): string {
     const targetBlock = targetLines.join(eol);
 
     if (!targetBlock.includes(search)) {
+      const fuzzy = findFuzzyWhitespaceMatch(targetBlock, search);
+      if (fuzzy) {
+        const modifiedBlock = targetBlock.slice(0, fuzzy.start) + replace + targetBlock.slice(fuzzy.end);
+        const modifiedLines = modifiedBlock.split(eol);
+        lines.splice(actualStart - 1, actualEnd - actualStart + 1, ...modifiedLines);
+        return lines.join(eol);
+      }
       throw new Error(`Search string not found within specified line range [${actualStart}, ${actualEnd}].`);
     }
 
@@ -83,6 +149,10 @@ export function applyStringEdit(content: string, options: EditOptions): string {
   }
 
   if (!content.includes(search)) {
+    const fuzzy = findFuzzyWhitespaceMatch(content, search);
+    if (fuzzy) {
+      return content.slice(0, fuzzy.start) + replace + content.slice(fuzzy.end);
+    }
     throw new Error('Search string not found in file.');
   }
 
