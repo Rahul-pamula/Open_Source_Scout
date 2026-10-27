@@ -97,9 +97,42 @@ export function buildNodeValidationCommand(
 }
 
 /**
+ * Checks for a custom validation_command defined in scout.json, .scout.json, or .scout/config.json.
+ */
+export function loadScoutConfigValidationCommand(cwd: string = process.cwd()): string | null {
+  const candidatePaths = [
+    path.join(cwd, 'scout.json'),
+    path.join(cwd, '.scout.json'),
+    path.join(cwd, '.scout', 'config.json'),
+  ];
+
+  for (const configPath of candidatePaths) {
+    if (fs.existsSync(configPath)) {
+      try {
+        const raw = fs.readFileSync(configPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.validation_command === 'string' && parsed.validation_command.trim()) {
+          return parsed.validation_command.trim();
+        }
+      } catch {
+        // Ignore read/parse errors
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Resolves the appropriate validation command for a repository based on its project configuration.
  */
 export function resolveValidationCommand(cwd: string = process.cwd()): string | null {
+  // 0. Custom scout.json maintainer override takes top priority
+  const scoutOverride = loadScoutConfigValidationCommand(cwd);
+  if (scoutOverride) {
+    return scoutOverride;
+  }
+
   // 1. Deno projects
   if (detectDenoProject(cwd)) {
     return 'deno test';
