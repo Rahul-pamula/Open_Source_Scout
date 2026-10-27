@@ -74,4 +74,23 @@ test('Atomic File Write & Backup Restoration Suite', async (t) => {
     const tempFiles = files.filter((f) => f.includes('scout-tmp'));
     assert.strictEqual(tempFiles.length, 0, 'All temporary files should be cleaned up');
   });
+
+  await t.test('preserves byte-for-byte original content on rollback when target write is aborted', async () => {
+    const targetFile = path.join(tmpDir, 'critical-data.json');
+    const originalContent = JSON.stringify({ version: '1.0.0', secureKey: 'secret-xyz' }, null, 2);
+    await fs.writeFile(targetFile, originalContent, 'utf8');
+
+    // Attempt writing to an invalid target within non-existent subpath
+    const invalidTarget = path.join(tmpDir, 'nonexistent', 'nested', 'data.json');
+
+    await assert.rejects(
+      async () => {
+        await writeAtomicFile(invalidTarget, 'corrupted data');
+      }
+    );
+
+    // Verify original file is 100% byte-for-byte identical
+    const verifiedContent = await fs.readFile(targetFile, 'utf8');
+    assert.strictEqual(verifiedContent, originalContent, 'Critical original file must be completely untouched');
+  });
 });
