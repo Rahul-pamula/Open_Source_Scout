@@ -156,6 +156,12 @@ export function resolveValidationCommand(cwd: string = process.cwd()): string | 
     return 'go test ./...';
   }
 
+  // 7. Java / Kotlin (Gradle / Maven)
+  const javaCmd = detectJavaProject(cwd);
+  if (javaCmd) {
+    return javaCmd;
+  }
+
   return null;
 }
 
@@ -166,6 +172,28 @@ export function detectGoProject(cwd: string = process.cwd()): boolean {
   return fs.existsSync(path.join(cwd, 'go.mod')) || fs.existsSync(path.join(cwd, 'go.work'));
 }
 
+/**
+ * Checks whether the project is a Java/Kotlin project using Gradle or Maven.
+ */
+export function detectJavaProject(cwd: string = process.cwd()): string | null {
+  if (fs.existsSync(path.join(cwd, 'gradlew'))) {
+    return './gradlew test';
+  }
+  if (fs.existsSync(path.join(cwd, 'gradlew.bat'))) {
+    return './gradlew test';
+  }
+  if (fs.existsSync(path.join(cwd, 'build.gradle')) || fs.existsSync(path.join(cwd, 'build.gradle.kts'))) {
+    return 'gradle test';
+  }
+  if (fs.existsSync(path.join(cwd, 'mvnw'))) {
+    return './mvnw test';
+  }
+  if (fs.existsSync(path.join(cwd, 'pom.xml'))) {
+    return 'mvn test';
+  }
+  return null;
+}
+
 export async function runAdvisoryValidation(cwd: string = process.cwd()) {
   const command = resolveValidationCommand(cwd);
 
@@ -174,7 +202,7 @@ export async function runAdvisoryValidation(cwd: string = process.cwd()) {
       validation_ran: false,
       validation_passed: true,
       stdout:
-        'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, or go test). Skipping validation.',
+        'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, go test, gradle, or mvn). Skipping validation.',
       stderr: '',
       exit_code: null,
     };

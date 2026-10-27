@@ -9,6 +9,7 @@ import {
   detectDenoProject,
   detectNodeTestRunner,
   detectGoProject,
+  detectJavaProject,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -158,6 +159,40 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     assert.strictEqual(detectGoProject(testDir), true);
     assert.strictEqual(resolveValidationCommand(testDir), 'go test ./...');
     fs.rmSync(path.join(testDir, 'go.work'));
+  });
+
+  await t.test('detects Java and Kotlin projects and resolves gradle or mvn test command', () => {
+    assert.strictEqual(detectJavaProject(testDir), null);
+
+    // gradlew wrapper takes priority
+    fs.writeFileSync(path.join(testDir, 'gradlew'), '#!/bin/sh');
+    assert.strictEqual(detectJavaProject(testDir), './gradlew test');
+    assert.strictEqual(resolveValidationCommand(testDir), './gradlew test');
+    fs.rmSync(path.join(testDir, 'gradlew'));
+
+    // build.gradle fallback
+    fs.writeFileSync(path.join(testDir, 'build.gradle'), '// groovy');
+    assert.strictEqual(detectJavaProject(testDir), 'gradle test');
+    assert.strictEqual(resolveValidationCommand(testDir), 'gradle test');
+    fs.rmSync(path.join(testDir, 'build.gradle'));
+
+    // build.gradle.kts
+    fs.writeFileSync(path.join(testDir, 'build.gradle.kts'), '// kotlin');
+    assert.strictEqual(detectJavaProject(testDir), 'gradle test');
+    assert.strictEqual(resolveValidationCommand(testDir), 'gradle test');
+    fs.rmSync(path.join(testDir, 'build.gradle.kts'));
+
+    // mvnw wrapper
+    fs.writeFileSync(path.join(testDir, 'mvnw'), '#!/bin/sh');
+    assert.strictEqual(detectJavaProject(testDir), './mvnw test');
+    assert.strictEqual(resolveValidationCommand(testDir), './mvnw test');
+    fs.rmSync(path.join(testDir, 'mvnw'));
+
+    // pom.xml
+    fs.writeFileSync(path.join(testDir, 'pom.xml'), '<project></project>');
+    assert.strictEqual(detectJavaProject(testDir), 'mvn test');
+    assert.strictEqual(resolveValidationCommand(testDir), 'mvn test');
+    fs.rmSync(path.join(testDir, 'pom.xml'));
   });
 
   await t.test('runs scout:validate and captures failure', async () => {
