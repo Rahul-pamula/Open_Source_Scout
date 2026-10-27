@@ -12,6 +12,9 @@ import {
   detectJavaProject,
   detectMakefileTestTarget,
   detectDotNetProject,
+  detectMonorepoWorkspaces,
+  findMatchingWorkspacePackage,
+  buildWorkspaceScopedTestCommand,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -233,6 +236,42 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     assert.strictEqual(detectDotNetProject(testDir), true);
     assert.strictEqual(resolveValidationCommand(testDir), 'dotnet test');
     fs.rmSync(path.join(testDir, 'App.fsproj'));
+  });
+
+  await t.test('detects monorepo workspaces and resolves workspace-scoped test commands', () => {
+    // Create monorepo structure
+    fs.writeFileSync(path.join(testDir, 'pnpm-workspace.yaml'), 'packages:\n  - "packages/*"\n');
+    const pkgADir = path.join(testDir, 'packages', 'core');
+    const pkgBDir = path.join(testDir, 'packages', 'cli');
+    fs.mkdirSync(pkgADir, { recursive: true });
+    fs.mkdirSync(pkgBDir, { recursive: true });
+
+    fs.writeFileSync(path.join(pkgADir, 'package.json'), JSON.stringify({ name: '@scout/core', scripts: { test: 'echo core' } }));
+    fs.writeFileSync(path.join(pkgBDir, 'package.json'), JSON.stringify({ name: '@scout/cli', scripts: { test: 'echo cli' } }));
+
+    const ws = detectMonorepoWorkspaces(testDir);
+    assert.ok(ws !== null);
+    assert.strictEqual(ws?.type, 'pnpm');
+    assert.strictEqual(ws?.packages.length, 2);
+
+    // Target a changed file in packages/core/src/index.ts
+    const targetFile = path.join(pkgADir, 'src', 'index.ts');
+    const match = findMatchingWorkspacePackage(targetFile, ws!);
+    assert.ok(match !== null);
+    assert.strictEqual(match?.name, '@scout/core');
+
+    const cmd = buildWorkspaceScopedTestCommand(ws!, match!.name);
+    assert.strictEqual(cmd, 'pnpm --filter @scout/core test');
+
+    // Test yarn/npm style
+    const npmWs = { type: 'npm' as const, packages: ws!.packages };
+    assert.strictEqual(buildWorkspaceScopedTestCommand(npmWs, '@scout/core'), 'npm test --workspace=@scout/core');
+
+    const yarnWs = { type: 'yarn' as const, packages: ws!.packages };
+    assert.strictEqual(buildWorkspaceScopedTestCommand(yarnWs, '@scout/core'), 'yarn workspace @scout/core test');
+
+    fs.rmSync(path.join(testDir, 'packages'), { recursive: true, force: true });
+    fs.rmSync(path.join(testDir, 'pnpm-workspace.yaml'));
   });
 
   await t.test('runs scout:validate and captures failure', async () => {
