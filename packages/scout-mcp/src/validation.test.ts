@@ -8,6 +8,7 @@ import {
   buildNodeValidationCommand,
   detectDenoProject,
   detectNodeTestRunner,
+  detectGoProject,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -143,6 +144,20 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     fs.writeFileSync(path.join(testDir, 'Cargo.toml'), '[package]');
     const result = await runAdvisoryValidation(testDir);
     assert.strictEqual(result.validation_ran, true);
+  });
+
+  await t.test('detects Go projects and resolves go test ./... command', () => {
+    assert.strictEqual(detectGoProject(testDir), false);
+
+    fs.writeFileSync(path.join(testDir, 'go.mod'), 'module example.com/scout\n\ngo 1.21\n');
+    assert.strictEqual(detectGoProject(testDir), true);
+    assert.strictEqual(resolveValidationCommand(testDir), 'go test ./...');
+    fs.rmSync(path.join(testDir, 'go.mod'));
+
+    fs.writeFileSync(path.join(testDir, 'go.work'), 'go 1.21\n');
+    assert.strictEqual(detectGoProject(testDir), true);
+    assert.strictEqual(resolveValidationCommand(testDir), 'go test ./...');
+    fs.rmSync(path.join(testDir, 'go.work'));
   });
 
   await t.test('runs scout:validate and captures failure', async () => {
