@@ -345,6 +345,35 @@ export function buildWorkspaceScopedTestCommand(
   }
 }
 
+export const MAX_VALIDATION_OUTPUT_BYTES = 64 * 1024; // 64KB
+
+/**
+ * Caps output strings to a maximum byte size with a clear truncation warning banner and tail preservation.
+ */
+export function capValidationOutput(
+  output: string,
+  maxBytes: number = MAX_VALIDATION_OUTPUT_BYTES,
+): string {
+  if (!output) return '';
+  const byteLength = Buffer.byteLength(output, 'utf8');
+  if (byteLength <= maxBytes) {
+    return output;
+  }
+
+  const banner = `\n\n... [TRUNCATED: Output exceeded ${Math.round(maxBytes / 1024)}KB limit; omitted ${byteLength - maxBytes} bytes] ...\n\n`;
+  const bannerBytes = Buffer.byteLength(banner, 'utf8');
+  const availableBytes = Math.max(0, maxBytes - bannerBytes);
+
+  const headBytes = Math.floor(availableBytes * 0.25);
+  const tailBytes = availableBytes - headBytes;
+
+  const buf = Buffer.from(output, 'utf8');
+  const headStr = buf.subarray(0, headBytes).toString('utf8');
+  const tailStr = buf.subarray(buf.length - tailBytes).toString('utf8');
+
+  return headStr + banner + tailStr;
+}
+
 export async function runAdvisoryValidation(cwd: string = process.cwd(), changedFiles?: string[]) {
   let command: string | null = null;
 
@@ -379,26 +408,27 @@ export async function runAdvisoryValidation(cwd: string = process.cwd(), changed
   }
 
   try {
-    // 5-minute timeout for validation commands
-    const { stdout, stderr } = await execAsync(command, { cwd, timeout: 300000 });
+    // 5-minute timeout for validation commands, up to 10MB exec buffer before capping
+    const { stdout, stderr } = await execAsync(command, { cwd, timeout: 300000, maxBuffer: 10 * 1024 * 1024 });
     return {
       validation_ran: true,
       validation_passed: true,
-      stdout,
-      stderr,
+      stdout: capValidationOutput(stdout),
+      stderr: capValidationOutput(stderr),
       exit_code: 0,
     };
   } catch (e: any) {
     const exitCode = typeof e.code === 'number' ? e.code : null;
     const timedOut = e.killed && e.signal === 'SIGTERM';
+    const rawStderr = timedOut
+      ? `Validation timed out after 5 minutes.\n${e.stderr || ''}`
+      : e.stderr || e.message || 'Unknown error';
 
     return {
       validation_ran: true,
       validation_passed: false,
-      stdout: e.stdout || '',
-      stderr: timedOut
-        ? `Validation timed out after 5 minutes.\n${e.stderr || ''}`
-        : e.stderr || e.message || 'Unknown error',
+      stdout: capValidationOutput(e.stdout || ''),
+      stderr: capValidationOutput(rawStderr),
       exit_code: exitCode,
     };
   }

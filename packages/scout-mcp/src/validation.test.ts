@@ -15,6 +15,8 @@ import {
   detectMonorepoWorkspaces,
   findMatchingWorkspacePackage,
   buildWorkspaceScopedTestCommand,
+  capValidationOutput,
+  MAX_VALIDATION_OUTPUT_BYTES,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -272,6 +274,19 @@ test('Validation Runner & Package Manager Detection', async (t) => {
 
     fs.rmSync(path.join(testDir, 'packages'), { recursive: true, force: true });
     fs.rmSync(path.join(testDir, 'pnpm-workspace.yaml'));
+  });
+
+  await t.test('caps output exceeding MAX_VALIDATION_OUTPUT_BYTES', () => {
+    const smallText = 'Passed all 10 tests.\n';
+    assert.strictEqual(capValidationOutput(smallText), smallText);
+
+    // Generate ~100KB string
+    const hugeOutput = 'LOG ENTRY LINE 1234567890\n'.repeat(4000);
+    assert.ok(Buffer.byteLength(hugeOutput, 'utf8') > 100 * 1024);
+
+    const capped = capValidationOutput(hugeOutput, 64 * 1024);
+    assert.ok(Buffer.byteLength(capped, 'utf8') <= 64 * 1024);
+    assert.match(capped, /\[TRUNCATED: Output exceeded 64KB limit/);
   });
 
   await t.test('runs scout:validate and captures failure', async () => {
