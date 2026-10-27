@@ -74,3 +74,52 @@ export function applyStringEdit(content: string, options: EditOptions): string {
 
   return content.replace(search, replace);
 }
+
+/**
+ * Generates a unified diff representing modifications between oldContent and newContent.
+ */
+export function generateUnifiedDiff(filePath: string, oldContent: string, newContent: string): string {
+  if (oldContent === newContent) return '';
+  const oldLines = oldContent.split(/\r?\n/);
+  const newLines = newContent.split(/\r?\n/);
+
+  // Find first difference line
+  let start = 0;
+  while (start < oldLines.length && start < newLines.length && oldLines[start] === newLines[start]) {
+    start++;
+  }
+
+  // Find trailing identical lines
+  let oldEnd = oldLines.length - 1;
+  let newEnd = newLines.length - 1;
+  while (oldEnd >= start && newEnd >= start && oldLines[oldEnd] === newLines[newEnd]) {
+    oldEnd--;
+    newEnd--;
+  }
+
+  // 3 lines of context
+  const contextBefore = Math.max(0, start - 3);
+  const oldContextEnd = Math.min(oldLines.length, oldEnd + 4);
+  const newContextEnd = Math.min(newLines.length, newEnd + 4);
+
+  const cleanPath = filePath.replace(/^[\\/]+/, '');
+  const header = `--- a/${cleanPath}\n+++ b/${cleanPath}\n`;
+  const hunkHeader = `@@ -${contextBefore + 1},${oldContextEnd - contextBefore} +${contextBefore + 1},${newContextEnd - contextBefore} @@\n`;
+
+  const lines: string[] = [];
+  for (let i = contextBefore; i < start; i++) {
+    lines.push(` ${oldLines[i]}`);
+  }
+  for (let i = start; i <= oldEnd; i++) {
+    lines.push(`-${oldLines[i]}`);
+  }
+  for (let i = start; i <= newEnd; i++) {
+    lines.push(`+${newLines[i]}`);
+  }
+  for (let i = oldEnd + 1; i < oldContextEnd; i++) {
+    lines.push(` ${oldLines[i]}`);
+  }
+
+  return header + hunkHeader + lines.join('\n') + '\n';
+}
+

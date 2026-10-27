@@ -16,7 +16,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
 import { getWorktreePath, autoPruneWorktreesOnStartup, checkWorktreeDiskUsage, listWorktrees } from './git.js';
-import { applyStringEdit } from './editor.js';
+import { applyStringEdit, generateUnifiedDiff } from './editor.js';
 import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
@@ -417,10 +417,23 @@ ${JSON.stringify(result, null, 2)}`
           startLine: start_line,
           endLine: end_line,
         });
+        const diff = generateUnifiedDiff(path, fileContent, newContent);
         await fs.writeFile(validatedPath, newContent, 'utf8');
 
         return {
-          content: [{ type: 'text', text: JSON.stringify({ message: 'File edited successfully.' }) }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  message: 'File edited successfully.',
+                  diff,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
         };
       }
 
