@@ -136,6 +136,7 @@ const EditFileSchema = z.object({
   replace_all: z.boolean().optional(),
   start_line: z.number().int().positive().optional(),
   end_line: z.number().int().positive().optional(),
+  dry_run: z.boolean().optional(),
 });
 
 const SessionHeartbeatSchema = z.object({
@@ -190,6 +191,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           replace_all: { type: 'boolean', description: 'Replace all occurrences instead of requiring a unique match.' },
           start_line: { type: 'number', description: 'Optional 1-indexed starting line to constrain replacement.' },
           end_line: { type: 'number', description: 'Optional 1-indexed ending line to constrain replacement.' },
+          dry_run: { type: 'boolean', description: 'When true, validates edit and produces diff without writing to disk.' },
         },
         required: ['session_id', 'path', 'search', 'replace'],
       },
@@ -402,9 +404,8 @@ ${JSON.stringify(result, null, 2)}`
 
       // -----------------------------------------------------------------------
       case 'edit_file': {
-        const { session_id, path, search, replace, replace_all, start_line, end_line } = EditFileSchema.parse(
-          request.params.arguments,
-        );
+        const { session_id, path, search, replace, replace_all, start_line, end_line, dry_run } =
+          EditFileSchema.parse(request.params.arguments);
         const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
@@ -420,11 +421,14 @@ ${JSON.stringify(result, null, 2)}`
           endLine: end_line,
         });
         const diff = generateUnifiedDiff(path, fileContent, newContent);
-        await fs.writeFile(validatedPath, newContent, 'utf8');
-        try {
-          await fs.chmod(validatedPath, originalMode);
-        } catch {
-          // Graceful fallback on environments not supporting chmod
+
+        if (!dry_run) {
+          await fs.writeFile(validatedPath, newContent, 'utf8');
+          try {
+            await fs.chmod(validatedPath, originalMode);
+          } catch {
+            // Graceful fallback on environments not supporting chmod
+          }
         }
 
         return {
@@ -433,8 +437,11 @@ ${JSON.stringify(result, null, 2)}`
               type: 'text',
               text: JSON.stringify(
                 {
-                  message: 'File edited successfully.',
+                  message: dry_run
+                    ? 'Dry run successful. No changes written to disk.'
+                    : 'File edited successfully.',
                   diff,
+                  ...(dry_run ? { dry_run: true } : {}),
                 },
                 null,
                 2,
