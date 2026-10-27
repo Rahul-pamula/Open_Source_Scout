@@ -151,7 +151,19 @@ export function resolveValidationCommand(cwd: string = process.cwd()): string | 
     return 'cargo test';
   }
 
+  // 6. Go projects
+  if (detectGoProject(cwd)) {
+    return 'go test ./...';
+  }
+
   return null;
+}
+
+/**
+ * Checks whether the project is a Go module or workspace.
+ */
+export function detectGoProject(cwd: string = process.cwd()): boolean {
+  return fs.existsSync(path.join(cwd, 'go.mod')) || fs.existsSync(path.join(cwd, 'go.work'));
 }
 
 export async function runAdvisoryValidation(cwd: string = process.cwd()) {
@@ -162,7 +174,7 @@ export async function runAdvisoryValidation(cwd: string = process.cwd()) {
       validation_ran: false,
       validation_passed: true,
       stdout:
-        'No standard validation command detected (scout:validate, test runner, deno test, pytest, or cargo test). Skipping validation.',
+        'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, or go test). Skipping validation.',
       stderr: '',
       exit_code: null,
     };
