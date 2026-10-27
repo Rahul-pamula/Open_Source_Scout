@@ -405,15 +405,29 @@ export function parseTestOutputSummary(output: string): ValidationSummary {
 
   // 2. Jest / Vitest / Pytest counts
   if (total === null) {
-    const passedMatch = output.match(/(\d+)\s+passed/);
-    const failedMatch = output.match(/(\d+)\s+failed/);
-    const totalMatch = output.match(/(\d+)\s+total/);
+    const testsLineMatch = output.match(/Tests:\s+([^\n]+)/);
+    if (testsLineMatch) {
+      const line = testsLineMatch[1];
+      const pMatch = line.match(/(\d+)\s+passed/);
+      const fMatch = line.match(/(\d+)\s+failed/);
+      const tMatch = line.match(/(\d+)\s+total/);
+      if (pMatch) passed = parseInt(pMatch[1], 10);
+      if (fMatch) failed = parseInt(fMatch[1], 10);
+      if (tMatch) total = parseInt(tMatch[1], 10);
+      else if (passed !== null || failed !== null) {
+        total = (passed || 0) + (failed || 0);
+      }
+    } else {
+      const passedMatch = output.match(/(\d+)\s+passed/);
+      const failedMatch = output.match(/(\d+)\s+failed/);
+      const totalMatch = output.match(/(\d+)\s+total/);
 
-    if (passedMatch) passed = parseInt(passedMatch[1], 10);
-    if (failedMatch) failed = parseInt(failedMatch[1], 10);
-    if (totalMatch) total = parseInt(totalMatch[1], 10);
-    else if (passed !== null || failed !== null) {
-      total = (passed || 0) + (failed || 0);
+      if (passedMatch) passed = parseInt(passedMatch[1], 10);
+      if (failedMatch) failed = parseInt(failedMatch[1], 10);
+      if (totalMatch) total = parseInt(totalMatch[1], 10);
+      else if (passed !== null || failed !== null) {
+        total = (passed || 0) + (failed || 0);
+      }
     }
   }
 
