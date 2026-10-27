@@ -1,6 +1,8 @@
 /**
  * Editor utilities for Scout MCP edit_file tool.
  */
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 export interface EditOptions {
   search: string;
@@ -217,4 +219,36 @@ export function generateUnifiedDiff(filePath: string, oldContent: string, newCon
 
   return header + hunkHeader + lines.join('\n') + '\n';
 }
+
+/**
+ * Writes new content to targetPath atomically via a temporary file and rename.
+ * Guarantees that targetPath is never left in a partially written or corrupted state.
+ */
+export async function writeAtomicFile(
+  targetPath: string,
+  newContent: string,
+  mode?: number,
+): Promise<void> {
+  const dir = path.dirname(targetPath);
+  const tempPath = path.join(
+    dir,
+    `.${path.basename(targetPath)}.scout-tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
+
+  try {
+    await fs.writeFile(tempPath, newContent, { encoding: 'utf8', mode });
+    if (mode !== undefined) {
+      try {
+        await fs.chmod(tempPath, mode);
+      } catch {
+        // Fallback on filesystems not supporting chmod
+      }
+    }
+    await fs.rename(tempPath, targetPath);
+  } catch (error) {
+    await fs.rm(tempPath, { force: true }).catch(() => {});
+    throw error;
+  }
+}
+
 
