@@ -11,6 +11,7 @@ import {
   detectGoProject,
   detectJavaProject,
   detectMakefileTestTarget,
+  detectDotNetProject,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -210,6 +211,28 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     assert.strictEqual(detectMakefileTestTarget(testDir), 'make check');
     assert.strictEqual(resolveValidationCommand(testDir), 'make check');
     fs.rmSync(path.join(testDir, 'GNUmakefile'));
+  });
+
+  await t.test('detects .NET projects and resolves dotnet test command', () => {
+    assert.strictEqual(detectDotNetProject(testDir), false);
+
+    // .sln file
+    fs.writeFileSync(path.join(testDir, 'App.sln'), 'Microsoft Visual Studio Solution File');
+    assert.strictEqual(detectDotNetProject(testDir), true);
+    assert.strictEqual(resolveValidationCommand(testDir), 'dotnet test');
+    fs.rmSync(path.join(testDir, 'App.sln'));
+
+    // .csproj file
+    fs.writeFileSync(path.join(testDir, 'App.csproj'), '<Project Sdk="Microsoft.NET.Sdk"></Project>');
+    assert.strictEqual(detectDotNetProject(testDir), true);
+    assert.strictEqual(resolveValidationCommand(testDir), 'dotnet test');
+    fs.rmSync(path.join(testDir, 'App.csproj'));
+
+    // .fsproj file
+    fs.writeFileSync(path.join(testDir, 'App.fsproj'), '<Project Sdk="Microsoft.NET.Sdk"></Project>');
+    assert.strictEqual(detectDotNetProject(testDir), true);
+    assert.strictEqual(resolveValidationCommand(testDir), 'dotnet test');
+    fs.rmSync(path.join(testDir, 'App.fsproj'));
   });
 
   await t.test('runs scout:validate and captures failure', async () => {

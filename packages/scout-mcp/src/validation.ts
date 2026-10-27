@@ -168,7 +168,24 @@ export function resolveValidationCommand(cwd: string = process.cwd()): string | 
     return makeCmd;
   }
 
+  // 9. .NET projects (C# / F#)
+  if (detectDotNetProject(cwd)) {
+    return 'dotnet test';
+  }
+
   return null;
+}
+
+/**
+ * Checks whether the project is a .NET project (.sln or .csproj/.fsproj).
+ */
+export function detectDotNetProject(cwd: string = process.cwd()): boolean {
+  try {
+    const files = fs.readdirSync(cwd);
+    return files.some((f) => f.endsWith('.sln') || f.endsWith('.csproj') || f.endsWith('.fsproj'));
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -232,7 +249,7 @@ export async function runAdvisoryValidation(cwd: string = process.cwd()) {
       validation_ran: false,
       validation_passed: true,
       stdout:
-        'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, go test, gradle, mvn, or make test). Skipping validation.',
+        'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, go test, gradle, mvn, make test, or dotnet test). Skipping validation.',
       stderr: '',
       exit_code: null,
     };
