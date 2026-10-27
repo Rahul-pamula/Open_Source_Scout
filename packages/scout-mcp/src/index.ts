@@ -409,6 +409,8 @@ ${JSON.stringify(result, null, 2)}`
         const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
+        const stats = await fs.stat(validatedPath);
+        const originalMode = stats.mode;
         const fileContent = await fs.readFile(validatedPath, 'utf8');
         const newContent = applyStringEdit(fileContent, {
           search,
@@ -419,6 +421,11 @@ ${JSON.stringify(result, null, 2)}`
         });
         const diff = generateUnifiedDiff(path, fileContent, newContent);
         await fs.writeFile(validatedPath, newContent, 'utf8');
+        try {
+          await fs.chmod(validatedPath, originalMode);
+        } catch {
+          // Graceful fallback on environments not supporting chmod
+        }
 
         return {
           content: [
