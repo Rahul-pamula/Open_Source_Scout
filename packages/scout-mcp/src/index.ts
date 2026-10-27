@@ -16,6 +16,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
 import { getWorktreePath, autoPruneWorktreesOnStartup, checkWorktreeDiskUsage, listWorktrees } from './git.js';
+import { applyStringEdit } from './editor.js';
 import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
@@ -401,10 +402,7 @@ ${JSON.stringify(result, null, 2)}`
         const validatedPath = validatePathBoundary(worktreePath, path);
 
         const fileContent = await fs.readFile(validatedPath, 'utf8');
-        if (!fileContent.includes(search)) {
-          throw new Error('Search string not found in file.');
-        }
-        const newContent = fileContent.replace(search, replace);
+        const newContent = applyStringEdit(fileContent, { search, replace });
         await fs.writeFile(validatedPath, newContent, 'utf8');
 
         return {
@@ -649,7 +647,7 @@ export function formatJsonRpcError(error: any) {
     code = McpErrorCode.InvalidParams;
     message = `Invalid parameters: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`;
     data = error.errors;
-  } else if (message.includes('Search string not found')) {
+  } else if (message.includes('Search string not found') || message.includes('Ambiguous match')) {
     code = McpErrorCode.InvalidParams;
   } else if (message.includes('Unknown tool')) {
     code = McpErrorCode.MethodNotFound;
