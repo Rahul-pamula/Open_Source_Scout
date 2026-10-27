@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { countOccurrences, applyStringEdit, generateUnifiedDiff } from './editor.js';
+import { countOccurrences, applyStringEdit, generateUnifiedDiff, detectEol, normalizeEol } from './editor.js';
 
 test('Editor Ambiguity & Replacement Test Suite', async (t) => {
   await t.test('accurately counts non-overlapping occurrences', () => {
@@ -95,5 +95,34 @@ test('Editor Ambiguity & Replacement Test Suite', async (t) => {
 
     // Identical content produces empty diff
     assert.strictEqual(generateUnifiedDiff('src/app.ts', oldContent, oldContent), '');
+  });
+
+  await t.test('detects and normalizes line endings correctly', () => {
+    assert.strictEqual(detectEol('foo\r\nbar\r\nbaz'), '\r\n');
+    assert.strictEqual(detectEol('foo\nbar\nbaz'), '\n');
+
+    const mixed = 'line 1\r\nline 2\nline 3';
+    assert.strictEqual(normalizeEol(mixed, '\n'), 'line 1\nline 2\nline 3');
+    assert.strictEqual(normalizeEol(mixed, '\r\n'), 'line 1\r\nline 2\r\nline 3');
+  });
+
+  await t.test('seamlessly edits CRLF file using LF search/replace and preserves CRLF', () => {
+    const crlfFile = 'function test() {\r\n  return 1;\r\n}\r\n';
+    const lfSearch = 'function test() {\n  return 1;\n}';
+    const lfReplace = 'function test() {\n  return 2;\n}';
+
+    const result = applyStringEdit(crlfFile, { search: lfSearch, replace: lfReplace });
+    assert.strictEqual(result, 'function test() {\r\n  return 2;\r\n}\r\n');
+    assert.strictEqual(detectEol(result), '\r\n', 'Result must retain CRLF line endings');
+  });
+
+  await t.test('seamlessly edits LF file using CRLF search/replace and preserves LF', () => {
+    const lfFile = 'function test() {\n  return 1;\n}\n';
+    const crlfSearch = 'function test() {\r\n  return 1;\r\n}';
+    const crlfReplace = 'function test() {\r\n  return 2;\r\n}';
+
+    const result = applyStringEdit(lfFile, { search: crlfSearch, replace: crlfReplace });
+    assert.strictEqual(result, 'function test() {\n  return 2;\n}\n');
+    assert.strictEqual(detectEol(result), '\n', 'Result must retain LF line endings');
   });
 });

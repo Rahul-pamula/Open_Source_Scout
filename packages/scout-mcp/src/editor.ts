@@ -25,14 +25,39 @@ export function countOccurrences(content: string, search: string): number {
 }
 
 /**
- * Applies search and replace to file content with ambiguity detection and optional line-range targeting.
+ * Detects whether content predominantly uses CRLF (\r\n) or LF (\n).
+ */
+export function detectEol(content: string): '\r\n' | '\n' {
+  const crlfMatches = content.match(/\r\n/g);
+  const crlfCount = crlfMatches ? crlfMatches.length : 0;
+  const lfMatches = content.match(/[^\r]\n/g);
+  const lfCount = lfMatches ? lfMatches.length : 0;
+  return crlfCount > lfCount ? '\r\n' : '\n';
+}
+
+/**
+ * Normalizes all newlines in text to the target EOL string.
+ */
+export function normalizeEol(text: string, targetEol: '\r\n' | '\n'): string {
+  return text.replace(/\r?\n/g, targetEol);
+}
+
+/**
+ * Applies search and replace to file content with ambiguity detection, line-range targeting, and EOL normalization.
  */
 export function applyStringEdit(content: string, options: EditOptions): string {
-  const { search, replace, replaceAll = false, startLine, endLine } = options;
+  const fileEol = detectEol(content);
+  const rawSearch = options.search;
+  const rawReplace = options.replace;
+
+  // Normalize search and replace newlines to match target file EOL
+  const search = normalizeEol(rawSearch, fileEol);
+  const replace = normalizeEol(rawReplace, fileEol);
+  const { replaceAll = false, startLine, endLine } = options;
 
   // Handle line range targeting
   if (startLine !== undefined || endLine !== undefined) {
-    const eol = content.includes('\r\n') ? '\r\n' : '\n';
+    const eol = fileEol;
     const lines = content.split(eol);
     const totalLines = lines.length;
 
