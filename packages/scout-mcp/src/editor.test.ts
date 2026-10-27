@@ -41,4 +41,44 @@ test('Editor Ambiguity & Replacement Test Suite', async (t) => {
     const updated = applyStringEdit(original, { search: '1', replace: '2', replaceAll: true });
     assert.strictEqual(updated, 'const x = 2;\nconst y = 2;');
   });
+
+  await t.test('targets replacement within specific line range', () => {
+    const original = 'line 1\nline 2: target\nline 3: other\nline 4: target\nline 5';
+    // Constrain to lines 1 to 3, so only line 2 is replaced
+    const updated = applyStringEdit(original, {
+      search: 'target',
+      replace: 'UPDATED',
+      startLine: 1,
+      endLine: 3,
+    });
+    assert.strictEqual(updated, 'line 1\nline 2: UPDATED\nline 3: other\nline 4: target\nline 5');
+  });
+
+  await t.test('throws when search is absent in line range', () => {
+    const original = 'line 1\nline 2\nline 3: target';
+    assert.throws(
+      () =>
+        applyStringEdit(original, {
+          search: 'target',
+          replace: 'UPDATED',
+          startLine: 1,
+          endLine: 2,
+        }),
+      /Search string not found within specified line range/
+    );
+  });
+
+  await t.test('throws when startLine exceeds endLine', () => {
+    const original = 'line 1\nline 2';
+    assert.throws(
+      () =>
+        applyStringEdit(original, {
+          search: 'line',
+          replace: 'foo',
+          startLine: 5,
+          endLine: 2,
+        }),
+      /Invalid line range/
+    );
+  });
 });
