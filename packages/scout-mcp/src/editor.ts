@@ -6,6 +6,8 @@ export interface EditOptions {
   search: string;
   replace: string;
   replaceAll?: boolean;
+  startLine?: number;
+  endLine?: number;
 }
 
 /**
@@ -23,10 +25,38 @@ export function countOccurrences(content: string, search: string): number {
 }
 
 /**
- * Applies search and replace to file content with ambiguity detection.
+ * Applies search and replace to file content with ambiguity detection and optional line-range targeting.
  */
 export function applyStringEdit(content: string, options: EditOptions): string {
-  const { search, replace, replaceAll = false } = options;
+  const { search, replace, replaceAll = false, startLine, endLine } = options;
+
+  // Handle line range targeting
+  if (startLine !== undefined || endLine !== undefined) {
+    const eol = content.includes('\r\n') ? '\r\n' : '\n';
+    const lines = content.split(eol);
+    const totalLines = lines.length;
+
+    const actualStart = startLine !== undefined ? Math.max(1, startLine) : 1;
+    const actualEnd = endLine !== undefined ? Math.min(totalLines, endLine) : totalLines;
+
+    if (actualStart > actualEnd) {
+      throw new Error(`Invalid line range: start_line (${actualStart}) exceeds end_line (${actualEnd}).`);
+    }
+
+    const targetLines = lines.slice(actualStart - 1, actualEnd);
+    const targetBlock = targetLines.join(eol);
+
+    if (!targetBlock.includes(search)) {
+      throw new Error(`Search string not found within specified line range [${actualStart}, ${actualEnd}].`);
+    }
+
+    const modifiedBlock = applyStringEdit(targetBlock, { search, replace, replaceAll });
+    const modifiedLines = modifiedBlock.split(eol);
+
+    lines.splice(actualStart - 1, actualEnd - actualStart + 1, ...modifiedLines);
+    return lines.join(eol);
+  }
+
   if (!content.includes(search)) {
     throw new Error('Search string not found in file.');
   }

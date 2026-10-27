@@ -134,6 +134,8 @@ const EditFileSchema = z.object({
   search: z.string(),
   replace: z.string(),
   replace_all: z.boolean().optional(),
+  start_line: z.number().int().positive().optional(),
+  end_line: z.number().int().positive().optional(),
 });
 
 const SessionHeartbeatSchema = z.object({
@@ -186,6 +188,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           search: { type: 'string', description: 'Exact text to search for.' },
           replace: { type: 'string', description: 'Text to replace it with.' },
           replace_all: { type: 'boolean', description: 'Replace all occurrences instead of requiring a unique match.' },
+          start_line: { type: 'number', description: 'Optional 1-indexed starting line to constrain replacement.' },
+          end_line: { type: 'number', description: 'Optional 1-indexed ending line to constrain replacement.' },
         },
         required: ['session_id', 'path', 'search', 'replace'],
       },
@@ -398,7 +402,7 @@ ${JSON.stringify(result, null, 2)}`
 
       // -----------------------------------------------------------------------
       case 'edit_file': {
-        const { session_id, path, search, replace, replace_all } = EditFileSchema.parse(
+        const { session_id, path, search, replace, replace_all, start_line, end_line } = EditFileSchema.parse(
           request.params.arguments,
         );
         const repoCwd = await resolveSessionWorkspace(session_id);
@@ -406,7 +410,13 @@ ${JSON.stringify(result, null, 2)}`
         const validatedPath = validatePathBoundary(worktreePath, path);
 
         const fileContent = await fs.readFile(validatedPath, 'utf8');
-        const newContent = applyStringEdit(fileContent, { search, replace, replaceAll: replace_all });
+        const newContent = applyStringEdit(fileContent, {
+          search,
+          replace,
+          replaceAll: replace_all,
+          startLine: start_line,
+          endLine: end_line,
+        });
         await fs.writeFile(validatedPath, newContent, 'utf8');
 
         return {
