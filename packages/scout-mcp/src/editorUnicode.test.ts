@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { applyStringEdit, hasUtf8Bom, stripUtf8Bom, restoreUtf8Bom, UTF8_BOM } from './editor.js';
+import { applyStringEdit, hasUtf8Bom, stripUtf8Bom, restoreUtf8Bom, generateUnifiedDiff, UTF8_BOM } from './editor.js';
 
 test('Editor Unicode & UTF-8 BOM Preservation Suite', async (t) => {
   await t.test('detects, strips, and restores UTF-8 BOM', () => {
@@ -42,5 +42,36 @@ test('Editor Unicode & UTF-8 BOM Preservation Suite', async (t) => {
     assert.ok(updated.includes('こんにちは、Scout！ 🌟'));
     assert.ok(updated.includes('René François Müller'));
     assert.ok(updated.includes('Project 🚀 Scout'));
+  });
+
+  await t.test('accurately performs line-range bounded replacement with multi-byte unicode', () => {
+    const code = [
+      '// Line 1: 🛡️ Security Check',
+      'const label = "Alpha 🚀";',
+      '// Line 3: Math ∫ f(x) dx = ∑ x_i',
+      'const label = "Beta 🚀";',
+      '// Line 5: End',
+    ].join('\n');
+
+    // Constrain to lines 3-5 so only the second label is replaced
+    const updated = applyStringEdit(code, {
+      search: 'const label = "Beta 🚀";',
+      replace: 'const label = "Beta 🌟 (Verified)";',
+      startLine: 3,
+      endLine: 5,
+    });
+
+    assert.ok(updated.includes('const label = "Alpha 🚀";'), 'First label should be untouched');
+    assert.ok(updated.includes('const label = "Beta 🌟 (Verified)";'), 'Second label should be replaced');
+  });
+
+  await t.test('generates valid unified diff containing multi-byte unicode strings', () => {
+    const oldContent = 'const symbol = "⚡";\n';
+    const newContent = 'const symbol = "🚀 ✨";\n';
+
+    const diff = generateUnifiedDiff('unicode.ts', oldContent, newContent);
+    assert.ok(diff.includes('-const symbol = "⚡";'));
+    assert.ok(diff.includes('+const symbol = "🚀 ✨";'));
+    assert.ok(diff.includes('@@ -1,'));
   });
 });
