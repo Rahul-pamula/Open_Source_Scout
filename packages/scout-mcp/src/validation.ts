@@ -374,6 +374,71 @@ export function capValidationOutput(
   return headStr + banner + tailStr;
 }
 
+export interface ValidationSummary {
+  total: number | null;
+  passed: number | null;
+  failed: number | null;
+  duration_ms: number | null;
+}
+
+/**
+ * Parses test runner output to extract structured counts and duration.
+ */
+export function parseTestOutputSummary(output: string): ValidationSummary {
+  let total: number | null = null;
+  let passed: number | null = null;
+  let failed: number | null = null;
+  let duration_ms: number | null = null;
+
+  // 1. Node test / tsx
+  const nodeTestsMatch = output.match(/ℹ\s+tests\s+(\d+)/);
+  if (nodeTestsMatch) total = parseInt(nodeTestsMatch[1], 10);
+
+  const nodePassMatch = output.match(/ℹ\s+pass\s+(\d+)/);
+  if (nodePassMatch) passed = parseInt(nodePassMatch[1], 10);
+
+  const nodeFailMatch = output.match(/ℹ\s+fail\s+(\d+)/);
+  if (nodeFailMatch) failed = parseInt(nodeFailMatch[1], 10);
+
+  const nodeDurMatch = output.match(/ℹ\s+duration_ms\s+([\d.]+)/);
+  if (nodeDurMatch) duration_ms = Math.round(parseFloat(nodeDurMatch[1]));
+
+  // 2. Jest / Vitest / Pytest counts
+  if (total === null) {
+    const passedMatch = output.match(/(\d+)\s+passed/);
+    const failedMatch = output.match(/(\d+)\s+failed/);
+    const totalMatch = output.match(/(\d+)\s+total/);
+
+    if (passedMatch) passed = parseInt(passedMatch[1], 10);
+    if (failedMatch) failed = parseInt(failedMatch[1], 10);
+    if (totalMatch) total = parseInt(totalMatch[1], 10);
+    else if (passed !== null || failed !== null) {
+      total = (passed || 0) + (failed || 0);
+    }
+  }
+
+  // 3. Duration from 'in X.XXs' or 'Time: X.XX s'
+  if (duration_ms === null) {
+    const timeMatch = output.match(/(?:in|Time:)\s+([\d.]+)\s*s/);
+    if (timeMatch) {
+      duration_ms = Math.round(parseFloat(timeMatch[1]) * 1000);
+    }
+  }
+
+  // 4. Cargo test format: test result: ok. 5 passed; 0 failed; finished in 0.05s
+  if (total === null) {
+    const cargoMatch = output.match(/test result:\s+\w+\.\s+(\d+)\s+passed;\s+(\d+)\s+failed;.*?finished in ([\d.]+)s/);
+    if (cargoMatch) {
+      passed = parseInt(cargoMatch[1], 10);
+      failed = parseInt(cargoMatch[2], 10);
+      total = passed + failed;
+      duration_ms = Math.round(parseFloat(cargoMatch[3]) * 1000);
+    }
+  }
+
+  return { total, passed, failed, duration_ms };
+}
+
 export async function runAdvisoryValidation(cwd: string = process.cwd(), changedFiles?: string[]) {
   let command: string | null = null;
 
@@ -404,18 +469,21 @@ export async function runAdvisoryValidation(cwd: string = process.cwd(), changed
         'No standard validation command detected (scout:validate, test runner, deno test, pytest, cargo test, go test, gradle, mvn, make test, or dotnet test). Skipping validation.',
       stderr: '',
       exit_code: null,
+      validation_summary: null,
     };
   }
 
   try {
     // 5-minute timeout for validation commands, up to 10MB exec buffer before capping
     const { stdout, stderr } = await execAsync(command, { cwd, timeout: 300000, maxBuffer: 10 * 1024 * 1024 });
+    const fullLog = stdout + '\n' + stderr;
     return {
       validation_ran: true,
       validation_passed: true,
       stdout: capValidationOutput(stdout),
       stderr: capValidationOutput(stderr),
       exit_code: 0,
+      validation_summary: parseTestOutputSummary(fullLog),
     };
   } catch (e: any) {
     const exitCode = typeof e.code === 'number' ? e.code : null;
@@ -423,6 +491,7 @@ export async function runAdvisoryValidation(cwd: string = process.cwd(), changed
     const rawStderr = timedOut
       ? `Validation timed out after 5 minutes.\n${e.stderr || ''}`
       : e.stderr || e.message || 'Unknown error';
+    const fullLog = (e.stdout || '') + '\n' + rawStderr;
 
     return {
       validation_ran: true,
@@ -430,6 +499,7 @@ export async function runAdvisoryValidation(cwd: string = process.cwd(), changed
       stdout: capValidationOutput(e.stdout || ''),
       stderr: capValidationOutput(rawStderr),
       exit_code: exitCode,
+      validation_summary: parseTestOutputSummary(fullLog),
     };
   }
 }

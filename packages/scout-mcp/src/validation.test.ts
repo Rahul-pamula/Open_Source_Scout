@@ -17,6 +17,7 @@ import {
   buildWorkspaceScopedTestCommand,
   capValidationOutput,
   MAX_VALIDATION_OUTPUT_BYTES,
+  parseTestOutputSummary,
   resolveValidationCommand,
 } from './validation.js';
 
@@ -287,6 +288,32 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     const capped = capValidationOutput(hugeOutput, 64 * 1024);
     assert.ok(Buffer.byteLength(capped, 'utf8') <= 64 * 1024);
     assert.match(capped, /\[TRUNCATED: Output exceeded 64KB limit/);
+  });
+
+  await t.test('parses structured test summary metrics from runner output', () => {
+    // Node:test / tsx output
+    const nodeOutput = 'ℹ tests 25\nℹ suites 0\nℹ pass 23\nℹ fail 2\nℹ duration_ms 450.25\n';
+    const nodeSummary = parseTestOutputSummary(nodeOutput);
+    assert.strictEqual(nodeSummary.total, 25);
+    assert.strictEqual(nodeSummary.passed, 23);
+    assert.strictEqual(nodeSummary.failed, 2);
+    assert.strictEqual(nodeSummary.duration_ms, 450);
+
+    // Jest / Vitest output
+    const jestOutput = 'Tests: 10 passed, 2 failed, 12 total\nTime: 1.50 s\n';
+    const jestSummary = parseTestOutputSummary(jestOutput);
+    assert.strictEqual(jestSummary.total, 12);
+    assert.strictEqual(jestSummary.passed, 10);
+    assert.strictEqual(jestSummary.failed, 2);
+    assert.strictEqual(jestSummary.duration_ms, 1500);
+
+    // Cargo output
+    const cargoOutput = 'test result: ok. 8 passed; 0 failed; 0 ignored; finished in 0.04s\n';
+    const cargoSummary = parseTestOutputSummary(cargoOutput);
+    assert.strictEqual(cargoSummary.total, 8);
+    assert.strictEqual(cargoSummary.passed, 8);
+    assert.strictEqual(cargoSummary.failed, 0);
+    assert.strictEqual(cargoSummary.duration_ms, 40);
   });
 
   await t.test('runs scout:validate and captures failure', async () => {
