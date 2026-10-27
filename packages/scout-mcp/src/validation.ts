@@ -241,8 +241,131 @@ export function detectJavaProject(cwd: string = process.cwd()): string | null {
   return null;
 }
 
-export async function runAdvisoryValidation(cwd: string = process.cwd()) {
-  const command = resolveValidationCommand(cwd);
+export interface MonorepoWorkspace {
+  type: 'npm' | 'pnpm' | 'yarn';
+  packages: Array<{ name: string; path: string }>;
+}
+
+/**
+ * Scans directories like packages/ and apps/ for monorepo packages.
+ */
+export function findWorkspacePackages(cwd: string = process.cwd()): Array<{ name: string; path: string }> {
+  const result: Array<{ name: string; path: string }> = [];
+  const rootDirs = ['packages', 'apps', 'libs', 'modules'];
+
+  for (const root of rootDirs) {
+    const parentDir = path.join(cwd, root);
+    if (!fs.existsSync(parentDir)) continue;
+    try {
+      const entries = fs.readdirSync(parentDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const pkgPath = path.join(parentDir, entry.name);
+          const pkgJson = path.join(pkgPath, 'package.json');
+          if (fs.existsSync(pkgJson)) {
+            try {
+              const data = JSON.parse(fs.readFileSync(pkgJson, 'utf8'));
+              if (data.name) {
+                result.push({ name: data.name, path: pkgPath });
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore directory read errors
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Detects whether the repository is a monorepo workspace (pnpm or npm/yarn workspaces).
+ */
+export function detectMonorepoWorkspaces(cwd: string = process.cwd()): MonorepoWorkspace | null {
+  const pnpmWsPath = path.join(cwd, 'pnpm-workspace.yaml');
+  if (fs.existsSync(pnpmWsPath)) {
+    const pkgs = findWorkspacePackages(cwd);
+    return { type: 'pnpm', packages: pkgs };
+  }
+
+  const pkgJsonPath = path.join(cwd, 'package.json');
+  if (fs.existsSync(pkgJsonPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+      if (pkg.workspaces) {
+        const pkgs = findWorkspacePackages(cwd);
+        const pm = detectNodePackageManager(cwd);
+        const wsType = pm === 'pnpm' ? 'pnpm' : pm === 'yarn' ? 'yarn' : 'npm';
+        return { type: wsType, packages: pkgs };
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Finds the workspace package matching a given file or directory path.
+ */
+export function findMatchingWorkspacePackage(
+  targetPath: string,
+  workspaces: MonorepoWorkspace,
+): { name: string; path: string } | null {
+  const normalizedTarget = path.resolve(targetPath);
+  for (const pkg of workspaces.packages) {
+    const normalizedPkg = path.resolve(pkg.path);
+    if (normalizedTarget === normalizedPkg || normalizedTarget.startsWith(normalizedPkg + path.sep)) {
+      return pkg;
+    }
+  }
+  return null;
+}
+
+/**
+ * Builds a targeted test command scoped to a specific workspace package.
+ */
+export function buildWorkspaceScopedTestCommand(
+  workspace: MonorepoWorkspace,
+  packageName: string,
+): string {
+  switch (workspace.type) {
+    case 'pnpm':
+      return `pnpm --filter ${packageName} test`;
+    case 'yarn':
+      return `yarn workspace ${packageName} test`;
+    case 'npm':
+    default:
+      return `npm test --workspace=${packageName}`;
+  }
+}
+
+export async function runAdvisoryValidation(cwd: string = process.cwd(), changedFiles?: string[]) {
+  let command: string | null = null;
+
+  // If changed files are provided, attempt targeted monorepo workspace testing
+  if (changedFiles && changedFiles.length > 0) {
+    const ws = detectMonorepoWorkspaces(cwd);
+    if (ws) {
+      for (const file of changedFiles) {
+        const fullFilePath = path.isAbsolute(file) ? file : path.join(cwd, file);
+        const matched = findMatchingWorkspacePackage(fullFilePath, ws);
+        if (matched) {
+          command = buildWorkspaceScopedTestCommand(ws, matched.name);
+          break;
+        }
+      }
+    }
+  }
+
+  if (!command) {
+    command = resolveValidationCommand(cwd);
+  }
 
   if (!command) {
     return {
