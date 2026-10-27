@@ -103,10 +103,43 @@ export function findFuzzyWhitespaceMatch(
   return null;
 }
 
+export const UTF8_BOM = '\uFEFF';
+
 /**
- * Applies search and replace to file content with ambiguity detection, line-range targeting, and EOL normalization.
+ * Checks if text begins with a UTF-8 Byte Order Mark (BOM).
+ */
+export function hasUtf8Bom(content: string): boolean {
+  return content.startsWith(UTF8_BOM);
+}
+
+/**
+ * Strips the UTF-8 BOM if present.
+ */
+export function stripUtf8Bom(content: string): string {
+  return content.startsWith(UTF8_BOM) ? content.slice(1) : content;
+}
+
+/**
+ * Restores the UTF-8 BOM if the original content had one.
+ */
+export function restoreUtf8Bom(content: string, hadBom: boolean): string {
+  if (hadBom && !content.startsWith(UTF8_BOM)) {
+    return UTF8_BOM + content;
+  }
+  return content;
+}
+
+/**
+ * Applies search and replace to file content with ambiguity detection, line-range targeting, EOL normalization, and UTF-8 BOM preservation.
  */
 export function applyStringEdit(content: string, options: EditOptions): string {
+  const hadBom = hasUtf8Bom(content);
+  const cleanContent = stripUtf8Bom(content);
+  const result = applyStringEditInner(cleanContent, options);
+  return restoreUtf8Bom(result, hadBom);
+}
+
+function applyStringEditInner(content: string, options: EditOptions): string {
   const fileEol = detectEol(content);
   const rawSearch = options.search;
   const rawReplace = options.replace;
@@ -143,7 +176,7 @@ export function applyStringEdit(content: string, options: EditOptions): string {
       throw new Error(`Search string not found within specified line range [${actualStart}, ${actualEnd}].`);
     }
 
-    const modifiedBlock = applyStringEdit(targetBlock, { search, replace, replaceAll });
+    const modifiedBlock = applyStringEditInner(targetBlock, { search, replace, replaceAll });
     const modifiedLines = modifiedBlock.split(eol);
 
     lines.splice(actualStart - 1, actualEnd - actualStart + 1, ...modifiedLines);
