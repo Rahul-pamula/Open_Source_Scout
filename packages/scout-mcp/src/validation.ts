@@ -24,6 +24,50 @@ export function detectNodePackageManager(cwd: string = process.cwd()): NodePacka
 }
 
 /**
+ * Checks whether the project is configured for Deno.
+ */
+export function detectDenoProject(cwd: string = process.cwd()): boolean {
+  return fs.existsSync(path.join(cwd, 'deno.json')) || fs.existsSync(path.join(cwd, 'deno.jsonc'));
+}
+
+/**
+ * Detects if a project has test files matching node:test or tsx --test runner patterns.
+ */
+export function detectNodeTestRunner(cwd: string = process.cwd()): string | null {
+  const candidateDirs = [cwd, path.join(cwd, 'test'), path.join(cwd, 'tests'), path.join(cwd, 'src')];
+
+  let hasTsTests = false;
+  let hasJsTests = false;
+
+  for (const dir of candidateDirs) {
+    if (!fs.existsSync(dir)) continue;
+    try {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        if (/\.(test|spec)\.ts$/.test(file)) {
+          hasTsTests = true;
+          break;
+        }
+        if (/\.(test|spec)\.js$/.test(file) || /\.(test|spec)\.mjs$/.test(file) || /\.(test|spec)\.cjs$/.test(file)) {
+          hasJsTests = true;
+        }
+      }
+      if (hasTsTests) break;
+    } catch {
+      // Ignore directory read errors
+    }
+  }
+
+  if (hasTsTests) {
+    return 'npx tsx --test';
+  }
+  if (hasJsTests) {
+    return 'node --test';
+  }
+  return null;
+}
+
+/**
  * Builds the validation command for Node.js projects based on package manager and available scripts.
  */
 export function buildNodeValidationCommand(
@@ -52,14 +96,17 @@ export function buildNodeValidationCommand(
   }
 }
 
-export async function runAdvisoryValidation(cwd: string = process.cwd()) {
+/**
+ * Resolves the appropriate validation command for a repository based on its project configuration.
+ */
+export function resolveValidationCommand(cwd: string = process.cwd()): string | null {
+  // 1. Deno projects
+  if (detectDenoProject(cwd)) {
+    return 'deno test';
+  }
+
+  // 2. Node.js projects with package.json
   const packageJsonPath = path.join(cwd, 'package.json');
-  const requirementsTxtPath = path.join(cwd, 'requirements.txt');
-  const pytestIniPath = path.join(cwd, 'pytest.ini');
-  const cargoTomlPath = path.join(cwd, 'Cargo.toml');
-
-  let command = '';
-
   if (fs.existsSync(packageJsonPath)) {
     try {
       const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -67,7 +114,7 @@ export async function runAdvisoryValidation(cwd: string = process.cwd()) {
         const pm = detectNodePackageManager(cwd);
         const nodeCmd = buildNodeValidationCommand(pm, pkg.scripts);
         if (nodeCmd) {
-          command = nodeCmd;
+          return nodeCmd;
         }
       }
     } catch {
@@ -75,33 +122,47 @@ export async function runAdvisoryValidation(cwd: string = process.cwd()) {
     }
   }
 
-  if (!command) {
-    if (fs.existsSync(pytestIniPath)) {
-      command = 'pytest';
-    } else if (fs.existsSync(requirementsTxtPath)) {
-      try {
-        const reqs = fs.readFileSync(requirementsTxtPath, 'utf8');
-        if (reqs.includes('pytest')) {
-          command = 'pytest';
-        }
-      } catch {
-        // Ignore read errors
+  // 3. Standalone node:test or tsx runner detection
+  const nativeTestCmd = detectNodeTestRunner(cwd);
+  if (nativeTestCmd) {
+    return nativeTestCmd;
+  }
+
+  // 4. Python pytest
+  const pytestIniPath = path.join(cwd, 'pytest.ini');
+  const requirementsTxtPath = path.join(cwd, 'requirements.txt');
+  if (fs.existsSync(pytestIniPath)) {
+    return 'pytest';
+  }
+  if (fs.existsSync(requirementsTxtPath)) {
+    try {
+      const reqs = fs.readFileSync(requirementsTxtPath, 'utf8');
+      if (reqs.includes('pytest')) {
+        return 'pytest';
       }
+    } catch {
+      // Ignore read errors
     }
   }
 
-  if (!command) {
-    if (fs.existsSync(cargoTomlPath)) {
-      command = 'cargo test';
-    }
+  // 5. Rust cargo
+  const cargoTomlPath = path.join(cwd, 'Cargo.toml');
+  if (fs.existsSync(cargoTomlPath)) {
+    return 'cargo test';
   }
+
+  return null;
+}
+
+export async function runAdvisoryValidation(cwd: string = process.cwd()) {
+  const command = resolveValidationCommand(cwd);
 
   if (!command) {
     return {
       validation_ran: false,
       validation_passed: true,
       stdout:
-        'No standard validation command detected (scout:validate, test runner, pytest, or cargo test). Skipping validation.',
+        'No standard validation command detected (scout:validate, test runner, deno test, pytest, or cargo test). Skipping validation.',
       stderr: '',
       exit_code: null,
     };
