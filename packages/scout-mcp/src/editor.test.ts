@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { countOccurrences, applyStringEdit } from './editor.js';
+import { countOccurrences, applyStringEdit, generateUnifiedDiff } from './editor.js';
 
 test('Editor Ambiguity & Replacement Test Suite', async (t) => {
   await t.test('accurately counts non-overlapping occurrences', () => {
@@ -80,5 +80,20 @@ test('Editor Ambiguity & Replacement Test Suite', async (t) => {
         }),
       /Invalid line range/
     );
+  });
+
+  await t.test('generates valid unified diff between file contents', () => {
+    const oldContent = 'line 1\nline 2\nline 3';
+    const newContent = 'line 1\nline 2: modified\nline 3';
+    const diff = generateUnifiedDiff('src/app.ts', oldContent, newContent);
+
+    assert.ok(diff.includes('--- a/src/app.ts'), 'Diff should include old file path');
+    assert.ok(diff.includes('+++ b/src/app.ts'), 'Diff should include new file path');
+    assert.ok(diff.includes('@@ -1,3 +1,3 @@'), 'Diff should include hunk header');
+    assert.ok(diff.includes('-line 2'), 'Diff should indicate removed line');
+    assert.ok(diff.includes('+line 2: modified'), 'Diff should indicate added line');
+
+    // Identical content produces empty diff
+    assert.strictEqual(generateUnifiedDiff('src/app.ts', oldContent, oldContent), '');
   });
 });
