@@ -133,6 +133,7 @@ const EditFileSchema = z.object({
   path: z.string(),
   search: z.string(),
   replace: z.string(),
+  replace_all: z.boolean().optional(),
 });
 
 const SessionHeartbeatSchema = z.object({
@@ -184,6 +185,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           path: { type: 'string', description: 'Path to the file to edit (relative to worktree or absolute).' },
           search: { type: 'string', description: 'Exact text to search for.' },
           replace: { type: 'string', description: 'Text to replace it with.' },
+          replace_all: { type: 'boolean', description: 'Replace all occurrences instead of requiring a unique match.' },
         },
         required: ['session_id', 'path', 'search', 'replace'],
       },
@@ -396,13 +398,15 @@ ${JSON.stringify(result, null, 2)}`
 
       // -----------------------------------------------------------------------
       case 'edit_file': {
-        const { session_id, path, search, replace } = EditFileSchema.parse(request.params.arguments);
+        const { session_id, path, search, replace, replace_all } = EditFileSchema.parse(
+          request.params.arguments,
+        );
         const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
         const fileContent = await fs.readFile(validatedPath, 'utf8');
-        const newContent = applyStringEdit(fileContent, { search, replace });
+        const newContent = applyStringEdit(fileContent, { search, replace, replaceAll: replace_all });
         await fs.writeFile(validatedPath, newContent, 'utf8');
 
         return {
