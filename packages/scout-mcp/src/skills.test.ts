@@ -8,6 +8,7 @@ import {
   getSkillCacheStats,
   SkillLRUCache,
   parseSkillFrontmatter,
+  rankSkillsByRelevance,
 } from './skills.js';
 
 test('Skills Loader', async (t) => {
@@ -136,6 +137,30 @@ test('Skills Loader', async (t) => {
     const skills = await loadSkills(testDir);
     assert.strictEqual(skills.length, 1);
     assert.strictEqual(skills[0].name, 'ValidSkill');
+  });
+
+  await t.test('rankSkillsByRelevance ranks specialized technical skills higher than generic skills', () => {
+    const skills = [
+      { filename: 'generic.md', name: 'general-tools', description: 'General development tools and utilities', trigger: 'CONDITIONAL', content: 'helps with code' },
+      { filename: 'docker.md', name: 'docker-compose', description: 'Deploy containers with docker compose files', trigger: 'CONDITIONAL', content: 'runs containers' },
+      { filename: 'git.md', name: 'git-rebase', description: 'Interactive rebase and git history management', trigger: 'CONDITIONAL', content: 'squash commits' },
+    ];
+
+    const ranked = rankSkillsByRelevance(skills, 'How do I deploy docker containers?');
+    assert.ok(ranked.length >= 1);
+    assert.strictEqual(ranked[0].name, 'docker-compose');
+  });
+
+  await t.test('rankSkillsByRelevance places ALWAYS trigger skills at top of rankings', () => {
+    const skills = [
+      { filename: 'always.md', name: 'core-guardrails', description: 'Mandatory rules', trigger: 'ALWAYS', content: 'always followed' },
+      { filename: 'k8s.md', name: 'k8s-deploy', description: 'Kubernetes cluster deployment', trigger: 'CONDITIONAL', content: 'pods and services' },
+    ];
+
+    const ranked = rankSkillsByRelevance(skills, 'Deploy kubernetes pods');
+    assert.strictEqual(ranked.length, 2);
+    assert.strictEqual(ranked[0].name, 'core-guardrails');
+    assert.strictEqual(ranked[1].name, 'k8s-deploy');
   });
 });
 

@@ -290,40 +290,85 @@ export async function loadSkills(taskDescription?: string, cwd?: string): Promis
     return allSkills;
   }
 
-  const activeSkills: Array<Skill & { _score: number }> = [];
-  const words = targetTaskDescription
-    .toLowerCase()
-    .split(/\W+/)
-    .filter((w) => w.length > 3);
+  return rankSkillsByRelevance(allSkills, targetTaskDescription, 8);
+}
 
-  for (const skill of allSkills) {
+const COMMON_STOPWORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
+  'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'were',
+  'will', 'with', 'the', 'this', 'but', 'they', 'have', 'had', 'what', 'when',
+  'where', 'who', 'which', 'why', 'how', 'all', 'any', 'both', 'each', 'few',
+  'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
+  'same', 'so', 'than', 'too', 'very', 'can', 'just', 'should', 'now', 'help',
+  'about', 'into', 'over', 'after', 'with', 'code', 'project',
+]);
+
+/**
+ * Tokenizes text into normalized lowercase alphanumeric keyword terms.
+ */
+export function tokenizeText(text: string): string[] {
+  if (!text || typeof text !== 'string') return [];
+  const rawTokens = text.toLowerCase().match(/\b[a-z0-9_-]{2,}\b/g) || [];
+  return rawTokens.filter((token) => !COMMON_STOPWORDS.has(token));
+}
+
+/**
+ * Computes TF-IDF relevance scores for each skill against a task query.
+ * Weights terms by field prominence: name (5x), description (2x), content (1x).
+ * Prioritizes skills matching specific, low-frequency technical terms over generic words.
+ */
+export function rankSkillsByRelevance(skills: Skill[], query: string, maxResults = 8): Skill[] {
+  if (!skills.length) return [];
+  const queryTokens = tokenizeText(query);
+  if (!queryTokens.length) return skills.slice(0, maxResults);
+
+  const numDocs = skills.length;
+  // Compute Document Frequency (DF) across the skills collection
+  const docFreq = new Map<string, number>();
+
+  // Pre-tokenize skills with field weights
+  const tokenizedSkills = skills.map((skill) => {
+    const nameTokens = tokenizeText(skill.name);
+    const descTokens = tokenizeText(skill.description);
+    const contentTokens = tokenizeText(skill.content.slice(0, 1500));
+
+    const termWeights = new Map<string, number>();
+    for (const t of nameTokens) termWeights.set(t, (termWeights.get(t) || 0) + 5);
+    for (const t of descTokens) termWeights.set(t, (termWeights.get(t) || 0) + 2);
+    for (const t of contentTokens) termWeights.set(t, (termWeights.get(t) || 0) + 1);
+
+    for (const t of termWeights.keys()) {
+      docFreq.set(t, (docFreq.get(t) || 0) + 1);
+    }
+
+    return { skill, termWeights };
+  });
+
+  const scoredSkills: Array<{ skill: Skill; score: number }> = [];
+
+  for (const { skill, termWeights } of tokenizedSkills) {
     if (skill.trigger === 'ALWAYS') {
-      activeSkills.push({ ...skill, _score: 999 });
+      scoredSkills.push({ skill, score: 99999 });
       continue;
     }
 
     let score = 0;
-    if (typeof skill.name !== 'string') {
-      console.error(`Invalid skill name type for ${skill.filename}:`, typeof skill.name, skill.name);
-      continue;
+    for (const queryTerm of queryTokens) {
+      const weight = termWeights.get(queryTerm);
+      if (weight !== undefined && weight > 0) {
+        const df = docFreq.get(queryTerm) || 1;
+        // Sublinear TF * smooth IDF
+        const tf = 1 + Math.log(weight);
+        const idf = Math.log(1 + numDocs / df) + 1;
+        score += tf * idf;
+      }
     }
-    const name = skill.name.toLowerCase();
-    const desc = skill.description.toLowerCase();
 
-    for (const word of words) {
-      if (name.includes(word)) score += 5;
-      if (desc.includes(word)) score += 1;
-    }
-
-    if (score > 1) {
-      activeSkills.push({ ...skill, _score: score });
+    if (score > 0) {
+      scoredSkills.push({ skill, score });
     }
   }
 
-  activeSkills.sort((a, b) => b._score - a._score);
-
-  return activeSkills.slice(0, 8).map((s) => {
-    const { _score, ...rest } = s;
-    return rest;
-  });
+  scoredSkills.sort((a, b) => b.score - a.score);
+  return scoredSkills.slice(0, maxResults).map((s) => s.skill);
 }
