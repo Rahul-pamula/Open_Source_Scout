@@ -154,7 +154,7 @@ const ListWorktreesSchema = z.object({
   cwd: z.string().optional(),
 });
 
-const ListSkillsSchema = z.object({
+export const ListSkillsSchema = z.object({
   task_description: z.string().optional(),
   cwd: z.string().optional(),
   languages: z.array(z.string()).optional(),
