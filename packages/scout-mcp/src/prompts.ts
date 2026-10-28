@@ -23,37 +23,10 @@ export interface PromptDefinition {
   }>;
 }
 
+import { architectModePrompt } from './prompts/architectMode.js';
+
 export const SCOUT_PROMPTS: PromptDefinition[] = [
-  {
-    name: 'scout_architect_mode',
-    description:
-      'Decompose a complex feature, refactor, or system overhaul into an actionable implementation plan and dependency graph.',
-    arguments: [
-      {
-        name: 'feature_request',
-        description: 'Comprehensive description of the target feature or system changes',
-        required: true,
-      },
-      {
-        name: 'architecture_constraints',
-        description: 'Optional constraints (e.g., target frameworks, backwards compatibility, performance limits)',
-        required: false,
-      },
-    ],
-    generateMessages: (args) => {
-      const feature = args.feature_request || 'Not provided';
-      const constraints = args.architecture_constraints ? `\nConstraints: ${args.architecture_constraints}` : '';
-      return [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `You are Scout Architect, an expert systems architect. Break down the following request into a phased, low-risk execution plan with step-by-step milestones, file scopes, and verification criteria.\n\nFeature Request:\n${feature}${constraints}\n\nDeliverables:\n1. Architectural Impact Assessment\n2. Phased Milestone Breakdown\n3. File Boundaries & Public API Contracts\n4. Risk Mitigation & Verification Strategy`,
-          },
-        },
-      ];
-    },
-  },
+  architectModePrompt,
   {
     name: 'scout_debug_issue',
     description:
