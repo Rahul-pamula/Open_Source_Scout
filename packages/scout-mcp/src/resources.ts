@@ -4,6 +4,8 @@
  * via standard Model Context Protocol scout:// URI schemes.
  */
 
+import { matchesSessionDiffUri, readSessionDiffResource } from './resources/diffResource.js';
+
 export interface ScoutResourceDefinition {
   uri: string;
   name: string;
@@ -67,4 +69,19 @@ export function listScoutResourceTemplates(): ScoutResourceTemplate[] {
  */
 export function isScoutResourceUri(uri: string): boolean {
   return typeof uri === 'string' && uri.startsWith('scout://');
+}
+
+/**
+ * Reads and returns contents for any supported scout:// resource URI.
+ */
+export async function readScoutResource(
+  uri: string,
+  repoCwd: string = process.cwd(),
+): Promise<{ uri: string; mimeType?: string; text?: string }> {
+  const diffSessionId = matchesSessionDiffUri(uri);
+  if (diffSessionId) {
+    return await readSessionDiffResource(diffSessionId, repoCwd);
+  }
+
+  throw new Error(`Resource not found: ${uri}`);
 }
