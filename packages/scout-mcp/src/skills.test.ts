@@ -18,44 +18,44 @@ test('Skills Loader', async (t) => {
     fs.rmSync(testDir, { recursive: true, force: true });
   });
 
-  await t.test('loads valid skill', () => {
+  await t.test('loads valid skill', async () => {
     fs.writeFileSync(path.join(skillsDir, 'valid.md'), '---\nname: Test\ndescription: A valid skill\n---\n# Content');
-    const skills = loadSkills(testDir);
+    const skills = await loadSkills(testDir);
     assert.strictEqual(skills.length, 1);
     assert.strictEqual(skills[0].name, 'Test');
     assert.strictEqual(skills[0].description, 'A valid skill');
     assert.strictEqual(skills[0].content.trim(), '# Content');
   });
 
-  await t.test('gracefully skips on missing name', () => {
+  await t.test('gracefully skips on missing name', async () => {
     fs.writeFileSync(path.join(skillsDir, 'missing-name.md'), '---\ndescription: Missing name\n---\n# Content');
-    const skills = loadSkills(testDir);
+    const skills = await loadSkills(testDir);
     assert.strictEqual(skills.length, 0);
   });
 
-  await t.test('gracefully skips on missing description', () => {
+  await t.test('gracefully skips on missing description', async () => {
     fs.writeFileSync(path.join(skillsDir, 'missing-desc.md'), '---\nname: Test\n---\n# Content');
-    const skills = loadSkills(testDir);
+    const skills = await loadSkills(testDir);
     assert.strictEqual(skills.length, 0);
   });
 
-  await t.test('gracefully skips on malformed frontmatter', () => {
+  await t.test('gracefully skips on malformed frontmatter', async () => {
     fs.writeFileSync(path.join(skillsDir, 'malformed.md'), '---\nname: [unclosed array\ndescription: Test\n---\n# Content');
-    const skills = loadSkills(testDir);
+    const skills = await loadSkills(testDir);
     assert.strictEqual(skills.length, 0);
   });
 
-  await t.test('loads multiple skills', () => {
+  await t.test('loads multiple skills', async () => {
     fs.writeFileSync(path.join(skillsDir, '1.md'), '---\nname: A\ndescription: A\n---\nA');
     fs.writeFileSync(path.join(skillsDir, '2.md'), '---\nname: B\ndescription: B\n---\nB');
-    const skills = loadSkills(testDir);
+    const skills = await loadSkills(testDir);
     assert.strictEqual(skills.length, 2);
   });
 
-  await t.test('filters and ranks skills by task description', () => {
+  await t.test('filters and ranks skills by task description', async () => {
     fs.writeFileSync(path.join(skillsDir, 'git.md'), '---\nname: git-flow\ndescription: Manage git branches and commits\n---\nGit docs');
     fs.writeFileSync(path.join(skillsDir, 'docker.md'), '---\nname: docker-deploy\ndescription: Container deployment\n---\nDocker docs');
-    const skills = loadSkills('Help with git flow commits', testDir);
+    const skills = await loadSkills('Help with git flow commits', testDir);
     assert.ok(skills.length >= 1);
     assert.strictEqual(skills[0].name, 'git-flow');
   });

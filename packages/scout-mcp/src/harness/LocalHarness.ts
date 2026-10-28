@@ -47,7 +47,7 @@ export interface InitializeResult {
   session_id: string;
   starting_commit_hash: string;
   worktree_path: string;
-  skills: ReturnType<typeof loadSkills>;
+  skills: Awaited<ReturnType<typeof loadSkills>>;
   task: { description: string };
   recovered_from_stale_session?: string;
   system_instructions: string;
@@ -131,7 +131,7 @@ export class LocalHarness {
 
     const worktreePath = await createWorktree(sessionId, cwd);
     await updateSessionWorkspace(sessionId, worktreePath, cwd);
-    const skills = loadSkills(taskDescription, cwd);
+    const skills = await loadSkills(taskDescription, cwd);
 
     // The Task Slicer / Orchestrator Intercept:
     // If the user's prompt is massive or contains multiple distinct commands,
