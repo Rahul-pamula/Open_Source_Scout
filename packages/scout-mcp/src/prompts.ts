@@ -25,53 +25,12 @@ export interface PromptDefinition {
 
 import { architectModePrompt } from './prompts/architectMode.js';
 import { debugIssuePrompt } from './prompts/debugIssue.js';
+import { preparePrPrompt } from './prompts/preparePr.js';
 
 export const SCOUT_PROMPTS: PromptDefinition[] = [
   architectModePrompt,
   debugIssuePrompt,
-  {
-    name: 'scout_prepare_pr',
-    description:
-      'Draft a comprehensive pull request description including summary, verification, breaking changes, and co-author attribution trailer.',
-    arguments: [
-      {
-        name: 'pr_title',
-        description: 'Conventional commit title for the pull request',
-        required: true,
-      },
-      {
-        name: 'changes_summary',
-        description: 'Bullet list or prose summarizing key implementation changes',
-        required: true,
-      },
-      {
-        name: 'issue_number',
-        description: 'GitHub issue number to link (e.g., 586)',
-        required: false,
-      },
-      {
-        name: 'coauthor',
-        description: 'Git co-author trailer (e.g. Co-authored-by: Name <email>)',
-        required: false,
-      },
-    ],
-    generateMessages: (args) => {
-      const title = args.pr_title || 'Update';
-      const summary = args.changes_summary || 'No summary provided';
-      const issue = args.issue_number ? `\nCloses #${args.issue_number}` : '';
-      const coauthor = args.coauthor ? `\n\n${args.coauthor}` : '';
-
-      return [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Draft a high-quality GitHub pull request for the following changes:\n\nTitle: ${title}\nSummary of Changes:\n${summary}${issue}${coauthor}\n\nFormat the output using GitHub Markdown with:\n- Summary\n- Key Changes\n- Verification and Tests\n- Linked Issues & Attribution`,
-          },
-        },
-      ];
-    },
-  },
+  preparePrPrompt,
 ];
 
 /**
