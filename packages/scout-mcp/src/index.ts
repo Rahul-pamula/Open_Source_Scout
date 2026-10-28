@@ -12,7 +12,12 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
 import { getWorktreePath, autoPruneWorktreesOnStartup, checkWorktreeDiskUsage, listWorktrees } from './git.js';
@@ -20,6 +25,7 @@ import { applyStringEdit, generateUnifiedDiff, writeAtomicFile } from './editor.
 import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
+import { listScoutPrompts, getScoutPrompt } from './prompts.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -68,9 +74,9 @@ import path from 'path';
 // MCP Server bootstrap
 // ---------------------------------------------------------------------------
 
-const server = new Server(
-  { name: 'scout-mcp', version: '1.0.0' },
-  { capabilities: { tools: {} } },
+export const server = new Server(
+  { name: 'scout-mcp', version: '2.0.0' },
+  { capabilities: { tools: {}, prompts: {} } },
 );
 
 // ---------------------------------------------------------------------------
@@ -312,6 +318,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
   ],
 }));
+
+// ---------------------------------------------------------------------------
+// Prompt registration and dispatch
+// ---------------------------------------------------------------------------
+
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+  prompts: listScoutPrompts(),
+}));
+
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  const { name, arguments: promptArgs } = request.params;
+  return getScoutPrompt(name, promptArgs as Record<string, string>);
+});
 
 // ---------------------------------------------------------------------------
 // Tool dispatch
