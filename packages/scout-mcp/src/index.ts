@@ -19,6 +19,7 @@ import {
   GetPromptRequestSchema,
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
@@ -29,7 +30,7 @@ import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
 import { listScoutPrompts, getScoutPrompt } from './prompts.js';
 import { loadSkills } from './skills.js';
-import { listScoutResources, listScoutResourceTemplates, isScoutResourceUri } from './resources.js';
+import { listScoutResources, listScoutResourceTemplates, isScoutResourceUri, readScoutResource } from './resources.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -375,6 +376,14 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => ({
 server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
   resourceTemplates: listScoutResourceTemplates(),
 }));
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const { uri } = request.params;
+  const resource = await readScoutResource(uri);
+  return {
+    contents: [resource],
+  };
+});
 
 
 // ---------------------------------------------------------------------------
