@@ -12,6 +12,13 @@ export interface Skill {
   description: string;
   trigger: string;
   content: string;
+  tags?: string[];
+  languages?: string[];
+}
+
+export interface SkillFilterOptions {
+  languages?: string[];
+  tags?: string[];
 }
 
 /**
@@ -190,6 +197,20 @@ export function parseSkillFrontmatter(rawContent: string, filename: string): Ski
       ? parsed.data.trigger.trim().toUpperCase()
       : 'CONDITIONAL';
 
+  const rawTags = parsed.data.tags;
+  const tags: string[] = Array.isArray(rawTags)
+    ? rawTags.map((t) => String(t).trim().toLowerCase()).filter(Boolean)
+    : typeof rawTags === 'string'
+      ? rawTags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
+      : [];
+
+  const rawLangs = parsed.data.languages || parsed.data.language;
+  const languages: string[] = Array.isArray(rawLangs)
+    ? rawLangs.map((l) => String(l).trim().toLowerCase()).filter(Boolean)
+    : typeof rawLangs === 'string'
+      ? rawLangs.split(',').map((l) => l.trim().toLowerCase()).filter(Boolean)
+      : [];
+
   return {
     success: true,
     skill: {
@@ -198,6 +219,8 @@ export function parseSkillFrontmatter(rawContent: string, filename: string): Ski
       description,
       trigger,
       content: parsed.content || '',
+      tags,
+      languages,
     },
   };
 }
@@ -206,7 +229,11 @@ export function parseSkillFrontmatter(rawContent: string, filename: string): Ski
  * Loads and ranks skills from the project's .scout/skills directory asynchronously.
  * Leverages LRU caching and mtime checks to eliminate redundant YAML parsing on disk.
  */
-export async function loadSkills(taskDescription?: string, cwd?: string): Promise<Skill[]> {
+export async function loadSkills(
+  taskDescription?: string,
+  cwd?: string,
+  filterOptions?: SkillFilterOptions,
+): Promise<Skill[]> {
   let targetCwd = cwd;
   let targetTaskDescription = taskDescription;
 
@@ -286,11 +313,11 @@ export async function loadSkills(taskDescription?: string, cwd?: string): Promis
 
   const allSkills = skills;
 
-  if (!targetTaskDescription) {
+  if (!targetTaskDescription && !filterOptions?.languages?.length && !filterOptions?.tags?.length) {
     return allSkills;
   }
 
-  return rankSkillsByRelevance(allSkills, targetTaskDescription, 8);
+  return rankSkillsByRelevance(allSkills, targetTaskDescription, 8, filterOptions);
 }
 
 const COMMON_STOPWORDS = new Set([
@@ -313,14 +340,25 @@ export function tokenizeText(text: string): string[] {
 }
 
 /**
- * Computes TF-IDF relevance scores for each skill against a task query.
- * Weights terms by field prominence: name (5x), description (2x), content (1x).
- * Prioritizes skills matching specific, low-frequency technical terms over generic words.
+ * Computes TF-IDF relevance scores for each skill against a task query and optional tech stack filters.
+ * Weights terms by field prominence: name (5x), tags/languages (4x), description (2x), content (1x).
+ * Supports explicit language and tag affinity boosts and repository tech-stack filtering.
  */
-export function rankSkillsByRelevance(skills: Skill[], query: string, maxResults = 8): Skill[] {
+export function rankSkillsByRelevance(
+  skills: Skill[],
+  query?: string,
+  maxResults = 8,
+  filterOptions?: SkillFilterOptions,
+): Skill[] {
   if (!skills.length) return [];
-  const queryTokens = tokenizeText(query);
-  if (!queryTokens.length) return skills.slice(0, maxResults);
+  const queryTokens = query ? tokenizeText(query) : [];
+
+  const targetLangs = new Set(
+    (filterOptions?.languages || []).map((l) => l.trim().toLowerCase()).filter(Boolean),
+  );
+  const targetTags = new Set(
+    (filterOptions?.tags || []).map((t) => t.trim().toLowerCase()).filter(Boolean),
+  );
 
   const numDocs = skills.length;
   // Compute Document Frequency (DF) across the skills collection
@@ -331,9 +369,13 @@ export function rankSkillsByRelevance(skills: Skill[], query: string, maxResults
     const nameTokens = tokenizeText(skill.name);
     const descTokens = tokenizeText(skill.description);
     const contentTokens = tokenizeText(skill.content.slice(0, 1500));
+    const tagTokens = (skill.tags || []).flatMap((t) => tokenizeText(t));
+    const langTokens = (skill.languages || []).flatMap((l) => tokenizeText(l));
 
     const termWeights = new Map<string, number>();
     for (const t of nameTokens) termWeights.set(t, (termWeights.get(t) || 0) + 5);
+    for (const t of tagTokens) termWeights.set(t, (termWeights.get(t) || 0) + 4);
+    for (const t of langTokens) termWeights.set(t, (termWeights.get(t) || 0) + 4);
     for (const t of descTokens) termWeights.set(t, (termWeights.get(t) || 0) + 2);
     for (const t of contentTokens) termWeights.set(t, (termWeights.get(t) || 0) + 1);
 
@@ -353,6 +395,29 @@ export function rankSkillsByRelevance(skills: Skill[], query: string, maxResults
     }
 
     let score = 0;
+
+    // Language filter matching
+    if (targetLangs.size > 0) {
+      const skillLangs = (skill.languages || []).map((l) => l.toLowerCase());
+      const hasLangMatch = skillLangs.some((l) => targetLangs.has(l));
+      if (hasLangMatch) {
+        score += 20;
+      } else if (skillLangs.length > 0) {
+        // Skill is specific to other languages, lower priority
+        score -= 10;
+      }
+    }
+
+    // Tag filter matching
+    if (targetTags.size > 0) {
+      const skillTags = (skill.tags || []).map((t) => t.toLowerCase());
+      const hasTagMatch = skillTags.some((t) => targetTags.has(t));
+      if (hasTagMatch) {
+        score += 15;
+      }
+    }
+
+    // Query TF-IDF scoring
     for (const queryTerm of queryTokens) {
       const weight = termWeights.get(queryTerm);
       if (weight !== undefined && weight > 0) {
