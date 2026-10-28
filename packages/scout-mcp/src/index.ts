@@ -17,6 +17,8 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { validatePathBoundary, GuardrailError } from './guardrails.js';
@@ -27,6 +29,7 @@ import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
 import { listScoutPrompts, getScoutPrompt } from './prompts.js';
 import { loadSkills } from './skills.js';
+import { listScoutResources, listScoutResourceTemplates, isScoutResourceUri } from './resources.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -77,7 +80,7 @@ import path from 'path';
 
 export const server = new Server(
   { name: 'scout-mcp', version: '2.0.0' },
-  { capabilities: { tools: {}, prompts: {} } },
+  { capabilities: { tools: {}, prompts: {}, resources: {} } },
 );
 
 // ---------------------------------------------------------------------------
@@ -360,6 +363,19 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
   const { name, arguments: promptArgs } = request.params;
   return getScoutPrompt(name, promptArgs as Record<string, string>);
 });
+
+// ---------------------------------------------------------------------------
+// Resource registration and dispatch
+// ---------------------------------------------------------------------------
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+  resources: listScoutResources(),
+}));
+
+server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+  resourceTemplates: listScoutResourceTemplates(),
+}));
+
 
 // ---------------------------------------------------------------------------
 // Tool dispatch
