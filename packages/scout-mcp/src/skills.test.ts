@@ -162,5 +162,35 @@ test('Skills Loader', async (t) => {
     assert.strictEqual(ranked[0].name, 'core-guardrails');
     assert.strictEqual(ranked[1].name, 'k8s-deploy');
   });
+
+  await t.test('parseSkillFrontmatter extracts tags and languages from frontmatter', () => {
+    const markdown = '---\nname: ReactGuide\ndescription: React guidelines\ntags:\n  - react\n  - frontend\nlanguages:\n  - typescript\n  - javascript\n---\nBody';
+    const result = parseSkillFrontmatter(markdown, 'react.md');
+    assert.strictEqual(result.success, true);
+    assert.deepStrictEqual(result.skill?.tags, ['react', 'frontend']);
+    assert.deepStrictEqual(result.skill?.languages, ['typescript', 'javascript']);
+  });
+
+  await t.test('rankSkillsByRelevance prioritizes skills with language matches for repository tech stack', () => {
+    const skills = [
+      { filename: 'py.md', name: 'pytest-testing', description: 'Write unit tests', trigger: 'CONDITIONAL', content: 'testing', languages: ['python'] },
+      { filename: 'ts.md', name: 'vitest-testing', description: 'Write unit tests', trigger: 'CONDITIONAL', content: 'testing', languages: ['typescript'] },
+    ];
+
+    const ranked = rankSkillsByRelevance(skills, 'Write unit tests', 8, { languages: ['typescript'] });
+    assert.ok(ranked.length >= 1);
+    assert.strictEqual(ranked[0].name, 'vitest-testing');
+  });
+
+  await t.test('rankSkillsByRelevance boosts skills matching explicit tags', () => {
+    const skills = [
+      { filename: 'sec.md', name: 'auth-tokens', description: 'Handle bearer auth', trigger: 'CONDITIONAL', content: 'tokens', tags: ['security', 'auth'] },
+      { filename: 'perf.md', name: 'db-cache', description: 'Database caching', trigger: 'CONDITIONAL', content: 'redis', tags: ['performance'] },
+    ];
+
+    const ranked = rankSkillsByRelevance(skills, undefined, 8, { tags: ['security'] });
+    assert.strictEqual(ranked.length, 1);
+    assert.strictEqual(ranked[0].name, 'auth-tokens');
+  });
 });
 
