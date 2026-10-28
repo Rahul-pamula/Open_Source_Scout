@@ -26,6 +26,7 @@ import { fileURLToPath } from 'url';
 import { LocalHarness } from './harness/LocalHarness.js';
 import { getLocalState } from './localState.js';
 import { listScoutPrompts, getScoutPrompt } from './prompts.js';
+import { loadSkills } from './skills.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -151,6 +152,13 @@ const SessionHeartbeatSchema = z.object({
 
 const ListWorktreesSchema = z.object({
   cwd: z.string().optional(),
+});
+
+const ListSkillsSchema = z.object({
+  task_description: z.string().optional(),
+  cwd: z.string().optional(),
+  languages: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -313,6 +321,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object',
         properties: {
           cwd: { type: 'string', description: 'Optional repository working directory.' },
+        },
+      },
+    },
+    {
+      name: 'list_skills',
+      description: 'Query and browse available development skills, guidelines, and project conventions.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          task_description: { type: 'string', description: 'Optional task prompt to rank skills by TF-IDF relevance.' },
+          cwd: { type: 'string', description: 'Optional repository working directory.' },
+          languages: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional target programming languages to filter guidelines.',
+          },
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional skill tags to filter guidelines.',
+          },
         },
       },
     },
@@ -664,6 +693,38 @@ ${JSON.stringify(result, null, 2)}`
                 {
                   worktrees,
                   count: worktrees.length,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      case 'list_skills': {
+        const { task_description, cwd, languages, tags } = ListSkillsSchema.parse(
+          request.params.arguments || {},
+        );
+        const resolvedCwd = cwd || process.cwd();
+        const skills = await loadSkills(task_description, resolvedCwd, { languages, tags });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  count: skills.length,
+                  skills: skills.map((s) => ({
+                    name: s.name,
+                    filename: s.filename,
+                    description: s.description,
+                    trigger: s.trigger,
+                    tags: s.tags || [],
+                    languages: s.languages || [],
+                  })),
                 },
                 null,
                 2,
