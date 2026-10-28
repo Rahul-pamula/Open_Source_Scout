@@ -347,21 +347,23 @@ export function tokenizeText(text: string): string[] {
 export function rankSkillsByRelevance(
   skills: Skill[],
   query?: string,
-  maxResults = 8,
+  maxResults: number | SkillFilterOptions = 8,
   filterOptions?: SkillFilterOptions,
 ): Skill[] {
   if (!skills.length) return [];
+  const limit = typeof maxResults === 'number' ? maxResults : 8;
+  const opts = typeof maxResults === 'object' && maxResults !== null ? maxResults : filterOptions;
   const queryTokens = query ? tokenizeText(query) : [];
 
   const targetLangs = new Set(
-    (filterOptions?.languages || []).map((l) => l.trim().toLowerCase()).filter(Boolean),
+    (opts?.languages || []).map((l) => l.trim().toLowerCase()).filter(Boolean),
   );
   const targetTags = new Set(
-    (filterOptions?.tags || []).map((t) => t.trim().toLowerCase()).filter(Boolean),
+    (opts?.tags || []).map((t) => t.trim().toLowerCase()).filter(Boolean),
   );
 
   if (!queryTokens.length && targetLangs.size === 0 && targetTags.size === 0) {
-    return skills.slice(0, maxResults);
+    return skills.slice(0, limit);
   }
 
   const numDocs = skills.length;
@@ -439,5 +441,5 @@ export function rankSkillsByRelevance(
   }
 
   scoredSkills.sort((a, b) => b.score - a.score);
-  return scoredSkills.slice(0, maxResults).map((s) => s.skill);
+  return scoredSkills.slice(0, limit).map((s) => s.skill);
 }

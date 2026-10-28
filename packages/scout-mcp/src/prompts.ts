@@ -65,3 +65,11 @@ export function getScoutPrompt(name: string, args: Record<string, string> = {}) 
     messages: prompt.generateMessages(args),
   };
 }
+
+/**
+ * Checks whether a given prompt name is recognized by Scout MCP.
+ */
+export function isScoutPrompt(name: string): boolean {
+  return SCOUT_PROMPTS.some((p) => p.name === name);
+}
+
