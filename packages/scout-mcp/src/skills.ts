@@ -335,8 +335,8 @@ const COMMON_STOPWORDS = new Set([
  */
 export function tokenizeText(text: string): string[] {
   if (!text || typeof text !== 'string') return [];
-  const rawTokens = text.toLowerCase().match(/\b[a-z0-9_-]{2,}\b/g) || [];
-  return rawTokens.filter((token) => !COMMON_STOPWORDS.has(token));
+  const rawTokens = text.toLowerCase().match(/[a-z0-9]+/g) || [];
+  return rawTokens.filter((token) => token.length >= 2 && !COMMON_STOPWORDS.has(token));
 }
 
 /**
@@ -359,6 +359,10 @@ export function rankSkillsByRelevance(
   const targetTags = new Set(
     (filterOptions?.tags || []).map((t) => t.trim().toLowerCase()).filter(Boolean),
   );
+
+  if (!queryTokens.length && targetLangs.size === 0 && targetTags.size === 0) {
+    return skills.slice(0, maxResults);
+  }
 
   const numDocs = skills.length;
   // Compute Document Frequency (DF) across the skills collection
