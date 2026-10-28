@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadSkills, clearSkillCache, getSkillCacheStats, SkillLRUCache } from './skills.js';
+import {
+  loadSkills,
+  clearSkillCache,
+  getSkillCacheStats,
+  SkillLRUCache,
+  parseSkillFrontmatter,
+} from './skills.js';
 
 test('Skills Loader', async (t) => {
   const testDir = path.join(process.cwd(), '.test-scout-skills');
@@ -104,6 +110,32 @@ test('Skills Loader', async (t) => {
     assert.strictEqual(lru.get('/file1.md', 100)?.name, 'Skill 1');
     assert.strictEqual(lru.get('/file3.md', 100)?.name, 'Skill 3');
     assert.strictEqual(lru.get('/file2.md', 100), undefined); // Evicted
+  });
+
+  await t.test('parseSkillFrontmatter recovers gracefully from malformed YAML and unclosed brackets', () => {
+    const malformed = '---\nname: [unclosed array\ndescription: Test\n---\n# Content';
+    const result = parseSkillFrontmatter(malformed, 'malformed.md');
+    assert.strictEqual(result.success, false);
+    assert.ok(result.warning?.includes('YAML syntax parse error'));
+    assert.strictEqual(result.skill, undefined);
+  });
+
+  await t.test('parseSkillFrontmatter handles non-object frontmatter and empty content', () => {
+    const nonObject = '---\n- item1\n- item2\n---\n# Content';
+    const result = parseSkillFrontmatter(nonObject, 'list.md');
+    assert.strictEqual(result.success, false);
+    assert.ok(result.warning?.includes('key-value object'));
+
+    const empty = parseSkillFrontmatter('', 'empty.md');
+    assert.strictEqual(empty.success, false);
+  });
+
+  await t.test('recovers from malformed files in directory and loads remaining valid skills cleanly', async () => {
+    fs.writeFileSync(path.join(skillsDir, 'broken.md'), '---\nname: [invalid\n---\nBroken');
+    fs.writeFileSync(path.join(skillsDir, 'good.md'), '---\nname: ValidSkill\ndescription: Operates well\n---\nWorks');
+    const skills = await loadSkills(testDir);
+    assert.strictEqual(skills.length, 1);
+    assert.strictEqual(skills[0].name, 'ValidSkill');
   });
 });
 

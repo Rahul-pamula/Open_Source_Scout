@@ -124,6 +124,84 @@ export function getSkillCacheStats(): { hits: number; misses: number; size: numb
   return skillLruCache.getStats();
 }
 
+export interface SkillParseResult {
+  success: boolean;
+  skill?: Skill;
+  warning?: string;
+}
+
+/**
+ * Safely parses markdown content and YAML frontmatter with robust error recovery.
+ * Recovers gracefully from malformed syntax, invalid escape sequences, non-object frontmatter,
+ * or missing mandatory fields (name, description).
+ */
+export function parseSkillFrontmatter(rawContent: string, filename: string): SkillParseResult {
+  if (!rawContent || typeof rawContent !== 'string') {
+    return {
+      success: false,
+      warning: `Empty or non-string file content in ${filename}`,
+    };
+  }
+
+  if (!matter.test(rawContent)) {
+    return {
+      success: false,
+      warning: `Skill in ${filename} is missing frontmatter delimiters ('---')`,
+    };
+  }
+
+  let parsed: matter.GrayMatterFile<string>;
+  try {
+    parsed = matter(rawContent, { cache: false });
+  } catch (err: any) {
+    return {
+      success: false,
+      warning: `YAML syntax parse error in ${filename}: ${err?.message || String(err)}`,
+    };
+  }
+
+  if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+    return {
+      success: false,
+      warning: `Frontmatter in ${filename} must be a key-value object`,
+    };
+  }
+
+  const name = typeof parsed.data.name === 'string' ? parsed.data.name.trim() : '';
+  const description =
+    typeof parsed.data.description === 'string' ? parsed.data.description.trim() : '';
+
+  if (!name) {
+    return {
+      success: false,
+      warning: `Skill in ${filename} is missing mandatory 'name' frontmatter field`,
+    };
+  }
+
+  if (!description) {
+    return {
+      success: false,
+      warning: `Skill in ${filename} is missing mandatory 'description' frontmatter field`,
+    };
+  }
+
+  const trigger =
+    typeof parsed.data.trigger === 'string' && parsed.data.trigger.trim()
+      ? parsed.data.trigger.trim().toUpperCase()
+      : 'CONDITIONAL';
+
+  return {
+    success: true,
+    skill: {
+      filename,
+      name,
+      description,
+      trigger,
+      content: parsed.content || '',
+    },
+  };
+}
+
 /**
  * Loads and ranks skills from the project's .scout/skills directory asynchronously.
  * Leverages LRU caching and mtime checks to eliminate redundant YAML parsing on disk.
@@ -178,25 +256,27 @@ export async function loadSkills(taskDescription?: string, cwd?: string): Promis
         }
 
         const content = await fs.readFile(filePath, 'utf8');
-        const parsed = matter(content);
+        const filename = path.basename(filePath);
+        const result = parseSkillFrontmatter(content, filename);
 
-        if (!parsed.data.name || !parsed.data.description) {
+        if (!result.success || !result.skill) {
+          if (result.warning) {
+            console.warn(`[Scout Skills] ${result.warning}`);
+          }
           skillLruCache.set(filePath, stat.mtimeMs, null);
           return;
         }
 
-        const skill: Skill = {
-          filename: path.basename(filePath),
-          name: String(parsed.data.name),
-          description: String(parsed.data.description),
-          trigger: parsed.data.trigger ? String(parsed.data.trigger) : 'CONDITIONAL',
-          content: parsed.content,
-        };
-
-        skillLruCache.set(filePath, stat.mtimeMs, skill);
-        skills.push(skill);
+        skillLruCache.set(filePath, stat.mtimeMs, result.skill);
+        skills.push(result.skill);
       } catch (e: any) {
-        console.error(`[Scout] Failed to parse skill file ${filePath}: ${e.message}. Skipping.`);
+        console.warn(`[Scout Skills] Failed to process skill file ${filePath}: ${e?.message || e}. Skipping.`);
+        try {
+          const stat = await fs.stat(filePath);
+          skillLruCache.set(filePath, stat.mtimeMs, null);
+        } catch {
+          // Ignore stat failure
+        }
       }
     }),
   );
