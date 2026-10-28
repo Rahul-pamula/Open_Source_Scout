@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadSkills, clearSkillCache } from './skills.js';
+import { loadSkills, clearSkillCache, getSkillCacheStats, SkillLRUCache } from './skills.js';
 
 test('Skills Loader', async (t) => {
   const testDir = path.join(process.cwd(), '.test-scout-skills');
@@ -59,4 +59,51 @@ test('Skills Loader', async (t) => {
     assert.ok(skills.length >= 1);
     assert.strictEqual(skills[0].name, 'git-flow');
   });
+
+  await t.test('avoids redundant YAML parsing on repeated calls using LRU cache', async () => {
+    fs.writeFileSync(path.join(skillsDir, 'cached.md'), '---\nname: CachedSkill\ndescription: Cache test\n---\nContent');
+    const firstCall = await loadSkills(testDir);
+    assert.strictEqual(firstCall.length, 1);
+    const statsAfterFirst = getSkillCacheStats();
+    assert.strictEqual(statsAfterFirst.misses, 1);
+    assert.strictEqual(statsAfterFirst.hits, 0);
+
+    const secondCall = await loadSkills(testDir);
+    assert.strictEqual(secondCall.length, 1);
+    const statsAfterSecond = getSkillCacheStats();
+    assert.strictEqual(statsAfterSecond.misses, 1);
+    assert.strictEqual(statsAfterSecond.hits, 1);
+  });
+
+  await t.test('detects file updates on disk via mtime and invalidates cache entry', async () => {
+    const filePath = path.join(skillsDir, 'dynamic.md');
+    fs.writeFileSync(filePath, '---\nname: OriginalName\ndescription: Original description\n---\nBody 1');
+    const firstCall = await loadSkills(testDir);
+    assert.strictEqual(firstCall[0].name, 'OriginalName');
+
+    // Simulate disk update with modified timestamp
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    fs.writeFileSync(filePath, '---\nname: UpdatedName\ndescription: Updated description\n---\nBody 2');
+    const secondCall = await loadSkills(testDir);
+    assert.strictEqual(secondCall[0].name, 'UpdatedName');
+    assert.strictEqual(secondCall[0].description, 'Updated description');
+  });
+
+  await t.test('SkillLRUCache evicts least recently accessed entries when exceeding capacity', () => {
+    const lru = new SkillLRUCache(2);
+    lru.set('/file1.md', 100, { filename: 'file1.md', name: 'Skill 1', description: 'Desc 1', trigger: 'CONDITIONAL', content: '1' });
+    lru.set('/file2.md', 100, { filename: 'file2.md', name: 'Skill 2', description: 'Desc 2', trigger: 'CONDITIONAL', content: '2' });
+
+    // Access file1 to make it most recently used
+    const file1 = lru.get('/file1.md', 100);
+    assert.ok(file1);
+
+    // Insert file3 -> should evict file2
+    lru.set('/file3.md', 100, { filename: 'file3.md', name: 'Skill 3', description: 'Desc 3', trigger: 'CONDITIONAL', content: '3' });
+
+    assert.strictEqual(lru.get('/file1.md', 100)?.name, 'Skill 1');
+    assert.strictEqual(lru.get('/file3.md', 100)?.name, 'Skill 3');
+    assert.strictEqual(lru.get('/file2.md', 100), undefined); // Evicted
+  });
 });
+
