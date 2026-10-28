@@ -24,45 +24,11 @@ export interface PromptDefinition {
 }
 
 import { architectModePrompt } from './prompts/architectMode.js';
+import { debugIssuePrompt } from './prompts/debugIssue.js';
 
 export const SCOUT_PROMPTS: PromptDefinition[] = [
   architectModePrompt,
-  {
-    name: 'scout_debug_issue',
-    description:
-      'Perform systematic root cause analysis, trace error logs, formulate hypotheses, and identify minimal bug reproductions.',
-    arguments: [
-      {
-        name: 'issue_description',
-        description: 'Description of the failing behavior or regression',
-        required: true,
-      },
-      {
-        name: 'error_logs',
-        description: 'Stack traces, console error output, or test failures',
-        required: false,
-      },
-      {
-        name: 'failing_file',
-        description: 'Suspected file path or component name',
-        required: false,
-      },
-    ],
-    generateMessages: (args) => {
-      const issue = args.issue_description || 'Not provided';
-      const logs = args.error_logs ? `\nError Logs:\n${args.error_logs}` : '';
-      const file = args.failing_file ? `\nSuspected File: ${args.failing_file}` : '';
-      return [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `You are Scout Debugger, a specialist in systematic root cause isolation. Investigate the following issue, trace causality, identify failure modes, and propose a minimal fix with unit test coverage.\n\nIssue Description:\n${issue}${file}${logs}\n\nInvestigation Protocol:\n1. Failure Mode Classification\n2. Execution Flow & Trace Analysis\n3. Root Cause Hypothesis\n4. Targeted Verification & Minimal Patch`,
-          },
-        },
-      ];
-    },
-  },
+  debugIssuePrompt,
   {
     name: 'scout_prepare_pr',
     description:
