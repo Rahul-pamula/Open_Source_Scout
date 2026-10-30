@@ -37,6 +37,7 @@ import {
 } from '../evidence.js';
 import { runAdvisoryValidation } from '../validation.js';
 import { loadSkills } from '../skills.js';
+import { ProgressCallback } from '../progress.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -173,9 +174,13 @@ export class LocalHarness {
     command: string,
     cwd: string,
     timeoutMs?: number,
+    onProgress?: ProgressCallback,
   ): Promise<RunCommandResult> {
+    await onProgress?.(0, 100, `Starting command execution: ${command.slice(0, 60)}`);
     CommandBoundaryGuard.validate(command);
-    return this.processManager.runCommand(sessionId, command, cwd, timeoutMs);
+    const result = await this.processManager.runCommand(sessionId, command, cwd, timeoutMs);
+    await onProgress?.(100, 100, `Command execution completed (exit code: ${result.exitCode ?? 0})`);
+    return result;
   }
 
   // -------------------------------------------------------------------------
@@ -212,10 +217,13 @@ export class LocalHarness {
     sessionId: string,
     worktreePath: string,
     prUrl?: string,
+    onProgress?: ProgressCallback,
   ): Promise<SubmitResult> {
+    await onProgress?.(10, 100, 'Recording submission status');
     const { idempotent } = await processLocalSubmit(sessionId, prUrl);
 
     if (idempotent) {
+      await onProgress?.(100, 100, 'Submission already recorded (idempotent)');
       // Return a minimal advisory result when the submission was already recorded.
       return {
         idempotent: true,
@@ -230,15 +238,18 @@ export class LocalHarness {
     }
 
     // Collect evidence.
+    await onProgress?.(30, 100, 'Collecting git diff and changed files');
     const diff = await getGitDiff(worktreePath);
     const changedFiles = await getChangedFiles(worktreePath);
     await recordGitDiff(sessionId, diff);
     await recordChangedFiles(sessionId, changedFiles);
 
     // Advisory validation (runs scout:validate if present).
+    await onProgress?.(60, 100, 'Running advisory validation checks');
     const validationResult = await runAdvisoryValidation();
     await recordValidationResults(sessionId, validationResult);
 
+    await onProgress?.(100, 100, 'Review submission completed successfully');
     return { idempotent: false, advisory_validation: validationResult };
   }
 

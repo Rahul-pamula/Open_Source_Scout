@@ -31,6 +31,7 @@ import { getLocalState } from './localState.js';
 import { listScoutPrompts, getScoutPrompt } from './prompts.js';
 import { loadSkills } from './skills.js';
 import { listScoutResources, listScoutResourceTemplates, isScoutResourceUri, readScoutResource } from './resources.js';
+import { resolveProgressToken, createProgressCallback } from './progress.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -99,6 +100,7 @@ const InitializeExecutionSchema = z.object({
 const SubmitForReviewSchema = z.object({
   session_id: z.string().uuid(),
   pr_url: z.string().optional(),
+  progress_token: z.union([z.string(), z.number()]).optional(),
 });
 
 const MarkBlockedSchema = z.object({
@@ -110,6 +112,7 @@ const RunCommandSchema = z.object({
   session_id: z.string().uuid(),
   command: z.string(),
   cwd: z.string().optional(),
+  progress_token: z.union([z.string(), z.number()]).optional(),
 });
 
 const CancelSessionSchema = z.object({
@@ -222,6 +225,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           session_id: { type: 'string', description: 'The UUID of the active session.' },
           command: { type: 'string', description: 'The shell command to execute.' },
+          cwd: { type: 'string', description: 'Optional directory path relative to the worktree.' },
+          progress_token: {
+            type: ['string', 'number'],
+            description: 'Optional progress token for streaming notifications/progress events.',
+          },
         },
         required: ['session_id', 'command'],
       },
@@ -291,6 +299,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           session_id: { type: 'string', description: 'The UUID of the active session.' },
           pr_url: { type: 'string', description: 'Optional PR URL if available.' },
+          progress_token: {
+            type: ['string', 'number'],
+            description: 'Optional progress token for streaming notifications/progress events.',
+          },
         },
         required: ['session_id'],
       },
@@ -441,7 +453,16 @@ ${JSON.stringify(result, null, 2)}`
           validatedCwd = validatePathBoundary(worktreePath, cwd);
         }
 
-        const result = await localHarness.runCommand(session_id, command, validatedCwd);
+        const progressToken = resolveProgressToken(request.params);
+        const onProgress = createProgressCallback(server, progressToken);
+
+        const result = await localHarness.runCommand(
+          session_id,
+          command,
+          validatedCwd,
+          undefined,
+          onProgress,
+        );
 
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -626,10 +647,14 @@ ${JSON.stringify(result, null, 2)}`
         const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
 
+        const progressToken = resolveProgressToken(request.params);
+        const onProgress = createProgressCallback(server, progressToken);
+
         const result = await localHarness.submitForReview(
           session_id,
           worktreePath,
           pr_url,
+          onProgress,
         );
 
         if (result.idempotent) {
