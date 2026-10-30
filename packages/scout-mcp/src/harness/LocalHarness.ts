@@ -249,6 +249,7 @@ export class LocalHarness {
           stdout: 'Idempotent: submission already recorded.',
           stderr: '',
           exit_code: null,
+          validation_summary: null,
         },
       };
     }

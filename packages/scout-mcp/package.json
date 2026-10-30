@@ -12,6 +12,7 @@
     "build": "tsup",
     "postbuild": "chmod +x dist/index.js",
     "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\" \"src/*.test.ts\""
   },
   "dependencies": {

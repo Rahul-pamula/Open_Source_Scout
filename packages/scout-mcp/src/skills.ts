@@ -159,7 +159,7 @@ export function parseSkillFrontmatter(rawContent: string, filename: string): Ski
 
   let parsed: matter.GrayMatterFile<string>;
   try {
-    parsed = matter(rawContent, { cache: false });
+    parsed = (matter as any)(rawContent, { cache: false });
   } catch (err: any) {
     return {
       success: false,

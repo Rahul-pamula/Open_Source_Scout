@@ -154,7 +154,7 @@ Guidelines for PyTorch DataLoader and CUDA acceleration.`,
       name: 'list_skills',
       arguments: { cwd: tmpDir },
     });
-    const payloadAll = JSON.parse((resAll.content[0] as any).text);
+    const payloadAll = JSON.parse(((resAll as any).content[0] as any).text);
     assert.strictEqual(payloadAll.count, 3);
     assert.strictEqual(payloadAll.skills.length, 3);
 
@@ -175,7 +175,7 @@ Guidelines for PyTorch DataLoader and CUDA acceleration.`,
       name: 'list_skills',
       arguments: { cwd: tmpDir, languages: ['typescript'] },
     });
-    const payloadLang = JSON.parse((resLang.content[0] as any).text);
+    const payloadLang = JSON.parse(((resLang as any).content[0] as any).text);
     assert.strictEqual(payloadLang.skills[0].name, 'react-ui-perf');
 
     // 3. Filter by tag (machine-learning)
@@ -183,7 +183,7 @@ Guidelines for PyTorch DataLoader and CUDA acceleration.`,
       name: 'list_skills',
       arguments: { cwd: tmpDir, tags: ['machine-learning'] },
     });
-    const payloadTag = JSON.parse((resTag.content[0] as any).text);
+    const payloadTag = JSON.parse(((resTag as any).content[0] as any).text);
     assert.strictEqual(payloadTag.skills[0].name, 'python-ml-pipeline');
 
     // 4. TF-IDF rank with task_description
@@ -194,7 +194,7 @@ Guidelines for PyTorch DataLoader and CUDA acceleration.`,
         task_description: 'Fix tokio async race condition in multi-threaded runtime',
       },
     });
-    const payloadRank = JSON.parse((resRank.content[0] as any).text);
+    const payloadRank = JSON.parse(((resRank as any).content[0] as any).text);
     assert.strictEqual(payloadRank.skills[0].name, 'rust-concurrency');
   });
 
@@ -231,7 +231,7 @@ trigger: CONDITIONAL
         task_description: 'Execute PostgreSQL migration script',
       },
     });
-    const payload = JSON.parse((res.content[0] as any).text);
+    const payload = JSON.parse(((res as any).content[0] as any).text);
     assert.strictEqual(payload.skills[0].name, 'always-rule');
   });
 });
