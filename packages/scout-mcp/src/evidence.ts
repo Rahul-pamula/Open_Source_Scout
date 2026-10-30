@@ -1,6 +1,16 @@
 import fs from 'fs/promises';
 import path from 'path';
 
+export type TimelineEventType = 'START' | 'EDIT' | 'EXEC' | 'SUBMIT' | 'BLOCK' | 'CANCEL';
+
+export interface TimelineEvent {
+  id: string;
+  type: TimelineEventType;
+  timestamp: string;
+  summary: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ProcessMetrics {
   duration_ms?: number;
   cpu_user_micros?: number;
@@ -27,6 +37,7 @@ export interface Evidence {
   gitDiff: string;
   validationResults: any;
   telemetry?: SessionTelemetry;
+  timeline?: TimelineEvent[];
 }
 
 const LOCAL_STATE_DIR = path.join(process.cwd(), '.scout-tmp');
@@ -59,6 +70,33 @@ export async function saveEvidence(sessionId: string, evidence: Evidence): Promi
   await fs.rename(tmpFile, filePath);
 }
 
+export async function recordTimelineEvent(
+  sessionId: string,
+  type: TimelineEventType,
+  summary: string,
+  metadata?: Record<string, unknown>,
+): Promise<TimelineEvent> {
+  const evidence = await getEvidence(sessionId);
+  if (!evidence.timeline) {
+    evidence.timeline = [];
+  }
+  const event: TimelineEvent = {
+    id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    type,
+    timestamp: new Date().toISOString(),
+    summary,
+    ...(metadata ? { metadata } : {}),
+  };
+  evidence.timeline.push(event);
+  await saveEvidence(sessionId, evidence);
+  return event;
+}
+
+export async function getTimelineEvents(sessionId: string): Promise<TimelineEvent[]> {
+  const evidence = await getEvidence(sessionId);
+  return evidence.timeline || [];
+}
+
 export async function recordCommand(
   sessionId: string,
   command: string,
@@ -72,6 +110,21 @@ export async function recordCommand(
     exitCode,
     timestamp,
     ...(telemetry ? { telemetry } : {}),
+  });
+
+  if (!evidence.timeline) {
+    evidence.timeline = [];
+  }
+  evidence.timeline.push({
+    id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    type: 'EXEC',
+    timestamp,
+    summary: `Executed command: ${command.slice(0, 80)}`,
+    metadata: {
+      command,
+      exitCode,
+      ...(telemetry ? { telemetry } : {}),
+    },
   });
 
   if (telemetry) {

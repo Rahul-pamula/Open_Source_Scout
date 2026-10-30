@@ -32,6 +32,7 @@ import { listScoutPrompts, getScoutPrompt } from './prompts.js';
 import { loadSkills } from './skills.js';
 import { listScoutResources, listScoutResourceTemplates, isScoutResourceUri, readScoutResource } from './resources.js';
 import { resolveProgressToken, createProgressCallback } from './progress.js';
+import { recordTimelineEvent } from './evidence.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -491,6 +492,12 @@ ${JSON.stringify(result, null, 2)}`
 
         await fs.mkdir(path.dirname(validatedPath), { recursive: true });
         await fs.writeFile(validatedPath, fileContent, 'utf8');
+        try {
+          await recordTimelineEvent(session_id, 'EDIT', `Wrote file: ${targetPath}`, {
+            path: targetPath,
+            size_bytes: Buffer.byteLength(fileContent, 'utf8'),
+          });
+        } catch {}
         return {
           content: [{ type: 'text', text: JSON.stringify({ message: 'File written successfully.' }) }],
         };
@@ -519,6 +526,15 @@ ${JSON.stringify(result, null, 2)}`
         if (!dry_run) {
           await writeAtomicFile(validatedPath, newContent, originalMode);
         }
+
+        try {
+          await recordTimelineEvent(
+            session_id,
+            'EDIT',
+            dry_run ? `Dry run edit previewed for: ${path}` : `Edited file: ${path}`,
+            { path, dry_run: Boolean(dry_run) },
+          );
+        } catch {}
 
         return {
           content: [
