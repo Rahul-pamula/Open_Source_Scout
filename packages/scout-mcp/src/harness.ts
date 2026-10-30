@@ -62,9 +62,23 @@ export class ProcessManager {
     customEnv?: Record<string, string>,
   ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
     return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      const startCpu = process.cpuUsage();
       const childEnv = customEnv ? { ...sanitizeEnvironment(), ...customEnv } : sanitizeEnvironment();
       const child = spawn('sh', ['-c', command], { cwd, shell: false, env: childEnv });
       let timeoutId: NodeJS.Timeout | undefined;
+
+      const computeMetrics = () => {
+        const duration_ms = Date.now() - startTime;
+        const cpuDiff = process.cpuUsage(startCpu);
+        const mem = process.memoryUsage();
+        return {
+          duration_ms,
+          cpu_user_micros: cpuDiff.user,
+          cpu_system_micros: cpuDiff.system,
+          peak_memory_rss_bytes: mem.rss,
+        };
+      };
 
       if (!this.activeProcesses.has(sessionId)) {
         this.activeProcesses.set(sessionId, []);
@@ -92,8 +106,9 @@ export class ProcessManager {
       const onExit = (code: number | null) => {
         cleanupTimeout();
         this.removeProcess(sessionId, child);
+        const telemetry = computeMetrics();
         import('./evidence.js').then(({ recordCommand }) => {
-          recordCommand(sessionId, command, code, new Date().toISOString()).catch(console.error);
+          recordCommand(sessionId, command, code, new Date().toISOString(), telemetry).catch(console.error);
         });
         resolve({ stdout, stderr, exitCode: code });
       };
@@ -103,8 +118,9 @@ export class ProcessManager {
       child.on('error', (err) => {
         cleanupTimeout();
         this.removeProcess(sessionId, child);
+        const telemetry = computeMetrics();
         import('./evidence.js').then(({ recordCommand }) => {
-          recordCommand(sessionId, command, null, new Date().toISOString()).catch(console.error);
+          recordCommand(sessionId, command, null, new Date().toISOString(), telemetry).catch(console.error);
         });
         reject(err);
       });
