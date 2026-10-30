@@ -7,6 +7,7 @@
 import { matchesSessionDiffUri, readSessionDiffResource } from './resources/diffResource.js';
 import { matchesSessionStatusUri, readSessionStatusResource } from './resources/statusResource.js';
 import { matchesSessionEvidenceUri, readSessionEvidenceResource } from './resources/evidenceResource.js';
+import { isSkillsResourceUri, readSkillsResource } from './resources/skillsResource.js';
 
 export interface ScoutResourceDefinition {
   uri: string;
@@ -93,6 +94,10 @@ export async function readScoutResource(
   const evidenceSessionId = matchesSessionEvidenceUri(uri);
   if (evidenceSessionId) {
     return await readSessionEvidenceResource(evidenceSessionId);
+  }
+
+  if (isSkillsResourceUri(uri)) {
+    return await readSkillsResource(repoCwd);
   }
 
   throw new Error(`Resource not found: ${uri}`);
