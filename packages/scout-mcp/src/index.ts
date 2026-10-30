@@ -34,6 +34,7 @@ import { listScoutResources, listScoutResourceTemplates, isScoutResourceUri, rea
 import { resolveProgressToken, createProgressCallback } from './progress.js';
 import { recordTimelineEvent } from './evidence.js';
 import { exportSessionBundle } from './bundle.js';
+import { streamReadFile } from './fileStream.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -136,6 +137,8 @@ const PingSchema = z.object({
 const ReadFileSchema = z.object({
   session_id: z.string().uuid(),
   path: z.string(),
+  offset: z.number().int().nonnegative().optional(),
+  limit: z.number().int().positive().optional(),
 });
 
 const WriteFileSchema = z.object({
@@ -189,6 +192,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           session_id: { type: 'string', description: 'The UUID of the active session.' },
           path: { type: 'string', description: 'Path to the file to read (relative to worktree or absolute).' },
+          offset: {
+            type: 'number',
+            description: 'Optional byte offset to start reading from for chunked streaming.',
+          },
+          limit: {
+            type: 'number',
+            description: 'Optional maximum number of bytes to read.',
+          },
         },
         required: ['session_id', 'path'],
       },
@@ -490,13 +501,13 @@ ${JSON.stringify(result, null, 2)}`
 
       // -----------------------------------------------------------------------
       case 'read_file': {
-        const { session_id, path } = ReadFileSchema.parse(request.params.arguments);
+        const { session_id, path, offset, limit } = ReadFileSchema.parse(request.params.arguments);
         const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
         const validatedPath = validatePathBoundary(worktreePath, path);
 
-        const fileContent = await fs.readFile(validatedPath, 'utf8');
-        return { content: [{ type: 'text', text: fileContent }] };
+        const result = await streamReadFile(validatedPath, { offset, limit });
+        return { content: [{ type: 'text', text: result.content }] };
       }
 
       // -----------------------------------------------------------------------
