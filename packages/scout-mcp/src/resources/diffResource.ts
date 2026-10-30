@@ -24,16 +24,16 @@ export async function readSessionDiffResource(
   sessionId: string,
   repoCwd: string = process.cwd(),
 ): Promise<{ uri: string; mimeType: string; text: string }> {
-  const state = await getLocalState(repoCwd);
-  const session = state.sessions?.[sessionId];
-  const workspacePath = session?.workspace_path || repoCwd;
-
-  const worktreePath = await getWorktreePath(sessionId, workspacePath);
   let diffContent = '';
   try {
+    const state = await getLocalState(repoCwd);
+    const session = state.sessions?.[sessionId];
+    const workspacePath = session?.workspace_path || repoCwd;
+
+    const worktreePath = await getWorktreePath(sessionId, workspacePath);
     diffContent = await getGitDiff(worktreePath);
   } catch (_err) {
-    // Return empty diff if worktree does not exist yet or has no diff
+    // Return empty diff if repo or worktree does not exist yet or has no diff
     diffContent = '';
   }
 
