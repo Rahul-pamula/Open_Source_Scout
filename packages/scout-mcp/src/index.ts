@@ -33,6 +33,7 @@ import { loadSkills } from './skills.js';
 import { listScoutResources, listScoutResourceTemplates, isScoutResourceUri, readScoutResource } from './resources.js';
 import { resolveProgressToken, createProgressCallback } from './progress.js';
 import { recordTimelineEvent } from './evidence.js';
+import { exportSessionBundle } from './bundle.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -167,6 +168,11 @@ export const ListSkillsSchema = z.object({
   cwd: z.string().optional(),
   languages: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
+});
+
+const ExportSessionBundleSchema = z.object({
+  session_id: z.string().uuid(),
+  output_path: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -360,6 +366,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             description: 'Optional skill tags to filter guidelines.',
           },
         },
+      },
+    },
+    {
+      name: 'export_session_bundle',
+      description: 'Generate an offline archive bundle of session metadata, telemetry, evidence, and git diffs.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          session_id: { type: 'string', description: 'The UUID of the session to bundle.' },
+          output_path: { type: 'string', description: 'Optional destination file path for the archive.' },
+        },
+        required: ['session_id'],
       },
     },
   ],
@@ -791,6 +809,31 @@ ${JSON.stringify(result, null, 2)}`
                     tags: s.tags || [],
                     languages: s.languages || [],
                   })),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      case 'export_session_bundle': {
+        const { session_id, output_path } = ExportSessionBundleSchema.parse(
+          request.params.arguments,
+        );
+        const repoCwd = await resolveSessionWorkspace(session_id);
+        const result = await exportSessionBundle(session_id, output_path, repoCwd);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  message: 'Successfully generated session archive bundle.',
+                  ...result,
                 },
                 null,
                 2,
