@@ -12,7 +12,7 @@ The Scout v1 Cloud Dashboard is publicly hosted and ready to use:
 
 Just bring your own Supabase backend and GitHub token. Setup takes about 5 minutes.
 
-> 📢 **New in v2.1.0:** 100-Point Mathematical Relevance Scoring Engine, Push-Down Query Taxonomy, and Structured Interview Defense Generator. Read the [v2.1.0 Release Notes](./docs/RELEASE_NOTES_v2.1.0.md).
+> 🚀 **New in v2.2.0:** Scout MCP Server 128-PR Enterprise Overhaul! Complete with Git worktree concurrency, universal multi-language test validation, TF-IDF dynamic skills, real-time MCP resources, and cross-platform CLI diagnostics. Read the [v2.2.0 Release Notes](./docs/RELEASE_NOTES_v2.2.0.md), [MCP Architectural Specification](./docs/mcp/SPECIFICATION.md), and [Client Setup Guide (Cursor, Claude, Cline, Windsurf)](./packages/scout-mcp/docs/CLIENT_SETUP_GUIDE.md).
 
 ---
 
@@ -31,11 +31,14 @@ A Bring-Your-Own-Backend (BYOB) platform that connects to your personal Supabase
 
 ### 🤖 Part 2: The v2 Local MCP Engine (For AI Agents)
 
-A 100% offline local execution harness that your AI assistant (Cursor, Cline, Claude) connects to via the Model Context Protocol (MCP).
+A production-grade, 100% offline local execution harness that connects your AI assistant (Cursor, Claude Desktop, Cline, Windsurf) via the Model Context Protocol (MCP):
 
-- **Git Worktree Isolation:** Isolates all AI code execution inside hidden `git worktrees` so your main branch is never corrupted.
-- **CommandBoundaryGuard:** Enforces strict command boundaries so AI cannot escape your project directory (`cd ../..` is blocked).
-- **Crash Recovery:** Recovers stale sessions by feeding the AI its own uncommitted diffs if the IDE crashes.
+- **Git Worktree Isolation:** Isolates all AI code execution inside hidden `git worktrees` on dedicated branches so your main branch is never corrupted.
+- **Sandboxed Execution Harness:** Subprocess tracking via `tree-kill`, configurable timeouts, path traversal defense, and sensitive token redaction.
+- **Universal Multi-Language Validation:** Auto-detects and runs test suites across Node (npm, pnpm, yarn, bun), Deno, Python, Rust, Go, Java/Kotlin, .NET, and Make.
+- **Dynamic TF-IDF Skills Discovery:** Auto-discovers and injects workspace context and style rules into agent prompts based on task descriptions.
+- **Real-Time MCP Resources & Telemetry:** Exposes live diffs, status updates, timeline events, progress notifications, and hardware telemetry profiling (`peak_rss_bytes`).
+- **Comprehensive CLI Tooling:** Includes `scout-mcp doctor` diagnostics and instant integration with Cursor, Claude, Cline, and Windsurf.
 
 ---
 
