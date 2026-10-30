@@ -35,6 +35,8 @@ import { resolveProgressToken, createProgressCallback } from './progress.js';
 import { recordTimelineEvent } from './evidence.js';
 import { exportSessionBundle } from './bundle.js';
 import { streamReadFile } from './fileStream.js';
+import { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
+export { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -942,8 +944,20 @@ const isDirectExecution =
     process.argv[1].endsWith('/index.ts'));
 
 if (isDirectExecution && !process.env.NODE_TEST_CONTEXT) {
-  run().catch((error) => {
-    console.error('Fatal error in main():', error);
-    process.exit(1);
-  });
+  if (process.argv.includes('doctor')) {
+    runDoctorDiagnostics()
+      .then((report) => {
+        console.log(formatDoctorReport(report));
+        process.exit(report.overallStatus === 'FAIL' ? 1 : 0);
+      })
+      .catch((error) => {
+        console.error('Fatal error in doctor diagnostics:', error);
+        process.exit(1);
+      });
+  } else {
+    run().catch((error) => {
+      console.error('Fatal error in main():', error);
+      process.exit(1);
+    });
+  }
 }
