@@ -1,0 +1,44 @@
+name: Scout MCP CI
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'packages/scout-mcp/**'
+      - '.github/workflows/mcp-ci.yml'
+  pull_request:
+    paths:
+      - 'packages/scout-mcp/**'
+      - '.github/workflows/mcp-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Scout MCP Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Scout MCP
+        run: npm run build --workspace=packages/scout-mcp
+
+      - name: Run Test Suite
+        run: npm test --workspace=packages/scout-mcp
