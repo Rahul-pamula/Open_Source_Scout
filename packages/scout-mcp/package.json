@@ -9,9 +9,9 @@
     "scout-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --clean",
+    "build": "tsup",
     "postbuild": "chmod +x dist/index.js",
-    "dev": "tsup src/index.ts --format esm --watch",
+    "dev": "tsup --watch",
     "test": "tsx --test \"src/**/*.test.ts\" \"src/*.test.ts\""
   },
   "dependencies": {
