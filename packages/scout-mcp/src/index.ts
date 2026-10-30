@@ -36,7 +36,9 @@ import { recordTimelineEvent } from './evidence.js';
 import { exportSessionBundle } from './bundle.js';
 import { streamReadFile } from './fileStream.js';
 import { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
+import { parseCliAction, SCOUT_MCP_VERSION, SCOUT_MCP_HELP } from './cli.js';
 export { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
+export { parseCliAction, SCOUT_MCP_VERSION, SCOUT_MCP_HELP } from './cli.js';
 
 const localHarness = new LocalHarness();
 export const sessionWorkspaces = new Map<string, string>();
@@ -944,20 +946,33 @@ const isDirectExecution =
     process.argv[1].endsWith('/index.ts'));
 
 if (isDirectExecution && !process.env.NODE_TEST_CONTEXT) {
-  if (process.argv.includes('doctor')) {
-    runDoctorDiagnostics()
-      .then((report) => {
-        console.log(formatDoctorReport(report));
-        process.exit(report.overallStatus === 'FAIL' ? 1 : 0);
-      })
-      .catch((error) => {
-        console.error('Fatal error in doctor diagnostics:', error);
+  const action = parseCliAction(process.argv.slice(2));
+  switch (action) {
+    case 'version':
+      console.log(SCOUT_MCP_VERSION);
+      process.exit(0);
+      break;
+    case 'help':
+      console.log(SCOUT_MCP_HELP);
+      process.exit(0);
+      break;
+    case 'doctor':
+      runDoctorDiagnostics()
+        .then((report) => {
+          console.log(formatDoctorReport(report));
+          process.exit(report.overallStatus === 'FAIL' ? 1 : 0);
+        })
+        .catch((error) => {
+          console.error('Fatal error in doctor diagnostics:', error);
+          process.exit(1);
+        });
+      break;
+    case 'run':
+    default:
+      run().catch((error) => {
+        console.error('Fatal error in main():', error);
         process.exit(1);
       });
-  } else {
-    run().catch((error) => {
-      console.error('Fatal error in main():', error);
-      process.exit(1);
-    });
+      break;
   }
 }
