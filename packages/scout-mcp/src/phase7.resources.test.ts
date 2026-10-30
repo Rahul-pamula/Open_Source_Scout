@@ -39,7 +39,7 @@ describe('MCP Phase 7 Comprehensive Protocol & Resources Suite', () => {
       {
         sessions: {
           [sessionId]: {
-            session_id: sessionId,
+            source: 'local',
             status: 'ACTIVE',
             created_at: new Date().toISOString(),
             last_heartbeat_at: new Date().toISOString(),
@@ -87,14 +87,16 @@ describe('MCP Phase 7 Comprehensive Protocol & Resources Suite', () => {
       tempCwd,
     );
     assert.equal(statusRes.mimeType, 'application/json');
-    const statusData = JSON.parse(statusRes.text);
+    assert.ok(statusRes.text);
+    const statusData = JSON.parse(statusRes.text!);
     assert.equal(statusData.session_id, sessionId);
     assert.equal(statusData.status, 'ACTIVE');
 
     // Read skills resource
     const skillsRes = await readScoutResource('scout://skills', tempCwd);
     assert.equal(skillsRes.mimeType, 'application/json');
-    const skillsData = JSON.parse(skillsRes.text);
+    assert.ok(skillsRes.text);
+    const skillsData = JSON.parse(skillsRes.text!);
     assert.ok(typeof skillsData.count === 'number');
     assert.ok(Array.isArray(skillsData.skills));
   });

@@ -266,7 +266,7 @@ tags:
       arguments: { cwd: tmpDir },
     });
     assert.strictEqual(resUnfiltered.isError, undefined);
-    const payloadUnfiltered = JSON.parse((resUnfiltered.content[0] as any).text);
+    const payloadUnfiltered = JSON.parse(((resUnfiltered as any).content[0] as any).text);
     assert.strictEqual(payloadUnfiltered.count, 2);
 
     // Filtered call via MCP Client

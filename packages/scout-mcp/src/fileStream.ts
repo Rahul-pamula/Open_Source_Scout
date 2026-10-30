@@ -70,9 +70,10 @@ export async function streamReadFile(
     let content = '';
     let bytesRead = 0;
 
-    stream.on('data', (chunk: Buffer) => {
-      bytesRead += chunk.length;
-      content += decoder.write(chunk);
+    stream.on('data', (chunk: Buffer | string) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      bytesRead += buf.length;
+      content += decoder.write(buf);
     });
 
     stream.on('end', () => {

@@ -18,7 +18,7 @@ describe('MCP Export Session Bundle Suite', () => {
       {
         sessions: {
           [sessionId]: {
-            session_id: sessionId,
+            source: 'local',
             status: 'SUBMITTED',
             created_at: new Date().toISOString(),
             last_heartbeat_at: new Date().toISOString(),
