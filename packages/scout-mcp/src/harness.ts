@@ -51,6 +51,27 @@ export function sanitizeEnvironment(rawEnv: NodeJS.ProcessEnv = process.env): Re
   return sanitized;
 }
 
+/**
+ * Resolves the appropriate shell binary and argument vector based on OS platform.
+ */
+export function resolveShellCommand(
+  command: string,
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+): { shellBinary: string; shellArgs: string[] } {
+  if (platform === 'win32') {
+    const comSpec = env.ComSpec || env.COMSPEC || 'cmd.exe';
+    return {
+      shellBinary: comSpec,
+      shellArgs: ['/d', '/s', '/c', command],
+    };
+  }
+  return {
+    shellBinary: 'sh',
+    shellArgs: ['-c', command],
+  };
+}
+
 export class ProcessManager {
   private activeProcesses: Map<string, ChildProcess[]> = new Map();
 
@@ -65,7 +86,8 @@ export class ProcessManager {
       const startTime = Date.now();
       const startCpu = process.cpuUsage();
       const childEnv = customEnv ? { ...sanitizeEnvironment(), ...customEnv } : sanitizeEnvironment();
-      const child = spawn('sh', ['-c', command], { cwd, shell: false, env: childEnv });
+      const { shellBinary, shellArgs } = resolveShellCommand(command);
+      const child = spawn(shellBinary, shellArgs, { cwd, shell: false, env: childEnv });
       let timeoutId: NodeJS.Timeout | undefined;
 
       const computeMetrics = () => {
