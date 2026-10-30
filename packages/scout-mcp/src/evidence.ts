@@ -65,7 +65,7 @@ export async function saveEvidence(sessionId: string, evidence: Evidence): Promi
   const filePath = getEvidenceFilePath(sessionId);
   const dirPath = path.dirname(filePath);
   await fs.mkdir(dirPath, { recursive: true });
-  const tmpFile = `${filePath}.tmp`;
+  const tmpFile = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`;
   await fs.writeFile(tmpFile, JSON.stringify(evidence, null, 2), 'utf8');
   await fs.rename(tmpFile, filePath);
 }
