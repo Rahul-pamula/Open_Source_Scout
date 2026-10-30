@@ -2,7 +2,7 @@
  * Scout MCP CLI argument parser, help text, and version metadata.
  */
 
-export const SCOUT_MCP_VERSION = '2.0.6';
+export const SCOUT_MCP_VERSION = '2.2.0';
 
 export const SCOUT_MCP_HELP = `
 Scout MCP Server (open-source-scout-mcp)
