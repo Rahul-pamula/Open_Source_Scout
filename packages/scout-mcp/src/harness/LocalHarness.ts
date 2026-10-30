@@ -34,6 +34,7 @@ import {
   recordGitDiff,
   recordChangedFiles,
   recordValidationResults,
+  recordTimelineEvent,
 } from '../evidence.js';
 import { runAdvisoryValidation } from '../validation.js';
 import { loadSkills } from '../skills.js';
@@ -149,6 +150,15 @@ export class LocalHarness {
       systemInstructions = `WARNING: Task scope too large for single-pass execution. You are now in ARCHITECT MODE. Do not write code. Your only permitted action is to write a comprehensive STATE.md project breakdown with distinct Phases, then call submit_for_review. Do not attempt to execute Phase 1 yet.\n\n` + systemInstructions;
     }
 
+    try {
+      await recordTimelineEvent(
+        sessionId,
+        'START',
+        `Session initialized with task: ${taskDescription.slice(0, 80)}`,
+        { source, taskId, cwd },
+      );
+    } catch {}
+
     return {
       session_id: sessionId,
       starting_commit_hash: gitInfo.commitHash,
@@ -194,6 +204,9 @@ export class LocalHarness {
   async cancelSession(sessionId: string): Promise<void> {
     await this.processManager.cancelSession(sessionId);
     await processLocalCancel(sessionId);
+    try {
+      await recordTimelineEvent(sessionId, 'CANCEL', 'Session execution cancelled');
+    } catch {}
   }
 
   // -------------------------------------------------------------------------
@@ -224,6 +237,9 @@ export class LocalHarness {
 
     if (idempotent) {
       await onProgress?.(100, 100, 'Submission already recorded (idempotent)');
+      try {
+        await recordTimelineEvent(sessionId, 'SUBMIT', 'Submitted for review (idempotent)', { prUrl, worktreePath });
+      } catch {}
       // Return a minimal advisory result when the submission was already recorded.
       return {
         idempotent: true,
@@ -250,6 +266,14 @@ export class LocalHarness {
     await recordValidationResults(sessionId, validationResult);
 
     await onProgress?.(100, 100, 'Review submission completed successfully');
+    try {
+      await recordTimelineEvent(sessionId, 'SUBMIT', 'Submitted for review', {
+        prUrl,
+        worktreePath,
+        validationPassed: validationResult.validation_passed,
+      });
+    } catch {}
+
     return { idempotent: false, advisory_validation: validationResult };
   }
 
@@ -288,6 +312,12 @@ export class LocalHarness {
     reason: string,
   ): Promise<MarkBlockedResult> {
     const { idempotent } = await processLocalMarkBlocked(sessionId, reason);
+    try {
+      await recordTimelineEvent(sessionId, 'BLOCK', `Session marked as blocked: ${reason.slice(0, 80)}`, {
+        reason,
+        idempotent,
+      });
+    } catch {}
 
     return { idempotent };
   }
