@@ -13,7 +13,7 @@
     "postbuild": "chmod +x dist/index.js",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test \"src/**/*.test.ts\" \"src/*.test.ts\""
+    "test": "node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",

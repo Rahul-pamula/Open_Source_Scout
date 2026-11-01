@@ -28,7 +28,9 @@ test('Atomic File Write & Backup Restoration Suite', async (t) => {
     assert.strictEqual(contentAfter, '#!/bin/bash\necho "updated"');
 
     const statAfter = await fs.stat(targetPath);
-    assert.strictEqual(statAfter.mode & 0o777, 0o755, 'POSIX mode must be preserved');
+    if (process.platform !== 'win32') {
+      assert.strictEqual(statAfter.mode & 0o777, 0o755, 'POSIX mode must be preserved');
+    }
 
     // Verify no temporary files left in directory
     const files = await fs.readdir(tmpDir);

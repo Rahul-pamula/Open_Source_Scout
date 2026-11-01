@@ -7,7 +7,7 @@ import { setTimeout } from 'timers/promises';
 describe('ProcessManager', () => {
   it('should run a command and return stdout', async () => {
     const manager = new ProcessManager();
-    const result = await manager.runCommand('session-1', 'echo "hello world"', process.cwd());
+    const result = await manager.runCommand('session-1', 'node -e "process.stdout.write(\'hello world\')"', process.cwd());
     assert.strictEqual(result.stdout.trim(), 'hello world');
     assert.strictEqual(result.exitCode, 0);
     assert.strictEqual(manager.getActiveProcessCount('session-1'), 0);
@@ -16,7 +16,7 @@ describe('ProcessManager', () => {
   it('should track active processes and kill them when cancelSession is called', async () => {
     const manager = new ProcessManager();
     // Start a long-running process
-    const runPromise = manager.runCommand('session-2', 'sleep 10', process.cwd());
+    const runPromise = manager.runCommand('session-2', 'node -e "setTimeout(()=>{}, 10000)"', process.cwd());
     
     // Give it a moment to spawn
     await setTimeout(100);
@@ -47,8 +47,8 @@ describe('ProcessManager', () => {
 
   it('should prevent orphans by killing child processes', async () => {
     const manager = new ProcessManager();
-    // Spawn a shell that spawns a sleep command
-    const runPromise = manager.runCommand('session-4', 'sh -c "sleep 10"', process.cwd());
+    // Spawn a long running node process
+    const runPromise = manager.runCommand('session-4', 'node -e "setTimeout(()=>{}, 10000)"', process.cwd());
     
     await setTimeout(100);
     assert.strictEqual(manager.getActiveProcessCount('session-4'), 1);
@@ -63,7 +63,7 @@ describe('ProcessManager', () => {
     const manager = new ProcessManager();
     const startTime = Date.now();
     try {
-      await manager.runCommand('session-5', 'sleep 10', process.cwd(), 100);
+      await manager.runCommand('session-5', 'node -e "setTimeout(()=>{}, 10000)"', process.cwd(), 100);
       assert.fail('Should have timed out and thrown');
     } catch (err: any) {
       assert.strictEqual(err.name, 'TimeoutError');

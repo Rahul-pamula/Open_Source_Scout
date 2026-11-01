@@ -17,6 +17,9 @@ test('File Permissions Preservation Test Suite', async (t) => {
   });
 
   await t.test('preserves POSIX executable bit across edits', async () => {
+    if (process.platform === 'win32') {
+      return; // Windows filesystems do not support POSIX permission bits (chmod 0o755)
+    }
     const scriptPath = path.join(tmpDir, 'run.sh');
     await fs.writeFile(scriptPath, '#!/bin/bash\necho "v1"\n', 'utf8');
     await fs.chmod(scriptPath, 0o755);
