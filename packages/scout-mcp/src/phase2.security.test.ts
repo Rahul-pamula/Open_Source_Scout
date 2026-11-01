@@ -229,7 +229,7 @@ test('Phase 2 Complete Security Regression Suite', async (t) => {
       assert.strictEqual(getGuardrailLevel(), 'audit');
 
       const resolved = validatePathBoundary(worktree, '/etc/hosts');
-      assert.ok(resolved.endsWith('/etc/hosts'));
+      assert.ok(resolved.replace(/\\/g, '/').endsWith('/etc/hosts'));
       assert.ok(warnings.length > 0);
       assert.match(warnings[0], /\[Guardrail Audit Warning\]/);
 

@@ -277,7 +277,20 @@ export async function writeAtomicFile(
         // Fallback on filesystems not supporting chmod
       }
     }
-    await fs.rename(tempPath, targetPath);
+    let renamed = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await fs.rename(tempPath, targetPath);
+        renamed = true;
+        break;
+      } catch (err: any) {
+        if (attempt < 4 && (err?.code === 'EPERM' || err?.code === 'EBUSY')) {
+          await new Promise((r) => setTimeout(r, 20 * (attempt + 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
   } catch (error) {
     await fs.rm(tempPath, { force: true }).catch(() => {});
     throw error;

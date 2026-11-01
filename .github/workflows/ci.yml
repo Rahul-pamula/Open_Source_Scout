@@ -42,6 +42,9 @@ jobs:
       - name: Test CLI
         run: npm run test --workspace=packages/cli
 
+      - name: Build MCP
+        run: npm run build --workspace=packages/scout-mcp
+
       - name: Test MCP
         run: npm run test --workspace=packages/scout-mcp
 

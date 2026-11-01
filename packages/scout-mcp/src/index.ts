@@ -942,8 +942,8 @@ export async function run() {
 const isDirectExecution =
   process.argv[1] &&
   (process.argv[1] === fileURLToPath(import.meta.url) ||
-    process.argv[1].endsWith('/index.js') ||
-    process.argv[1].endsWith('/index.ts'));
+    process.argv[1].replace(/\\/g, '/').endsWith('/index.js') ||
+    process.argv[1].replace(/\\/g, '/').endsWith('/index.ts'));
 
 if (isDirectExecution && !process.env.NODE_TEST_CONTEXT) {
   const action = parseCliAction(process.argv.slice(2));

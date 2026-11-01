@@ -117,8 +117,11 @@ export function validatePathBoundary(worktreePath: string, targetPath: string, l
 
   // Check Windows absolute drive path (e.g. C:/ or D:\)
   if (/^[a-zA-Z]:[/\\]/.test(targetPath)) {
-    handleGuardrailViolation(`Path boundary violation. Windows absolute drive traversal detected (${targetPath}).`, activeLevel);
-    return absoluteTarget;
+    const resolvedNorm = path.resolve(targetPath);
+    if (resolvedNorm !== absoluteWorktree && !resolvedNorm.startsWith(absoluteWorktree + path.sep)) {
+      handleGuardrailViolation(`Path boundary violation. Windows absolute drive traversal detected (${targetPath}).`, activeLevel);
+      return absoluteTarget;
+    }
   }
 
   // Prevent access to hidden root system directories

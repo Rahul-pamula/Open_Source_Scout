@@ -43,10 +43,20 @@ export function sanitizeEnvironment(rawEnv: NodeJS.ProcessEnv = process.env): Re
     }
   }
 
-  // Preserve critical execution paths
-  if (rawEnv.PATH && !sanitized.PATH) sanitized.PATH = rawEnv.PATH;
+  // Preserve critical execution paths and system environments
+  const pathVar = rawEnv.PATH || rawEnv.Path || rawEnv.path;
+  if (pathVar && !sanitized.PATH && !sanitized.Path) {
+    if (process.platform === 'win32') sanitized.Path = pathVar;
+    else sanitized.PATH = pathVar;
+  }
   if (rawEnv.HOME && !sanitized.HOME) sanitized.HOME = rawEnv.HOME;
+  if (rawEnv.USERPROFILE && !sanitized.USERPROFILE) sanitized.USERPROFILE = rawEnv.USERPROFILE;
   if (rawEnv.SHELL && !sanitized.SHELL) sanitized.SHELL = rawEnv.SHELL;
+  if (rawEnv.SystemRoot && !sanitized.SystemRoot) sanitized.SystemRoot = rawEnv.SystemRoot;
+  if (rawEnv.SystemDrive && !sanitized.SystemDrive) sanitized.SystemDrive = rawEnv.SystemDrive;
+  if (rawEnv.COMSPEC && !sanitized.COMSPEC) sanitized.COMSPEC = rawEnv.COMSPEC;
+  if (rawEnv.ComSpec && !sanitized.ComSpec) sanitized.ComSpec = rawEnv.ComSpec;
+  if (rawEnv.PATHEXT && !sanitized.PATHEXT) sanitized.PATHEXT = rawEnv.PATHEXT;
 
   return sanitized;
 }
@@ -87,7 +97,14 @@ export class ProcessManager {
       const startCpu = process.cpuUsage();
       const childEnv = customEnv ? { ...sanitizeEnvironment(), ...customEnv } : sanitizeEnvironment();
       const { shellBinary, shellArgs } = resolveShellCommand(command);
-      const child = spawn(shellBinary, shellArgs, { cwd, shell: false, env: childEnv });
+      const isCmd = process.platform === 'win32' || shellBinary.toLowerCase().endsWith('cmd.exe');
+      const spawnArgs = isCmd ? ['/d', '/s', '/c', `"${command}"`] : shellArgs;
+      const child = spawn(shellBinary, spawnArgs, {
+        cwd,
+        shell: false,
+        env: childEnv,
+        windowsVerbatimArguments: isCmd,
+      });
       let timeoutId: NodeJS.Timeout | undefined;
 
       const computeMetrics = () => {
@@ -182,7 +199,7 @@ export class ProcessManager {
       return new Promise<void>((resolve) => {
         if (child.pid) {
           treeKill(child.pid, 'SIGKILL', (err) => {
-            if (err) {
+            if (err && !err.message?.includes('not found') && (err as any).code !== 128) {
               console.error(`Failed to kill process tree for PID ${child.pid}:`, err);
             }
             resolve();
