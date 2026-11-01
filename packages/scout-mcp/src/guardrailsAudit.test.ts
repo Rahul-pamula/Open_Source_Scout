@@ -45,7 +45,7 @@ test('Guardrail Audit Mode and Telemetry Test Suite', async (t) => {
 
       // 1. Audit boundary violation
       const resolved = validatePathBoundary(worktree, '/etc/shadow');
-      assert.ok(resolved.endsWith('/etc/shadow'));
+      assert.ok(resolved.replace(/\\/g, '/').endsWith('/etc/shadow'));
       assert.strictEqual(warnings.length, 1);
       assert.match(warnings[0], /\[Guardrail Audit Warning\]/);
       assert.match(warnings[0], /Access to system path/);
