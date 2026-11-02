@@ -195,11 +195,34 @@ export class TrackingService {
       .select()
       .single();
 
+    if (!updateError && data) {
+      return data;
+    }
+
+    // Fallback to legacy tracked_issues table
+    const legacyState = requestedState as string;
+    const { data: legacyData, error: legacyError } = await supabase
+      .from('tracked_issues')
+      .update({ state: legacyState })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (!legacyError && legacyData) {
+      const issueUrl = legacyData.github_issue_url || '';
+      return {
+        ...legacyData,
+        state: legacyData.state,
+        external_url: issueUrl,
+        github_issue_url: issueUrl,
+      };
+    }
+
     if (updateError) {
       if (updateError.code === 'PGRST116') {
         throw new Error(`400: Invalid state transition. Target state ${newState} not allowed from current state.`);
       }
-      throw new Error(`Supabase Update Error: ${updateError.message}`);
+      throw new Error(`Supabase Update Error: ${legacyError?.message || updateError.message}`);
     }
     return data;
   }
@@ -218,7 +241,17 @@ export class TrackingService {
       .eq('id', id);
 
     if (error) {
-      // Gracefully fall back to updating only contribution_checklist if column is missing
+      // Fallback to legacy tracked_issues table
+      const { error: legacyError } = await supabase
+        .from('tracked_issues')
+        .update({ contribution_checklist: checklist })
+        .eq('id', id);
+
+      if (!legacyError) {
+        return;
+      }
+
+      // Gracefully fall back to updating only contribution_checklist if column is missing on tasks
       if (
         updatePayload.interview_notes_url &&
         (error.message.includes('column') || error.code === '42703')
@@ -230,22 +263,34 @@ export class TrackingService {
         if (fallbackError) throw new Error(`Supabase Update Error: ${fallbackError.message}`);
         return;
       }
-      throw new Error(`Supabase Update Error: ${error.message}`);
+      throw new Error(`Supabase Update Error: ${legacyError.message || error.message}`);
     }
   }
 
   async updateNotesUrl(authHeader: string, id: string, notesUrl: string): Promise<void> {
     const supabase = this.getClient(authHeader);
 
+    let currentChecklist: any = {};
     const { data: task } = await supabase
       .from('tasks')
       .select('contribution_checklist')
       .eq('id', id)
       .maybeSingle();
 
-    const currentChecklist = (task && task.contribution_checklist) || {};
-    const updatedChecklist = { ...currentChecklist, interview_notes_url: notesUrl };
+    if (task) {
+      currentChecklist = task.contribution_checklist || {};
+    } else {
+      const { data: legacyTask } = await supabase
+        .from('tracked_issues')
+        .select('contribution_checklist')
+        .eq('id', id)
+        .maybeSingle();
+      if (legacyTask) {
+        currentChecklist = legacyTask.contribution_checklist || {};
+      }
+    }
 
+    const updatedChecklist = { ...currentChecklist, interview_notes_url: notesUrl };
     await this.updateIssueChecklist(authHeader, id, updatedChecklist);
   }
 }
