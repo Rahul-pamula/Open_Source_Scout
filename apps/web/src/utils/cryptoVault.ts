@@ -117,3 +117,56 @@ export function generateRandomIV(byteLength: number = IV_BYTE_LENGTH): Uint8Arra
   crypto.getRandomValues(iv);
   return iv;
 }
+
+const VAULT_PAYLOAD_VERSION = 1;
+
+export interface EncryptedPayload {
+  v: number;
+  salt: string;
+  iv: string;
+  data: string;
+}
+
+export async function encryptWithPassphrase(
+  plaintext: string,
+  passphrase: string,
+): Promise<string> {
+  const salt = generateRandomSalt();
+  const key = await deriveKeyFromPassphrase(passphrase, salt);
+  const { ciphertext, iv } = await encryptSecret(plaintext, key);
+
+  const payload: EncryptedPayload = {
+    v: VAULT_PAYLOAD_VERSION,
+    salt: bufferToBase64(salt),
+    iv,
+    data: ciphertext,
+  };
+
+  return JSON.stringify(payload);
+}
+
+export async function decryptWithPassphrase(
+  packedPayload: string,
+  passphrase: string,
+): Promise<string> {
+  let payload: EncryptedPayload;
+  try {
+    payload = JSON.parse(packedPayload);
+  } catch {
+    throw new Error('Invalid vault payload format: Not valid JSON.');
+  }
+
+  if (
+    !payload ||
+    payload.v !== VAULT_PAYLOAD_VERSION ||
+    !payload.salt ||
+    !payload.iv ||
+    !payload.data
+  ) {
+    throw new Error('Invalid or unsupported vault payload structure.');
+  }
+
+  const saltBytes = base64ToBuffer(payload.salt);
+  const key = await deriveKeyFromPassphrase(passphrase, saltBytes);
+  return decryptSecret(payload.data, payload.iv, key);
+}
