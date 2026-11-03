@@ -102,3 +102,18 @@ export async function deriveKeyFromPassphrase(
     ['encrypt', 'decrypt'],
   );
 }
+
+const IV_BYTE_LENGTH = 12;
+const SALT_BYTE_LENGTH = 16;
+
+export function generateRandomSalt(byteLength: number = SALT_BYTE_LENGTH): Uint8Array {
+  const salt = new Uint8Array(byteLength);
+  crypto.getRandomValues(salt);
+  return salt;
+}
+
+export function generateRandomIV(byteLength: number = IV_BYTE_LENGTH): Uint8Array {
+  const iv = new Uint8Array(byteLength);
+  crypto.getRandomValues(iv);
+  return iv;
+}
