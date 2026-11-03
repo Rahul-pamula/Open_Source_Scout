@@ -46,3 +46,25 @@ export async function encryptSecret(
     iv: bufferToBase64(iv),
   };
 }
+
+export async function decryptSecret(
+  ciphertextBase64: string,
+  ivBase64: string,
+  key: CryptoKey,
+): Promise<string> {
+  const ciphertextBytes = base64ToBuffer(ciphertextBase64);
+  const ivBytes = base64ToBuffer(ivBase64);
+
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv: ivBytes as BufferSource,
+      tagLength: 128,
+    },
+    key,
+    ciphertextBytes as BufferSource,
+  );
+
+  const decoder = new TextDecoder();
+  return decoder.decode(decryptedBuffer);
+}
