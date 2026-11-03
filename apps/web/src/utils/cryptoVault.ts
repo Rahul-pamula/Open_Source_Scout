@@ -26,8 +26,9 @@ export function base64ToBuffer(base64: string): Uint8Array {
 export async function encryptSecret(
   plaintext: string,
   key: CryptoKey,
-  iv: Uint8Array,
+  customIV?: Uint8Array,
 ): Promise<{ ciphertext: string; iv: string }> {
+  const iv = customIV || generateRandomIV();
   const encoder = new TextEncoder();
   const encodedPlaintext = encoder.encode(plaintext);
 

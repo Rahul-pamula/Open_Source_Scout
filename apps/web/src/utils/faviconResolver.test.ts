@@ -1,3 +1,5 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import { extractDomain, normalizeUrl, getGoogleS2FaviconUrl } from './faviconResolver.ts';
 
 describe('faviconResolver - domain extraction', () => {
