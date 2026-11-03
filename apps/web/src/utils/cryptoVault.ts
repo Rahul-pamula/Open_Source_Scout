@@ -170,3 +170,34 @@ export async function decryptWithPassphrase(
   const key = await deriveKeyFromPassphrase(passphrase, saltBytes);
   return decryptSecret(payload.data, payload.iv, key);
 }
+
+export async function copyToClipboardSecurely(
+  secret: string,
+  timeoutMs: number = 30_000,
+): Promise<() => void> {
+  if (typeof navigator === 'undefined' || !navigator.clipboard) {
+    throw new Error('Clipboard API is not supported in this environment.');
+  }
+
+  await navigator.clipboard.writeText(secret);
+
+  let timer: ReturnType<typeof setTimeout> | null = setTimeout(async () => {
+    try {
+      const current = await navigator.clipboard.readText().catch(() => null);
+      if (current === secret) {
+        await navigator.clipboard.writeText('');
+      }
+    } catch {
+      // Ignore background clipboard clear errors
+    } finally {
+      timer = null;
+    }
+  }, timeoutMs);
+
+  return () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+}
