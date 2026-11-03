@@ -71,5 +71,45 @@ describe('cryptoVault - Zero-Knowledge Cryptographic Vault Engine', () => {
       const decrypted = await decryptSecret(ciphertext, iv, key);
       assert.equal(decrypted, plaintext);
     });
+
+    it('throws authentication error when attempting decryption with wrong key', async () => {
+      const salt = generateRandomSalt();
+      const correctKey = await deriveKeyFromPassphrase('correct-key', salt);
+      const wrongKey = await deriveKeyFromPassphrase('wrong-key', salt);
+
+      const { ciphertext, iv } = await encryptSecret('confidential-info', correctKey);
+
+      await assert.rejects(async () => {
+        await decryptSecret(ciphertext, iv, wrongKey);
+      }, /operation failed|OperationError|decrypt/i);
+    });
+
+    it('throws error when ciphertext is tampered or corrupt', async () => {
+      const salt = generateRandomSalt();
+      const key = await deriveKeyFromPassphrase('vault-pin', salt);
+      const { ciphertext, iv } = await encryptSecret('original-secret', key);
+
+      const bytes = base64ToBuffer(ciphertext);
+      bytes[0] ^= 0xff;
+      const tamperedCiphertext = bufferToBase64(bytes);
+
+      await assert.rejects(async () => {
+        await decryptSecret(tamperedCiphertext, iv, key);
+      }, /operation failed|OperationError|decrypt/i);
+    });
+
+    it('throws error when IV is tampered', async () => {
+      const salt = generateRandomSalt();
+      const key = await deriveKeyFromPassphrase('vault-pin', salt);
+      const { ciphertext, iv } = await encryptSecret('original-secret', key);
+
+      const ivBytes = base64ToBuffer(iv);
+      ivBytes[0] ^= 0xff;
+      const tamperedIV = bufferToBase64(ivBytes);
+
+      await assert.rejects(async () => {
+        await decryptSecret(ciphertext, tamperedIV, key);
+      }, /operation failed|OperationError|decrypt/i);
+    });
   });
 });
