@@ -112,4 +112,25 @@ describe('cryptoVault - Zero-Knowledge Cryptographic Vault Engine', () => {
       }, /operation failed|OperationError|decrypt/i);
     });
   });
+
+  describe('Performance Benchmark (Issue #764)', () => {
+    it('executes 25 encryption and decryption cycles within acceptable time limits (< 2000ms)', async () => {
+      const salt = generateRandomSalt();
+      const key = await deriveKeyFromPassphrase('benchmark-key', salt);
+      const samplePayload = 'company-internal-api-key-staging-xyz123';
+
+      const startTime = performance.now();
+      const iterations = 25;
+
+      for (let i = 0; i < iterations; i++) {
+        const { ciphertext, iv } = await encryptSecret(samplePayload, key);
+        const decrypted = await decryptSecret(ciphertext, iv, key);
+        assert.equal(decrypted, samplePayload);
+      }
+
+      const totalMs = performance.now() - startTime;
+      const perOpMs = totalMs / iterations;
+      assert.ok(perOpMs < 15, `Expected < 15ms per AES-GCM cycle, got ${perOpMs}ms`);
+    });
+  });
 });
