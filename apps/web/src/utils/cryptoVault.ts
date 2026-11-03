@@ -68,3 +68,37 @@ export async function decryptSecret(
   const decoder = new TextDecoder();
   return decoder.decode(decryptedBuffer);
 }
+
+const PBKDF2_ITERATIONS = 100_000;
+const KEY_LENGTH_BITS = 256;
+
+export async function deriveKeyFromPassphrase(
+  passphrase: string,
+  salt: Uint8Array,
+): Promise<CryptoKey> {
+  if (!passphrase || passphrase.length === 0) {
+    throw new Error('Passphrase cannot be empty.');
+  }
+
+  const encoder = new TextEncoder();
+  const rawKeyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(passphrase),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey'],
+  );
+
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: salt as BufferSource,
+      iterations: PBKDF2_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    rawKeyMaterial,
+    { name: 'AES-GCM', length: KEY_LENGTH_BITS },
+    false,
+    ['encrypt', 'decrypt'],
+  );
+}
