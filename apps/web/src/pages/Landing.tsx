@@ -353,8 +353,8 @@ export function Landing() {
                     Workspaces & App Launcher Preview
                   </h4>
                   <p className="text-xs text-zinc-600 mb-4">
-                    Centrally launch daily startup tools, HRMS portals, and documentation links in
-                    1-click.
+                    Centrally launch daily startup tools with Integrated Daily Standup Generator for
+                    Slack/Teams, HRMS portals, and documentation links in 1-click.
                   </p>
                   <div className="flex gap-4">
                     <div className="w-12 h-12 rounded-[22%] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center font-bold text-xs text-emerald-600">
