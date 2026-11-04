@@ -9,7 +9,7 @@ import { exportWorkspaceBackup, validateWorkspaceBackup } from '../utils/workspa
 import type { WorkspaceLink } from '../types/workspaces';
 import { Plus, Download, Upload, Sparkles, Filter } from 'lucide-react';
 
-const DEFAULT_STARTER_PACK = [
+export const DEFAULT_STARTER_PACK = [
   {
     title: 'GitHub',
     url: 'https://github.com',
