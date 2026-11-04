@@ -112,3 +112,11 @@ export function getInitialsSquircleData(nameOrDomain: string): {
   const bgColor = colors[Math.abs(hash) % colors.length];
   return { initials, bgColor };
 }
+
+/** Closes #780: Graceful cascading fallback swapper */
+export function getNextFallbackUrl(domain: string, currentAttempt: number): string | null {
+  if (currentAttempt === 0) return getGoogleS2FaviconUrl(domain, 128);
+  if (currentAttempt === 1) return getUnavatarUrl(domain);
+  if (currentAttempt === 2) return getDuckDuckGoFaviconUrl(domain);
+  return null;
+}
