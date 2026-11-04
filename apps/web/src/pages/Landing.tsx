@@ -32,7 +32,7 @@ const McpAnimation = () => {
           <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
         </div>
         <div className="text-zinc-500 text-[10px] ml-4 flex-1 text-center font-sans tracking-wide">
-          IDE Terminal
+          IDE Terminal — 10x AI Model Execution via Scout MCP
         </div>
       </div>
 
