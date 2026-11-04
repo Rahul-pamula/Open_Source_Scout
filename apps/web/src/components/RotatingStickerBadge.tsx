@@ -39,7 +39,7 @@ export const RotatingStickerBadge: React.FC = () => {
       <div className="text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1.5">
         {slide.prefix}
       </div>
-      <div className="px-5 py-2 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm md:text-base shadow-[4px_4px_0px_0px_rgba(6,78,59,1)] border-2 border-emerald-700 transform -rotate-1 hover:rotate-0 transition-transform duration-200">
+      <div className="px-5 py-2 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm md:text-base shadow-[5px_5px_0px_0px_rgba(5,150,105,1)] hover:shadow-[2px_2px_0px_0px_rgba(5,150,105,1)] border-2 border-emerald-700 transform -rotate-1 hover:rotate-0 transition-transform duration-200">
         {slide.highlight}
       </div>
       <div className="text-[11px] text-zinc-500 font-medium mt-1.5">{slide.caption}</div>
