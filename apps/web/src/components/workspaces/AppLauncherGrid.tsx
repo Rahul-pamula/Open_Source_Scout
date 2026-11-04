@@ -30,6 +30,9 @@ export const AppLauncherGrid: React.FC<AppLauncherGridProps> = ({
           }}
           className="group flex flex-col items-center focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-2xl p-2 transition-transform duration-150 hover:-translate-y-1 active:scale-95"
           tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onOpenLink?.(link);
+          }}
         >
           <div className="w-16 h-16 rounded-[22%] bg-gray-800/80 border border-gray-700/60 shadow-lg flex items-center justify-center overflow-hidden transition-all duration-200 group-hover:shadow-emerald-500/20 group-hover:border-emerald-500/40">
             {link.icon_url ? (
