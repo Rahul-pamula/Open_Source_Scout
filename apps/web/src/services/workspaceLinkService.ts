@@ -1,6 +1,6 @@
 import { WorkspaceLink } from '../types/workspace';
 
-/** Closes #785: Workspace link CRUD service */
+/** Closes #785 & #786: Workspace link CRUD and batch reordering service */
 export const workspaceLinkService = {
   async listLinks(workspaceId: string): Promise<WorkspaceLink[]> {
     try {
@@ -31,6 +31,19 @@ export const workspaceLinkService = {
       localStorage.setItem(`scout_links_${workspaceId}`, JSON.stringify(existing));
     } catch (e) {}
     return newLink;
+  },
+  async reorderLinks(workspaceId: string, linkIds: string[]): Promise<WorkspaceLink[]> {
+    const existing = await this.listLinks(workspaceId);
+    const reordered = linkIds
+      .map((id, index) => {
+        const link = existing.find((l) => l.id === id);
+        return link ? { ...link, position: index } : null;
+      })
+      .filter(Boolean) as WorkspaceLink[];
+    try {
+      localStorage.setItem(`scout_links_${workspaceId}`, JSON.stringify(reordered));
+    } catch (e) {}
+    return reordered;
   },
   async deleteLink(workspaceId: string, linkId: string): Promise<boolean> {
     const existing = await this.listLinks(workspaceId);
