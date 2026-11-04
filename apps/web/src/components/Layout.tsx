@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, LogOut, LogIn, UserCircle } from 'lucide-react';
+import { LayoutDashboard, LogOut, LogIn, UserCircle, FolderKanban } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout() {
@@ -29,6 +29,13 @@ export function Layout() {
           >
             <LayoutDashboard size={20} />
             <span>Mission Control</span>
+          </Link>
+          <Link
+            to="/app/workspaces"
+            className={`flex items-center space-x-2 p-2 rounded-md font-medium transition-colors ${location.pathname.includes('/workspaces') ? 'bg-emerald-50 text-emerald-700' : 'text-zinc-600 hover:bg-zinc-100'}`}
+          >
+            <FolderKanban size={20} />
+            <span>Workspaces</span>
           </Link>
           <Link
             to="/app/identity"
