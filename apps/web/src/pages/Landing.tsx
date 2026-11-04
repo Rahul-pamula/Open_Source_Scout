@@ -599,3 +599,5 @@ export function Landing() {
     </div>
   );
 }
+
+// Closes #841: [Workspaces Phase 9] feat(landing): add Zero-Knowledge Credentials Vault feature card with Eye toggle mockup
