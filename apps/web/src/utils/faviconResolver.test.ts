@@ -28,6 +28,22 @@ describe('faviconResolver - domain extraction and normalization', () => {
   });
 });
 
+/** Closes #783: Multi-tier fallback cascade integration test */
+describe('Multi-tier fallback cascade integration', () => {
+  test('tests multi-tier fallback cascade', () => {
+    const tier0 = getNextFallbackUrl('linear.app', 0);
+    const tier1 = getNextFallbackUrl('linear.app', 1);
+    const tier2 = getNextFallbackUrl('linear.app', 2);
+    const tier3 = getNextFallbackUrl('linear.app', 3);
+    assert.ok(tier0 && tier0.includes('t1.gstatic.com'));
+    assert.ok(tier1 && tier1.includes('unavatar.io'));
+    assert.ok(tier2 && tier2.includes('duckduckgo.com'));
+    assert.strictEqual(tier3, null);
+    const initials = getInitialsSquircleData('linear.app');
+    assert.strictEqual(initials.initials.length, 2);
+  });
+});
+
 describe('Google S2 Favicon API', () => {
   it('builds 128px high-res Google S2 favicon URL', () => {
     const url = getGoogleS2FaviconUrl('github.com', 128);
