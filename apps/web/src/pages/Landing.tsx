@@ -9,10 +9,6 @@ import {
   BookOpen,
   Layers,
   CheckCircle,
-  Code2,
-  Cpu,
-  ShieldCheck,
-  Palette,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { RotatingStickerBadge } from '../components/RotatingStickerBadge';
@@ -267,7 +263,7 @@ export function Landing() {
             <div className="mb-4">
               <RotatingStickerBadge />
             </div>
-            <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-6 leading-[1.2]">
+            <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-8 leading-[1.2]">
               <span className="text-emerald-500 font-black">Discovering</span> Issues,
               <br />
               <span className="text-emerald-500 font-black">Evaluating</span> Effort,
@@ -275,87 +271,7 @@ export function Landing() {
               <span className="text-emerald-500 font-black">Executing</span> Safely.
             </h1>
 
-            {/* Tech Stack Badges (JobShuru style — displayed at starting) */}
-            <div className="flex flex-wrap items-center gap-2 mb-6">
-              {/* Frontend */}
-              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
-                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
-                  <Code2 className="w-3.5 h-3.5 text-sky-400" />
-                  Frontend
-                </span>
-                <span className="bg-[#202630] text-sky-300 px-2.5 py-1 flex items-center font-bold">
-                  React 19 + Vite 8
-                </span>
-              </div>
-
-              {/* Backend */}
-              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
-                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
-                  <Server className="w-3.5 h-3.5 text-emerald-400" />
-                  Backend
-                </span>
-                <span className="bg-[#10b981] text-white px-2.5 py-1 flex items-center font-bold">
-                  Supabase
-                </span>
-              </div>
-
-              {/* Local MCP */}
-              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
-                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
-                  <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                  Local MCP
-                </span>
-                <span className="bg-[#8b5cf6] text-white px-2.5 py-1 flex items-center font-bold">
-                  Scout MCP v2.2.0
-                </span>
-              </div>
-
-              {/* Database */}
-              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
-                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
-                  <Database className="w-3.5 h-3.5 text-emerald-300" />
-                  Database
-                </span>
-                <span className="bg-[#059669] text-white px-2.5 py-1 flex items-center font-bold">
-                  PostgreSQL
-                </span>
-              </div>
-
-              {/* Security */}
-              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
-                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  Security
-                </span>
-                <span className="bg-[#059669] text-white px-2.5 py-1 flex items-center font-bold">
-                  AES-256-GCM
-                </span>
-              </div>
-
-              {/* Styling */}
-              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
-                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
-                  <Palette className="w-3.5 h-3.5 text-cyan-400" />
-                  Styling
-                </span>
-                <span className="bg-[#06b6d4] text-white px-2.5 py-1 flex items-center font-bold">
-                  Tailwind CSS v4
-                </span>
-              </div>
-
-              {/* Language */}
-              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
-                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
-                  <Code2 className="w-3.5 h-3.5 text-blue-400" />
-                  Language
-                </span>
-                <span className="bg-[#2563eb] text-white px-2.5 py-1 flex items-center font-bold">
-                  TypeScript 5.8
-                </span>
-              </div>
-            </div>
-
-            <p className="text-lg md:text-xl text-zinc-600 mb-8 font-medium leading-relaxed">
+            <p className="text-lg md:text-xl text-zinc-600 mb-10 font-medium leading-relaxed">
               Open Source Scout is the <strong>10x Developer OS</strong> for the AI era. Boost your{' '}
               <strong>Open Source Contribution 10x</strong> by connecting to high-signal issues,
               accelerate your AI models 10x with <strong>Scout MCP</strong> local orchestration, and
@@ -384,26 +300,26 @@ export function Landing() {
             </p>
           </div>
 
-          {/* Right Column: Open Source Scout Live Dashboard Preview (from README) */}
+          {/* Right Column: Verified 3,257 GitHub Contributions Proof */}
           <div className="relative hidden md:flex justify-end">
-            <div className="relative w-full max-w-xl aspect-[1024/580] group">
+            <div className="relative w-full max-w-xl aspect-[1024/625] group">
               {/* Decorative emerald ambient glow behind image */}
               <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition duration-500" />
 
-              {/* Main Product Preview Visual */}
+              {/* Main Contributions Proof Visual */}
               <div className="relative w-full h-full rounded-2xl overflow-hidden border border-emerald-500/30 shadow-2xl bg-zinc-950">
                 <img
-                  src={`${import.meta.env.BASE_URL}preview.png`}
-                  alt="Open Source Scout Dashboard Preview"
+                  src={`${import.meta.env.BASE_URL}github_contributions_proof.png`}
+                  alt="Verified 3,257 Open Source GitHub Contributions"
                   className="w-full h-full object-cover transform group-hover:scale-[1.01] transition-transform duration-500"
                 />
                 <div className="absolute bottom-3 left-3 right-3 bg-zinc-950/90 backdrop-blur-md border border-zinc-800 px-3.5 py-2 rounded-xl flex items-center justify-between text-xs text-white shadow-lg">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-mono text-zinc-300">10x Developer OS Active</span>
+                    <span className="font-mono text-zinc-300">3,257 Contributions Verified</span>
                   </div>
                   <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    Dual-Engine v2.2.0
+                    10x Impact Proven
                   </span>
                 </div>
               </div>
