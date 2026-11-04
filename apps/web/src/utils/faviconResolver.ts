@@ -67,3 +67,26 @@ export function getUnavatarUrl(domain: string): string {
 export function resolveDuckDuckGoFavicon(domain: string): string {
   return getDuckDuckGoFaviconUrl(domain);
 }
+
+/** Closes #778: In-memory and localStorage icon caching engine */
+const iconMemoryCache = new Map<string, string>();
+
+export function cacheIconUrl(domain: string, url: string): void {
+  iconMemoryCache.set(domain.toLowerCase(), url);
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`scout_icon_${domain.toLowerCase()}`, url);
+    }
+  } catch (e) {}
+}
+
+export function getCachedIconUrl(domain: string): string | null {
+  const key = domain.toLowerCase();
+  if (iconMemoryCache.has(key)) return iconMemoryCache.get(key)!;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      return localStorage.getItem(`scout_icon_${key}`);
+    }
+  } catch (e) {}
+  return null;
+}
