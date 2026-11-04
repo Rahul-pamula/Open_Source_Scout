@@ -61,18 +61,26 @@ export const AddLinkModal: React.FC<AddLinkModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden p-6">
-        <div className="flex items-center justify-between pb-4 border-b border-gray-800">
-          <h3 className="text-base font-semibold text-white">Add Link to Workspace</h3>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden p-6">
+        <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+          <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+            Add Link to Workspace
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-white transition"
+          >
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">URL</label>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+              URL
+            </label>
             <div className="flex items-center space-x-2">
               <input
                 type="text"
@@ -80,35 +88,39 @@ export const AddLinkModal: React.FC<AddLinkModalProps> = ({
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 autoFocus
-                className="w-full bg-gray-800 text-sm text-white px-3 py-2 rounded-xl border border-gray-700 focus:border-emerald-500 focus:outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-900 dark:text-white px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 focus:border-emerald-500 focus:outline-hidden"
               />
-              <div className="w-10 h-10 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
                 {iconPreview ? (
                   <img src={iconPreview} alt="Preview" className="w-6 h-6 object-contain" />
                 ) : (
-                  <Globe size={18} className="text-gray-500" />
+                  <Globe size={18} className="text-zinc-400" />
                 )}
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">Title</label>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+              Title
+            </label>
             <input
               type="text"
               placeholder="e.g. Engineering Onboarding Doc"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-gray-800 text-sm text-white px-3 py-2 rounded-xl border border-gray-700 focus:border-emerald-500 focus:outline-none"
+              className="w-full bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-900 dark:text-white px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 focus:border-emerald-500 focus:outline-hidden"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1">Section</label>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+              Section
+            </label>
             <select
               value={section}
               onChange={(e) => setSection(e.target.value)}
-              className="w-full bg-gray-800 text-sm text-white px-3 py-2 rounded-xl border border-gray-700 focus:border-emerald-500 focus:outline-none"
+              className="w-full bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-900 dark:text-white px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 focus:border-emerald-500 focus:outline-hidden"
             >
               <option value="__new__">+ Create new section...</option>
               {sections.map((s) => (
@@ -123,14 +135,14 @@ export const AddLinkModal: React.FC<AddLinkModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs text-gray-400 hover:text-white"
+              className="px-4 py-2 text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!url.trim() || !title.trim()}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium rounded-xl transition shadow-lg shadow-emerald-600/20"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-emerald-600/20"
             >
               Add Link
             </button>
