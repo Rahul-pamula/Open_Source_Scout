@@ -13,7 +13,11 @@ const readStorageItem = (key: string) => {
 const getStoredUrl = () => {
   return (
     readStorageItem('OSS_SUPABASE_URL') ||
-    normalizeSupabaseValue(import.meta.env.VITE_SUPABASE_URL) ||
+    normalizeSupabaseValue(
+      typeof import.meta !== 'undefined' && import.meta.env
+        ? import.meta.env.VITE_SUPABASE_URL
+        : undefined,
+    ) ||
     null
   );
 };
@@ -21,7 +25,11 @@ const getStoredUrl = () => {
 const getStoredKey = () => {
   return (
     readStorageItem('OSS_SUPABASE_ANON_KEY') ||
-    normalizeSupabaseValue(import.meta.env.VITE_SUPABASE_ANON_KEY) ||
+    normalizeSupabaseValue(
+      typeof import.meta !== 'undefined' && import.meta.env
+        ? import.meta.env.VITE_SUPABASE_ANON_KEY
+        : undefined,
+    ) ||
     null
   );
 };

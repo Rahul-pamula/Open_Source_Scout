@@ -1,13 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { AppLauncherGrid } from '../components/workspaces/AppLauncherGrid';
 import { CredentialsVault } from '../components/workspaces/CredentialsVault';
 import { WorkspaceEmptyState } from '../components/workspaces/WorkspaceEmptyState';
 import { AddLinkModal } from '../components/workspaces/AddLinkModal';
 import { workspaceLinkService } from '../services/workspaceLinkService';
-import { exportWorkspaceBackup, validateWorkspaceBackup } from '../utils/workspaceBackup';
 import type { WorkspaceLink } from '../types/workspaces';
-import { Plus, Download, Upload, Sparkles, Filter } from 'lucide-react';
+import { Plus, Filter } from 'lucide-react';
 
 export const DEFAULT_STARTER_PACK = [
   {
@@ -48,15 +47,28 @@ export const DEFAULT_STARTER_PACK = [
   },
 ];
 
-/** Closes #829: Workspaces page route component with complete action toolbar */
+/** Closes #829: Simple, elegant Workspaces page focused on quick tools and links */
 export function WorkspacesPage() {
   const { workspaces, loading } = useWorkspaces();
   const [links, setLinks] = useState<WorkspaceLink[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string>('All');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeWorkspace = workspaces[0] || null;
+  const activeWorkspaceId = activeWorkspace?.id || 'default-personal-workspace';
+
+  // Load links whenever active workspace is resolved
+  useEffect(() => {
+    let isMounted = true;
+    workspaceLinkService.listLinks(activeWorkspaceId).then((items) => {
+      if (isMounted) {
+        setLinks(items);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [activeWorkspaceId]);
 
   const handleAddLink = async (data: {
     title: string;
@@ -64,60 +76,17 @@ export function WorkspacesPage() {
     section_name: string;
     icon_url?: string;
   }) => {
-    if (!activeWorkspace) return;
-    const created = await workspaceLinkService.addLink(activeWorkspace.id, data);
+    const created = await workspaceLinkService.addLink(activeWorkspaceId, data);
     setLinks((prev) => [...prev, created]);
   };
 
-  const handleLoadStarterPack = async () => {
-    if (!activeWorkspace) return;
-    for (const item of DEFAULT_STARTER_PACK) {
-      await handleAddLink(item);
-    }
+  const handleDeleteLink = async (linkId: string) => {
+    await workspaceLinkService.deleteLink(activeWorkspaceId, linkId);
+    setLinks((prev) => prev.filter((l) => l.id !== linkId));
   };
 
-  const handleExportBackup = () => {
-    if (!activeWorkspace) return;
-    const linksMap = { [activeWorkspace.id]: links };
-    const jsonString = exportWorkspaceBackup([activeWorkspace], linksMap);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `workspace-backup-${activeWorkspace.id || 'export'}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeWorkspace) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const content = event.target?.result as string;
-      const res = validateWorkspaceBackup(content);
-      if (res.valid && res.data) {
-        const importedLinks = Object.values(res.data.links || {}).flat();
-        for (const item of importedLinks) {
-          if (item?.title && item?.url) {
-            await handleAddLink({
-              title: item.title,
-              url: item.url,
-              section_name: item.section_name || 'Imported',
-              icon_url: item.icon_url,
-            });
-          }
-        }
-      }
-    };
-    reader.readAsText(file);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  if (loading) {
-    return <div className="p-8 text-sm text-zinc-500">Loading workspaces...</div>;
+  if (loading && !activeWorkspace) {
+    return <div className="p-8 text-sm text-zinc-500 font-medium">Loading workspace...</div>;
   }
 
   // Derive unique sections
@@ -129,14 +98,6 @@ export function WorkspacesPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleImportFile}
-        accept=".json,application/json"
-        className="hidden"
-      />
-
       {/* Header Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
         <div>
@@ -144,54 +105,19 @@ export function WorkspacesPage() {
             {activeWorkspace ? activeWorkspace.name : 'Personal Workspace'}
           </h1>
           <p className="text-xs text-zinc-500 mt-1">
-            Centrally manage internal dashboards, HRMS tools, documentation, and zero-knowledge
-            secrets.
+            Centrally manage your frequently used tools, internal dashboards, and quick links.
           </p>
         </div>
 
-        {/* Action Buttons Toolbar */}
-        <div className="flex flex-wrap items-center gap-2">
-          {links.length > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={handleExportBackup}
-                title="Export Workspace JSON Backup"
-                className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold rounded-xl border border-zinc-200 transition shadow-xs cursor-pointer"
-              >
-                <Download size={14} />
-                <span>Export</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                title="Import Workspace JSON Backup"
-                className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold rounded-xl border border-zinc-200 transition shadow-xs cursor-pointer"
-              >
-                <Upload size={14} />
-                <span>Import</span>
-              </button>
-            </>
-          )}
-
-          <button
-            type="button"
-            onClick={handleLoadStarterPack}
-            title="Load Popular Developer Tools"
-            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-xl border border-zinc-200 transition shadow-xs cursor-pointer"
-          >
-            <Sparkles size={14} className="text-emerald-600" />
-            <span>Starter Pack</span>
-          </button>
-
+        {/* Action Button: Single, prominent + Add Link */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
             className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
           >
             <Plus size={15} />
-            <span>Add Tool Link</span>
+            <span>Add Link</span>
           </button>
         </div>
       </div>
@@ -233,15 +159,12 @@ export function WorkspacesPage() {
 
       {/* Grid or Empty State */}
       {links.length === 0 ? (
-        <WorkspaceEmptyState
-          onAddFirstLink={() => setIsAddOpen(true)}
-          onLoadStarterPack={handleLoadStarterPack}
-          onImportBackup={() => fileInputRef.current?.click()}
-        />
+        <WorkspaceEmptyState onAddFirstLink={() => setIsAddOpen(true)} />
       ) : (
         <AppLauncherGrid
           links={filteredLinks}
           onOpenLink={(link) => window.open(link.url, '_blank')}
+          onDeleteLink={handleDeleteLink}
         />
       )}
 
