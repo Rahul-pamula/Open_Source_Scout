@@ -211,15 +211,18 @@ export function Landing() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center font-sans overflow-x-hidden selection:bg-emerald-500/30"
-      style={{
-        backgroundImage: "url('./hero_bg.jpg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'top center',
-        backgroundAttachment: 'fixed',
-      }}
-    >
+    <div className="min-h-screen flex flex-col items-center font-sans overflow-x-hidden selection:bg-emerald-500/30 bg-gradient-to-b from-zinc-50 via-white to-zinc-50 relative">
+      {/* Dynamic ambient emerald mesh background aura */}
+      <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-emerald-100/50 via-emerald-50/20 to-transparent pointer-events-none -z-0" />
+      <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-emerald-400/10 blur-[130px] rounded-full pointer-events-none -z-0" />
+      <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none -z-0"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, rgb(16 185 129 / 0.8) 1px, transparent 0)',
+          backgroundSize: '32px 32px',
+        }}
+      />
       {/* Top Navigation */}
       <header className="w-full max-w-6xl px-6 py-6 flex items-center justify-between z-10 relative">
         <Link
@@ -297,22 +300,29 @@ export function Landing() {
             </p>
           </div>
 
-          {/* Right Column: Realistic Blob Image */}
+          {/* Right Column: 10x Developer OS Interactive Preview */}
           <div className="relative hidden md:flex justify-end">
-            <div className="relative w-full max-w-lg aspect-square">
-              {/* Decorative shadow layer */}
-              <div
-                className="absolute inset-0 bg-indigo-500/10 translate-x-4 translate-y-4"
-                style={{ borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%' }}
-              ></div>
+            <div className="relative w-full max-w-lg aspect-square group">
+              {/* Decorative emerald ambient glow behind image */}
+              <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition duration-500" />
 
-              {/* Main image with blob mask */}
-              <img
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80"
-                alt="Developers collaborating"
-                className="absolute inset-0 w-full h-full object-cover shadow-2xl"
-                style={{ borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%' }}
-              />
+              {/* Main Developer OS preview visual */}
+              <div className="relative w-full h-full rounded-2xl overflow-hidden border border-emerald-500/30 shadow-2xl bg-zinc-950">
+                <img
+                  src={`${import.meta.env.BASE_URL}hero_os_preview.jpg`}
+                  alt="Open Source Scout 10x Developer OS"
+                  className="w-full h-full object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
+                />
+                <div className="absolute bottom-4 left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-zinc-800 p-3 rounded-xl flex items-center justify-between text-xs text-white">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-mono text-zinc-300">10x Developer OS Active</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    Dual-Engine v2.2.0
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
