@@ -1,7 +1,7 @@
 import { WorkspaceCredential } from '../types/workspace';
-import { encryptSecret } from '../utils/cryptoVault';
+import { encryptSecret, decryptSecret } from '../utils/cryptoVault';
 
-/** Closes #787: Workspace credentials transparent encryption service */
+/** Closes #787 & #788: Workspace credentials encryption & in-memory decryption service */
 export const workspaceCredentialService = {
   async listCredentials(workspaceId: string): Promise<WorkspaceCredential[]> {
     try {
@@ -34,3 +34,11 @@ export const workspaceCredentialService = {
     return newCred;
   },
 };
+
+/** Closes #788: On-demand memory decryption of credential secrets */
+export async function decryptCredentialSecret(
+  cred: WorkspaceCredential,
+  key: CryptoKey,
+): Promise<string> {
+  return decryptSecret(cred.encrypted_secret, key, cred.iv);
+}
