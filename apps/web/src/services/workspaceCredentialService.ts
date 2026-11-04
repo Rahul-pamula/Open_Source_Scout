@@ -1,15 +1,18 @@
 import { WorkspaceCredential } from '../types/workspace';
 import { encryptSecret, decryptSecret } from '../utils/cryptoVault';
 
-/** Closes #787 & #788: Workspace credentials encryption & in-memory decryption service */
+let inMemoryCreds: Record<string, WorkspaceCredential[]> = {};
+
+/** Closes #787, #788 & #794: Credentials transparent encryption and decryption service */
 export const workspaceCredentialService = {
   async listCredentials(workspaceId: string): Promise<WorkspaceCredential[]> {
     try {
-      const cached = localStorage.getItem(`scout_creds_${workspaceId}`);
-      return cached ? JSON.parse(cached) : [];
-    } catch (e) {
-      return [];
-    }
+      if (typeof localStorage !== 'undefined' && localStorage.getItem) {
+        const cached = localStorage.getItem(`scout_creds_${workspaceId}`);
+        if (cached) return JSON.parse(cached);
+      }
+    } catch (e) {}
+    return inMemoryCreds[workspaceId] || [];
   },
   async addCredential(
     workspaceId: string,
@@ -26,19 +29,23 @@ export const workspaceCredentialService = {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    const existing = await this.listCredentials(workspaceId);
-    existing.push(newCred);
+    if (!inMemoryCreds[workspaceId]) inMemoryCreds[workspaceId] = [];
+    inMemoryCreds[workspaceId].push(newCred);
     try {
-      localStorage.setItem(`scout_creds_${workspaceId}`, JSON.stringify(existing));
+      if (typeof localStorage !== 'undefined' && localStorage.setItem) {
+        localStorage.setItem(
+          `scout_creds_${workspaceId}`,
+          JSON.stringify(inMemoryCreds[workspaceId]),
+        );
+      }
     } catch (e) {}
     return newCred;
   },
 };
 
-/** Closes #788: On-demand memory decryption of credential secrets */
 export async function decryptCredentialSecret(
   cred: WorkspaceCredential,
   key: CryptoKey,
 ): Promise<string> {
-  return decryptSecret(cred.encrypted_secret, key, cred.iv);
+  return decryptSecret(cred.encrypted_secret, cred.iv, key);
 }
