@@ -110,6 +110,7 @@ export const AddLinkModal: React.FC<AddLinkModalProps> = ({
               onChange={(e) => setSection(e.target.value)}
               className="w-full bg-gray-800 text-sm text-white px-3 py-2 rounded-xl border border-gray-700 focus:border-emerald-500 focus:outline-none"
             >
+              <option value="__new__">+ Create new section...</option>
               {sections.map((s) => (
                 <option key={s} value={s}>
                   {s}
