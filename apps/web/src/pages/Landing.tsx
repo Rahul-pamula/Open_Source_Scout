@@ -11,6 +11,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { RotatingStickerBadge } from '../components/RotatingStickerBadge';
 
 const McpAnimation = () => {
   const [step, setStep] = useState(0);
@@ -256,6 +257,9 @@ export function Landing() {
         <div className="grid md:grid-cols-2 gap-12 items-center">
           {/* Left Column: Typography & CTAs */}
           <div className="text-left">
+            <div className="mb-4">
+              <RotatingStickerBadge />
+            </div>
             <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-8 leading-[1.2]">
               <span className="text-indigo-600 bg-indigo-50/80 border border-indigo-100/50 px-3 py-0.5 rounded-lg inline-block shadow-sm mb-2">
                 Discovering
