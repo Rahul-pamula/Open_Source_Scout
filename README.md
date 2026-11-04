@@ -10,7 +10,7 @@
 
 > **Scout is the 10x Developer OS for the AI era.** Use the **v1 Cloud Dashboard** to manage your GitHub contributions, and the **v2 Local MCP** to safely orchestrate AI agents directly in your IDE.
 
-![Scout Preview](./docs/preview.jpg)
+![Scout Preview](./docs/preview.png)
 
 ## Try it Now — No Installation Required
 

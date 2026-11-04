@@ -393,7 +393,7 @@ export function Landing() {
               {/* Main Product Preview Visual */}
               <div className="relative w-full h-full rounded-2xl overflow-hidden border border-emerald-500/30 shadow-2xl bg-zinc-950">
                 <img
-                  src={`${import.meta.env.BASE_URL}preview.jpg`}
+                  src={`${import.meta.env.BASE_URL}preview.png`}
                   alt="Open Source Scout Dashboard Preview"
                   className="w-full h-full object-cover transform group-hover:scale-[1.01] transition-transform duration-500"
                 />
