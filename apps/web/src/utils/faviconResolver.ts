@@ -62,3 +62,8 @@ export function generateMonogram(titleOrDomain: string): string {
 export function getUnavatarUrl(domain: string): string {
   return `https://unavatar.io/${encodeURIComponent(domain)}?fallback=false`;
 }
+
+/** Closes #777: Dedicated DuckDuckGo fallback resolver helper */
+export function resolveDuckDuckGoFavicon(domain: string): string {
+  return getDuckDuckGoFaviconUrl(domain);
+}
