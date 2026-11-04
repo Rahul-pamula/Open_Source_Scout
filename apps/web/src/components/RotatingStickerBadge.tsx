@@ -32,7 +32,10 @@ export const RotatingStickerBadge: React.FC = () => {
   const slide = STICKER_SLIDES[index];
 
   return (
-    <div className="inline-flex flex-col items-center mb-6 select-none animate-in fade-in zoom-in-95 duration-200">
+    <div
+      aria-live="polite"
+      className="inline-flex flex-col items-center mb-6 select-none animate-in fade-in zoom-in-95 duration-200"
+    >
       <div className="text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1.5">
         {slide.prefix}
       </div>
