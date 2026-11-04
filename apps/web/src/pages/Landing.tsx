@@ -348,6 +348,26 @@ export function Landing() {
               <div className="absolute inset-0 bg-emerald-500/5 blur-3xl rounded-full"></div>
               <div className="relative">
                 <PipelineAnimation />
+                <div className="mt-8 p-6 bg-white/90 backdrop-blur-md rounded-2xl border border-zinc-200 shadow-xl">
+                  <h4 className="text-sm font-bold text-zinc-900 mb-2">
+                    Workspaces & App Launcher Preview
+                  </h4>
+                  <p className="text-xs text-zinc-600 mb-4">
+                    Centrally launch daily startup tools, HRMS portals, and documentation links in
+                    1-click.
+                  </p>
+                  <div className="flex gap-4">
+                    <div className="w-12 h-12 rounded-[22%] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center font-bold text-xs text-emerald-600">
+                      GD
+                    </div>
+                    <div className="w-12 h-12 rounded-[22%] bg-blue-500/10 border border-blue-500/20 flex items-center justify-center font-bold text-xs text-blue-600">
+                      CU
+                    </div>
+                    <div className="w-12 h-12 rounded-[22%] bg-purple-500/10 border border-purple-500/20 flex items-center justify-center font-bold text-xs text-purple-600">
+                      GH
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
