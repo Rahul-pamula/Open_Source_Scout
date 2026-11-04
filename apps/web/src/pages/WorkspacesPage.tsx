@@ -27,17 +27,19 @@ export function WorkspacesPage() {
   };
 
   if (loading) {
-    return <div className="p-8 text-sm text-gray-500">Loading workspaces...</div>;
+    return (
+      <div className="p-8 text-sm text-zinc-500 dark:text-zinc-400">Loading workspaces...</div>
+    );
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
             {activeWorkspace ? activeWorkspace.name : 'Personal Workspace'}
           </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
             Centrally manage internal dashboards, HRMS tools, documentation, and zero-knowledge
             secrets.
           </p>
@@ -45,7 +47,7 @@ export function WorkspacesPage() {
         <button
           type="button"
           onClick={() => setIsAddOpen(true)}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-emerald-600/20"
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-emerald-600/20 active:scale-95"
         >
           + Add Tool Link
         </button>
