@@ -261,26 +261,19 @@ export function Landing() {
               <RotatingStickerBadge />
             </div>
             <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-8 leading-[1.2]">
-              <span className="text-indigo-600 bg-indigo-50/80 border border-indigo-100/50 px-3 py-0.5 rounded-lg inline-block shadow-sm mb-2">
-                Discovering
-              </span>{' '}
-              Issues,
+              <span className="text-emerald-500 font-black">Discovering</span> Issues,
               <br />
-              <span className="text-indigo-600 bg-indigo-50/80 border border-indigo-100/50 px-3 py-0.5 rounded-lg inline-block shadow-sm mb-2">
-                Evaluating
-              </span>{' '}
-              Effort,
+              <span className="text-emerald-500 font-black">Evaluating</span> Effort,
               <br />
-              <span className="text-indigo-600 bg-indigo-50/80 border border-indigo-100/50 px-3 py-0.5 rounded-lg inline-block shadow-sm">
-                Executing
-              </span>{' '}
-              Safely.
+              <span className="text-emerald-500 font-black">Executing</span> Safely.
             </h1>
 
             <p className="text-lg md:text-xl text-zinc-600 mb-10 font-medium leading-relaxed">
-              Open Source Scout is a dual-engine architecture for the AI era. Use the{' '}
-              <strong>v1 Cloud Dashboard</strong> to manage your GitHub contributions, and the{' '}
-              <strong>v2 Local MCP</strong> to safely orchestrate AI agents directly in your IDE.
+              Open Source Scout is the <strong>10x Developer OS</strong> for the AI era. Boost your{' '}
+              <strong>Open Source Contribution 10x</strong> by connecting to high-signal issues,
+              accelerate your AI models 10x with <strong>Scout MCP</strong> local orchestration, and
+              streamline daily productivity with a centralized daily app launcher and zero-knowledge
+              AES-256 credentials vault.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
