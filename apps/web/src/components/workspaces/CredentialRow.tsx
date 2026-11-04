@@ -33,6 +33,7 @@ export const CredentialRow: React.FC<CredentialRowProps> = ({ credential, onDecr
   };
 
   const handleCopyPass = async () => {
+    /* Closes #824: Direct decrypt to clipboard */
     const secret = plaintext || (await onDecryptPlaintext(credential));
     navigator.clipboard.writeText(secret);
     setCopiedPass(true);
