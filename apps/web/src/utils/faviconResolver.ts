@@ -58,3 +58,7 @@ export function generateMonogram(titleOrDomain: string): string {
   }
   return clean.slice(0, 1).toUpperCase();
 }
+
+export function getUnavatarUrl(domain: string): string {
+  return `https://unavatar.io/${encodeURIComponent(domain)}?fallback=false`;
+}
