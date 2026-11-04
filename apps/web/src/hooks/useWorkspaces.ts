@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Workspace } from '../types/workspace';
 import { workspaceService } from '../services/workspaceService';
 
-/** Closes #789: Custom hook managing workspaces lifecycle and cached states */
+/** Closes #789 & #790: Custom hook with optimistic mutation updates */
 export function useWorkspaces() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -21,5 +21,19 @@ export function useWorkspaces() {
     refresh();
   }, [refresh]);
 
-  return { workspaces, loading, refresh };
+  const optimisticAddWorkspace = (ws: Workspace) => {
+    setWorkspaces((prev) => [...prev, ws]);
+  };
+
+  const optimisticRemoveWorkspace = (id: string) => {
+    setWorkspaces((prev) => prev.filter((w) => w.id !== id));
+  };
+
+  return {
+    workspaces,
+    loading,
+    refresh,
+    optimisticAddWorkspace,
+    optimisticRemoveWorkspace,
+  };
 }
