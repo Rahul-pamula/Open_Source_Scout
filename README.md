@@ -123,3 +123,13 @@ Open Source Scout includes an integrated **Workspaces OS** designed for develope
 - **1-Click App Launcher:** High-density mobile-style squircle launcher.
 - **Zero-Knowledge Vault:** Client-side AES-256-GCM encryption for passwords.
 - **Daily Standup Generator:** Format tasks and links directly for Slack and Teams.
+
+### 10x Developer & AI Pipeline
+
+```mermaid
+graph LR
+    A[Uncontested Issues] --> B[Scout AI Discovery]
+    B --> C[Worktree Sandbox]
+    C --> D[Multi-Language Test Validation]
+    D --> E[Merged PR & Standup Report]
+```
