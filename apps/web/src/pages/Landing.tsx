@@ -9,6 +9,10 @@ import {
   BookOpen,
   Layers,
   CheckCircle,
+  Code2,
+  Cpu,
+  ShieldCheck,
+  Palette,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { RotatingStickerBadge } from '../components/RotatingStickerBadge';
@@ -263,7 +267,7 @@ export function Landing() {
             <div className="mb-4">
               <RotatingStickerBadge />
             </div>
-            <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-8 leading-[1.2]">
+            <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-6 leading-[1.2]">
               <span className="text-emerald-500 font-black">Discovering</span> Issues,
               <br />
               <span className="text-emerald-500 font-black">Evaluating</span> Effort,
@@ -271,39 +275,93 @@ export function Landing() {
               <span className="text-emerald-500 font-black">Executing</span> Safely.
             </h1>
 
-            <p className="text-lg md:text-xl text-zinc-600 mb-6 font-medium leading-relaxed">
+            {/* Tech Stack Badges (JobShuru style — displayed at starting) */}
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              {/* Frontend */}
+              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
+                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
+                  <Code2 className="w-3.5 h-3.5 text-sky-400" />
+                  Frontend
+                </span>
+                <span className="bg-[#202630] text-sky-300 px-2.5 py-1 flex items-center font-bold">
+                  React 19 + Vite 8
+                </span>
+              </div>
+
+              {/* Backend */}
+              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
+                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
+                  <Server className="w-3.5 h-3.5 text-emerald-400" />
+                  Backend
+                </span>
+                <span className="bg-[#10b981] text-white px-2.5 py-1 flex items-center font-bold">
+                  Supabase
+                </span>
+              </div>
+
+              {/* Local MCP */}
+              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
+                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
+                  <Cpu className="w-3.5 h-3.5 text-purple-400" />
+                  Local MCP
+                </span>
+                <span className="bg-[#8b5cf6] text-white px-2.5 py-1 flex items-center font-bold">
+                  Scout MCP v2.2.0
+                </span>
+              </div>
+
+              {/* Database */}
+              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
+                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
+                  <Database className="w-3.5 h-3.5 text-emerald-300" />
+                  Database
+                </span>
+                <span className="bg-[#059669] text-white px-2.5 py-1 flex items-center font-bold">
+                  PostgreSQL
+                </span>
+              </div>
+
+              {/* Security */}
+              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
+                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  Security
+                </span>
+                <span className="bg-[#059669] text-white px-2.5 py-1 flex items-center font-bold">
+                  AES-256-GCM
+                </span>
+              </div>
+
+              {/* Styling */}
+              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
+                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
+                  <Palette className="w-3.5 h-3.5 text-cyan-400" />
+                  Styling
+                </span>
+                <span className="bg-[#06b6d4] text-white px-2.5 py-1 flex items-center font-bold">
+                  Tailwind CSS v4
+                </span>
+              </div>
+
+              {/* Language */}
+              <div className="inline-flex items-stretch rounded-md overflow-hidden text-xs font-mono shadow-2xs border border-zinc-800/80">
+                <span className="bg-[#181d24] text-zinc-300 px-2 py-1 flex items-center gap-1.5 font-medium border-r border-zinc-700/60">
+                  <Code2 className="w-3.5 h-3.5 text-blue-400" />
+                  Language
+                </span>
+                <span className="bg-[#2563eb] text-white px-2.5 py-1 flex items-center font-bold">
+                  TypeScript 5.8
+                </span>
+              </div>
+            </div>
+
+            <p className="text-lg md:text-xl text-zinc-600 mb-8 font-medium leading-relaxed">
               Open Source Scout is the <strong>10x Developer OS</strong> for the AI era. Boost your{' '}
               <strong>Open Source Contribution 10x</strong> by connecting to high-signal issues,
               accelerate your AI models 10x with <strong>Scout MCP</strong> local orchestration, and
               streamline daily productivity with a centralized daily app launcher and zero-knowledge
               AES-256 credentials vault.
             </p>
-
-            {/* Tech Stack Badges (JobShuru style) */}
-            <div className="flex flex-wrap items-center gap-2 mb-8">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
-                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Frontend</span>
-                <span className="font-bold text-zinc-900">React 19 + Vite 8</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
-                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Backend</span>
-                <span className="font-bold text-emerald-700">Supabase</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
-                <span className="text-[10px] text-zinc-400 uppercase font-semibold">
-                  Local Engine
-                </span>
-                <span className="font-bold text-purple-700">Scout MCP v2.2.0</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
-                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Security</span>
-                <span className="font-bold text-emerald-700">AES-256-GCM</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
-                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Styling</span>
-                <span className="font-bold text-teal-700">Tailwind CSS v4</span>
-              </span>
-            </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <Link
