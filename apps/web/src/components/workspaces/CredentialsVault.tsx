@@ -36,7 +36,9 @@ export const CredentialsVault: React.FC<CredentialsVaultProps> = ({
                 <span>AES-256 Client-Side</span>
               </span>
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">Check credentials (Optional)</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Check credentials (Optional - Click to reveal encrypted logins)
+            </p>
           </div>
         </div>
 
