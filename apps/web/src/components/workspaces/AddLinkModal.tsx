@@ -30,6 +30,10 @@ export const AddLinkModal: React.FC<AddLinkModalProps> = ({
     if (url.trim()) {
       const domain = extractDomain(url);
       if (domain) {
+        if (!title) {
+          const capitalized = domain.split('.')[0];
+          setTitle(capitalized.charAt(0).toUpperCase() + capitalized.slice(1));
+        }
         setIconPreview(getGoogleS2FaviconUrl(domain, 128));
       } else {
         setIconPreview(null);
