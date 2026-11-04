@@ -13,6 +13,7 @@ import { DroppedPage } from './pages/DroppedPage';
 import { Identity } from './pages/Identity';
 import { Onboarding } from './pages/Onboarding';
 import { Docs } from './pages/Docs';
+import { WorkspacesPage } from './pages/WorkspacesPage';
 import { OAuthCallback } from './pages/OAuthCallback';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { hasSupabaseConfig } from './services/supabase';
@@ -94,6 +95,7 @@ function App() {
               {/* Legacy redirect */}
               <Route path="pipeline" element={<Navigate to="/app/automation" replace />} />
             </Route>
+            <Route path="workspaces" element={<WorkspacesPage />} />
             <Route path="identity" element={<Identity />} />
           </Route>
 
