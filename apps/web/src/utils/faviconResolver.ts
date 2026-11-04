@@ -120,3 +120,18 @@ export function getNextFallbackUrl(domain: string, currentAttempt: number): stri
   if (currentAttempt === 2) return getDuckDuckGoFaviconUrl(domain);
   return null;
 }
+
+/** Closes #781: Top developer & workplace tool presets */
+export const TOOL_DOMAIN_PRESETS: Record<
+  string,
+  { name: string; category: string; defaultColor: string }
+> = {
+  'github.com': { name: 'GitHub', category: 'Dev', defaultColor: '#24292f' },
+  'gitlab.com': { name: 'GitLab', category: 'Dev', defaultColor: '#fc6d26' },
+  'clickup.com': { name: 'ClickUp', category: 'Project', defaultColor: '#7b68ee' },
+  'slack.com': { name: 'Slack', category: 'Chat', defaultColor: '#4a154b' },
+  'figma.com': { name: 'Figma', category: 'Design', defaultColor: '#f24e1e' },
+  'notion.so': { name: 'Notion', category: 'Docs', defaultColor: '#000000' },
+  'docs.google.com': { name: 'Google Docs', category: 'Docs', defaultColor: '#4285f4' },
+  'linear.app': { name: 'Linear', category: 'Project', defaultColor: '#5e6ad2' },
+};
