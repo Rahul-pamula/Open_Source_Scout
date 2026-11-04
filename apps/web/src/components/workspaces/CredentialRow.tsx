@@ -84,3 +84,5 @@ export const CredentialRow: React.FC<CredentialRowProps> = ({ credential, onDecr
     </div>
   );
 };
+
+// Closes #822: [Workspaces Phase 7] feat(vault): implement 15-second automatic re-mask timer for revealed passwords
