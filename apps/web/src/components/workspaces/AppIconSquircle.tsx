@@ -33,7 +33,7 @@ export const AppIconSquircle: React.FC<AppIconSquircleProps> = ({
   return (
     <div
       style={{ width: size, height: size }}
-      className="rounded-[22%] bg-gray-900 border border-gray-800 shadow-md flex items-center justify-center overflow-hidden transition-all duration-200 select-none"
+      className="rounded-[22%] transform hover:-translate-y-1.5 hover:shadow-emerald-500/25 hover:border-emerald-500/50 active:scale-90 active:translate-y-0 duration-150 ease-out cursor-pointer bg-gray-900 border border-gray-800 shadow-md flex items-center justify-center overflow-hidden transition-all duration-200 select-none"
     >
       {!loadError && currentIconUrl ? (
         <img
