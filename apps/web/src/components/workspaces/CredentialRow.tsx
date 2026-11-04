@@ -58,6 +58,7 @@ export const CredentialRow: React.FC<CredentialRowProps> = ({ credential, onDecr
           onClick={toggleReveal}
           className="p-1.5 text-gray-400 hover:text-white bg-gray-800/80 rounded-lg"
           title={revealed ? 'Hide Password' : 'Show Password'}
+          aria-label="Toggle Password Visibility"
         >
           {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
