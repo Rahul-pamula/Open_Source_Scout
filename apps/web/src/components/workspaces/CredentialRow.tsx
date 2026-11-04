@@ -68,6 +68,7 @@ export const CredentialRow: React.FC<CredentialRowProps> = ({ credential, onDecr
           onClick={handleCopyUser}
           className="p-1.5 text-gray-400 hover:text-white bg-gray-800/80 rounded-lg"
           title="Copy Username"
+          aria-label="Copy Username"
         >
           {copiedUser ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
         </button>
