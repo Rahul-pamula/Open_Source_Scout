@@ -115,3 +115,11 @@ Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.m
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## Workspaces & App Launcher Architecture
+
+Open Source Scout includes an integrated **Workspaces OS** designed for developers and interns to organize external tools, documentation, repositories, and credentials.
+
+- **1-Click App Launcher:** High-density mobile-style squircle launcher.
+- **Zero-Knowledge Vault:** Client-side AES-256-GCM encryption for passwords.
+- **Daily Standup Generator:** Format tasks and links directly for Slack and Teams.
