@@ -271,13 +271,39 @@ export function Landing() {
               <span className="text-emerald-500 font-black">Executing</span> Safely.
             </h1>
 
-            <p className="text-lg md:text-xl text-zinc-600 mb-10 font-medium leading-relaxed">
+            <p className="text-lg md:text-xl text-zinc-600 mb-6 font-medium leading-relaxed">
               Open Source Scout is the <strong>10x Developer OS</strong> for the AI era. Boost your{' '}
               <strong>Open Source Contribution 10x</strong> by connecting to high-signal issues,
               accelerate your AI models 10x with <strong>Scout MCP</strong> local orchestration, and
               streamline daily productivity with a centralized daily app launcher and zero-knowledge
               AES-256 credentials vault.
             </p>
+
+            {/* Tech Stack Badges (JobShuru style) */}
+            <div className="flex flex-wrap items-center gap-2 mb-8">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Frontend</span>
+                <span className="font-bold text-zinc-900">React 19 + Vite 8</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Backend</span>
+                <span className="font-bold text-emerald-700">Supabase</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">
+                  Local Engine
+                </span>
+                <span className="font-bold text-purple-700">Scout MCP v2.2.0</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Security</span>
+                <span className="font-bold text-emerald-700">AES-256-GCM</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 shadow-2xs">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold">Styling</span>
+                <span className="font-bold text-teal-700">Tailwind CSS v4</span>
+              </span>
+            </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <Link
@@ -300,26 +326,26 @@ export function Landing() {
             </p>
           </div>
 
-          {/* Right Column: Verified 3,257 GitHub Contributions Proof */}
+          {/* Right Column: Open Source Scout Live Dashboard Preview (from README) */}
           <div className="relative hidden md:flex justify-end">
-            <div className="relative w-full max-w-xl aspect-[1024/625] group">
+            <div className="relative w-full max-w-xl aspect-[1024/580] group">
               {/* Decorative emerald ambient glow behind image */}
               <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition duration-500" />
 
-              {/* Main Contributions Proof Visual */}
+              {/* Main Product Preview Visual */}
               <div className="relative w-full h-full rounded-2xl overflow-hidden border border-emerald-500/30 shadow-2xl bg-zinc-950">
                 <img
-                  src={`${import.meta.env.BASE_URL}github_contributions_proof.png`}
-                  alt="Verified 3,257 Open Source GitHub Contributions"
+                  src={`${import.meta.env.BASE_URL}preview.jpg`}
+                  alt="Open Source Scout Dashboard Preview"
                   className="w-full h-full object-cover transform group-hover:scale-[1.01] transition-transform duration-500"
                 />
                 <div className="absolute bottom-3 left-3 right-3 bg-zinc-950/90 backdrop-blur-md border border-zinc-800 px-3.5 py-2 rounded-xl flex items-center justify-between text-xs text-white shadow-lg">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-mono text-zinc-300">3,257 Contributions Verified</span>
+                    <span className="font-mono text-zinc-300">10x Developer OS Active</span>
                   </div>
                   <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    10x Impact Proven
+                    Dual-Engine v2.2.0
                   </span>
                 </div>
               </div>
