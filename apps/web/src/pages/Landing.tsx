@@ -300,26 +300,26 @@ export function Landing() {
             </p>
           </div>
 
-          {/* Right Column: 10x Developer OS Interactive Preview */}
+          {/* Right Column: Verified 3,257 GitHub Contributions Proof */}
           <div className="relative hidden md:flex justify-end">
-            <div className="relative w-full max-w-lg aspect-square group">
+            <div className="relative w-full max-w-xl aspect-[1024/625] group">
               {/* Decorative emerald ambient glow behind image */}
               <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-2xl opacity-75 group-hover:opacity-100 transition duration-500" />
 
-              {/* Main Developer OS preview visual */}
+              {/* Main Contributions Proof Visual */}
               <div className="relative w-full h-full rounded-2xl overflow-hidden border border-emerald-500/30 shadow-2xl bg-zinc-950">
                 <img
-                  src={`${import.meta.env.BASE_URL}hero_os_preview.jpg`}
-                  alt="Open Source Scout 10x Developer OS"
-                  className="w-full h-full object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
+                  src={`${import.meta.env.BASE_URL}github_contributions_proof.png`}
+                  alt="Verified 3,257 Open Source GitHub Contributions"
+                  className="w-full h-full object-cover transform group-hover:scale-[1.01] transition-transform duration-500"
                 />
-                <div className="absolute bottom-4 left-4 right-4 bg-zinc-900/90 backdrop-blur-md border border-zinc-800 p-3 rounded-xl flex items-center justify-between text-xs text-white">
+                <div className="absolute bottom-3 left-3 right-3 bg-zinc-950/90 backdrop-blur-md border border-zinc-800 px-3.5 py-2 rounded-xl flex items-center justify-between text-xs text-white shadow-lg">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-mono text-zinc-300">10x Developer OS Active</span>
+                    <span className="font-mono text-zinc-300">3,257 Contributions Verified</span>
                   </div>
                   <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    Dual-Engine v2.2.0
+                    10x Impact Proven
                   </span>
                 </div>
               </div>
