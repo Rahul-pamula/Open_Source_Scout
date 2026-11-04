@@ -2,11 +2,11 @@ import type { EncryptedPayload } from '../utils/cryptoVault';
 
 export interface Workspace {
   id: string;
-  user_id: string;
+  user_id?: string;
   name: string;
-  description: string | null;
-  icon: string;
-  color: string;
+  description?: string | null;
+  icon?: string;
+  color?: string;
   created_at: string;
   updated_at: string;
 }
@@ -14,12 +14,12 @@ export interface Workspace {
 export interface WorkspaceLink {
   id: string;
   workspace_id: string;
-  user_id: string;
+  user_id?: string;
   title: string;
   url: string;
-  icon_url: string | null;
-  section_name: string;
-  position: number;
+  icon_url?: string | null;
+  section_name?: string;
+  position?: number;
   created_at: string;
   updated_at: string;
 }
@@ -27,11 +27,14 @@ export interface WorkspaceLink {
 export interface WorkspaceCredential {
   id: string;
   workspace_id: string;
-  user_id: string;
+  user_id?: string;
   service_name: string;
-  username: string;
-  encrypted_data: EncryptedPayload;
-  notes: string | null;
+  identifier?: string;
+  username?: string;
+  encrypted_secret?: string;
+  encrypted_data?: EncryptedPayload;
+  iv?: string;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
 }

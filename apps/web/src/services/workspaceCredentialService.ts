@@ -1,4 +1,4 @@
-import { WorkspaceCredential } from '../types/workspace';
+import type { WorkspaceCredential } from '../types/workspaces';
 import { encryptSecret, decryptSecret } from '../utils/cryptoVault';
 
 let inMemoryCreds: Record<string, WorkspaceCredential[]> = {};
@@ -47,5 +47,8 @@ export async function decryptCredentialSecret(
   cred: WorkspaceCredential,
   key: CryptoKey,
 ): Promise<string> {
+  if (!cred.encrypted_secret || !cred.iv) {
+    throw new Error('Credential missing encrypted secret or IV');
+  }
   return decryptSecret(cred.encrypted_secret, cred.iv, key);
 }

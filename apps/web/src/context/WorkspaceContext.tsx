@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Workspace } from '../types/workspace';
+import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import type { Workspace } from '../types/workspaces';
 
 /** Closes #791: Global Workspace Context provider */
 interface WorkspaceContextValue {

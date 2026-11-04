@@ -1,4 +1,4 @@
-import { Workspace } from '../types/workspace';
+import type { Workspace } from '../types/workspaces';
 
 let inMemoryWorkspaces: Workspace[] = [];
 

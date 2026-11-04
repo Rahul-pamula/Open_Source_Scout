@@ -1,4 +1,4 @@
-import { WorkspaceLink } from '../types/workspace';
+import type { WorkspaceLink } from '../types/workspaces';
 
 /** Closes #785 & #786: Workspace link CRUD and batch reordering service */
 export const workspaceLinkService = {

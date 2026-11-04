@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Workspace } from '../types/workspace';
+import type { Workspace } from '../types/workspaces';
 import { workspaceService } from '../services/workspaceService';
 
 /** Closes #789 & #790: Custom hook with optimistic mutation updates */
