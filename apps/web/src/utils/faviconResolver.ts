@@ -90,3 +90,25 @@ export function getCachedIconUrl(domain: string): string | null {
   } catch (e) {}
   return null;
 }
+
+/** Closes #779: Initials squircle badge data generator */
+export function getInitialsSquircleData(nameOrDomain: string): {
+  initials: string;
+  bgColor: string;
+} {
+  const clean = nameOrDomain.replace(/^(https?:\/\/)?(www\.)?/, '').trim();
+  const parts = clean.split(/[.\-_\s]+/);
+  let initials = '';
+  if (parts.length >= 2) {
+    initials = (parts[0][0] + parts[1][0]).toUpperCase();
+  } else if (clean.length > 0) {
+    initials = clean.substring(0, 2).toUpperCase();
+  } else {
+    initials = 'OS';
+  }
+  const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4'];
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) hash = (hash << 5) - hash + clean.charCodeAt(i);
+  const bgColor = colors[Math.abs(hash) % colors.length];
+  return { initials, bgColor };
+}
