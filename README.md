@@ -1,12 +1,12 @@
 # 🚀 Open Source Scout — The 10x Developer OS for the AI Era
 
-[![Frontend](https://img.shields.io/badge/Frontend-React_19_+_Vite_8-20232A?style=flat&logo=react&logoColor=61DAFB)](https://react.dev)
-[![Backend](<https://img.shields.io/badge/Backend-Supabase_(PostgreSQL)-1C1C1C?style=flat&logo=supabase&logoColor=3ECF8E>)](https://supabase.com)
-[![Edge Runtime](https://img.shields.io/badge/Edge_Runtime-Deno_v2-1C1C1C?style=flat&logo=deno&logoColor=white)](https://deno.land)
-[![Local MCP](https://img.shields.io/badge/Local_MCP-Model_Context_Protocol_v2.2.0-1C1C1C?style=flat&logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
-[![Security](https://img.shields.io/badge/Security-AES--256--GCM_Client_Vault-1C1C1C?style=flat&logo=shield&logoColor=10B981)](https://github.com/Rahul-pamula/Open_Source_Scout)
-[![Styling](https://img.shields.io/badge/Styling-Tailwind_CSS_v4-20232A?style=flat&logo=tailwindcss&logoColor=38B2AC)](https://tailwindcss.com)
-[![Language](https://img.shields.io/badge/Language-TypeScript_5.8-20232A?style=flat&logo=typescript&logoColor=3178C6)](https://www.typescriptlang.org)
+[![Frontend](https://img.shields.io/badge/Frontend-React_19_%2B_Vite_8-20232A?style=flat&logo=react&logoColor=61DAFB)](https://react.dev)
+[![Backend](<https://img.shields.io/badge/Backend-Supabase_(PostgreSQL)-10B981?style=flat&logo=supabase&logoColor=white>)](https://supabase.com)
+[![Local MCP](https://img.shields.io/badge/Local_MCP-Scout_MCP_v2.2.0-8B5CF6?style=flat&logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
+[![Edge Runtime](https://img.shields.io/badge/Edge_Runtime-Deno_v2-20232A?style=flat&logo=deno&logoColor=white)](https://deno.land)
+[![Security](https://img.shields.io/badge/Security-AES--256--GCM_Client_Vault-059669?style=flat&logo=shield&logoColor=white)](https://github.com/Rahul-pamula/Open_Source_Scout)
+[![Styling](https://img.shields.io/badge/Styling-Tailwind_CSS_v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Language](https://img.shields.io/badge/Language-TypeScript_5.8-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
 > **Scout is the 10x Developer OS for the AI era.** Use the **v1 Cloud Dashboard** to manage your GitHub contributions, and the **v2 Local MCP** to safely orchestrate AI agents directly in your IDE.
 
