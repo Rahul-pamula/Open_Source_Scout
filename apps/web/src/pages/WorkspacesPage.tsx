@@ -117,9 +117,7 @@ export function WorkspacesPage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-8 text-sm text-zinc-500 dark:text-zinc-400">Loading workspaces...</div>
-    );
+    return <div className="p-8 text-sm text-zinc-500">Loading workspaces...</div>;
   }
 
   // Derive unique sections
@@ -140,12 +138,12 @@ export function WorkspacesPage() {
       />
 
       {/* Header Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-black tracking-tight text-zinc-900">
             {activeWorkspace ? activeWorkspace.name : 'Personal Workspace'}
           </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             Centrally manage internal dashboards, HRMS tools, documentation, and zero-knowledge
             secrets.
           </p>
@@ -159,7 +157,7 @@ export function WorkspacesPage() {
                 type="button"
                 onClick={handleExportBackup}
                 title="Export Workspace JSON Backup"
-                className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-semibold rounded-xl border border-zinc-200 dark:border-zinc-700 transition shadow-xs"
+                className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold rounded-xl border border-zinc-200 transition shadow-xs cursor-pointer"
               >
                 <Download size={14} />
                 <span>Export</span>
@@ -169,7 +167,7 @@ export function WorkspacesPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 title="Import Workspace JSON Backup"
-                className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-semibold rounded-xl border border-zinc-200 dark:border-zinc-700 transition shadow-xs"
+                className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold rounded-xl border border-zinc-200 transition shadow-xs cursor-pointer"
               >
                 <Upload size={14} />
                 <span>Import</span>
@@ -181,16 +179,16 @@ export function WorkspacesPage() {
             type="button"
             onClick={handleLoadStarterPack}
             title="Load Popular Developer Tools"
-            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl border border-zinc-200 dark:border-zinc-700 transition shadow-xs"
+            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-semibold rounded-xl border border-zinc-200 transition shadow-xs cursor-pointer"
           >
-            <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400" />
+            <Sparkles size={14} className="text-emerald-600" />
             <span>Starter Pack</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-emerald-600/20 active:scale-95"
+            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
           >
             <Plus size={15} />
             <span>Add Tool Link</span>
@@ -205,10 +203,10 @@ export function WorkspacesPage() {
           <button
             type="button"
             onClick={() => setSelectedSection('All')}
-            className={`px-3 py-1 rounded-lg font-medium transition ${
+            className={`px-3 py-1 rounded-lg font-medium transition cursor-pointer ${
               selectedSection === 'All'
                 ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200'
+                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
             }`}
           >
             All ({links.length})
@@ -220,10 +218,10 @@ export function WorkspacesPage() {
                 key={sec}
                 type="button"
                 onClick={() => setSelectedSection(sec)}
-                className={`px-3 py-1 rounded-lg font-medium transition ${
+                className={`px-3 py-1 rounded-lg font-medium transition cursor-pointer ${
                   selectedSection === sec
                     ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                 }`}
               >
                 {sec} ({count})

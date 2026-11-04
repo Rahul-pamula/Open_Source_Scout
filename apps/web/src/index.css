@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-emerald-500: #10b981;
   --color-emerald-600: #059669;

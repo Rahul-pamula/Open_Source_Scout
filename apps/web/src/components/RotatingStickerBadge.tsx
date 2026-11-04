@@ -36,7 +36,7 @@ export const RotatingStickerBadge: React.FC = () => {
       aria-live="polite"
       className="inline-flex flex-col items-center mb-6 select-none animate-in fade-in zoom-in-95 duration-200"
     >
-      <div className="text-xs uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold mb-1.5">
+      <div className="text-xs uppercase tracking-widest text-emerald-600 font-bold mb-1.5">
         {slide.prefix}
       </div>
       <div className="px-5 py-2 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm md:text-base shadow-[5px_5px_0px_0px_rgba(5,150,105,1)] hover:shadow-[2px_2px_0px_0px_rgba(5,150,105,1)] border-2 border-emerald-700 transform -rotate-1 hover:rotate-0 transition-transform duration-200">
