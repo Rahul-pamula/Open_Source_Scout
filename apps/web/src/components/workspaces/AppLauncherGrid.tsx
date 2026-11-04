@@ -40,7 +40,7 @@ export const AppLauncherGrid: React.FC<AppLauncherGridProps> = ({
               </span>
             )}
           </div>
-          <span className="mt-2 text-xs font-medium text-gray-300 group-hover:text-emerald-400 text-center line-clamp-2 max-w-[80px]">
+          <span className="mt-2 text-xs font-medium text-gray-300 group-hover:text-emerald-400 text-center line-clamp-2 max-w-[84px] leading-tight break-words tracking-tight select-none text-[11px]">
             {link.title}
           </span>
         </button>
