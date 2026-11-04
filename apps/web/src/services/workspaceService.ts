@@ -1,14 +1,17 @@
 import { Workspace } from '../types/workspace';
 
-/** Closes #784: Workspace CRUD service */
+let inMemoryWorkspaces: Workspace[] = [];
+
+/** Closes #784 & #793: Workspace CRUD service with memory fallback */
 export const workspaceService = {
   async listWorkspaces(): Promise<Workspace[]> {
     try {
-      const cached = localStorage.getItem('scout_workspaces_list');
-      return cached ? JSON.parse(cached) : [];
-    } catch (e) {
-      return [];
-    }
+      if (typeof localStorage !== 'undefined' && localStorage.getItem) {
+        const cached = localStorage.getItem('scout_workspaces_list');
+        if (cached) return JSON.parse(cached);
+      }
+    } catch (e) {}
+    return inMemoryWorkspaces;
   },
   async createWorkspace(data: {
     name: string;
@@ -26,18 +29,20 @@ export const workspaceService = {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    const existing = await this.listWorkspaces();
-    existing.push(newWs);
+    inMemoryWorkspaces.push(newWs);
     try {
-      localStorage.setItem('scout_workspaces_list', JSON.stringify(existing));
+      if (typeof localStorage !== 'undefined' && localStorage.setItem) {
+        localStorage.setItem('scout_workspaces_list', JSON.stringify(inMemoryWorkspaces));
+      }
     } catch (e) {}
     return newWs;
   },
   async deleteWorkspace(id: string): Promise<boolean> {
-    const existing = await this.listWorkspaces();
-    const filtered = existing.filter((w) => w.id !== id);
+    inMemoryWorkspaces = inMemoryWorkspaces.filter((w) => w.id !== id);
     try {
-      localStorage.setItem('scout_workspaces_list', JSON.stringify(filtered));
+      if (typeof localStorage !== 'undefined' && localStorage.setItem) {
+        localStorage.setItem('scout_workspaces_list', JSON.stringify(inMemoryWorkspaces));
+      }
     } catch (e) {}
     return true;
   },
