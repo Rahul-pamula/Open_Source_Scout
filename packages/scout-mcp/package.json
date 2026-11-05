@@ -1,6 +1,6 @@
 {
   "name": "open-source-scout-mcp",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Scout MCP Orchestration Server",
   "main": "dist/index.js",
   "type": "module",
