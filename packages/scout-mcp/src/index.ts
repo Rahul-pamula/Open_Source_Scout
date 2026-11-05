@@ -608,7 +608,8 @@ ${JSON.stringify(result, null, 2)}`
       // -----------------------------------------------------------------------
       case 'cleanup_session': {
         const { session_id } = CleanupSessionSchema.parse(request.params.arguments);
-        await localHarness.cleanupSession(session_id);
+        const resolvedCwd = sessionWorkspaces.get(session_id);
+        await localHarness.cleanupSession(session_id, resolvedCwd);
         sessionWorkspaces.delete(session_id);
 
         return {
