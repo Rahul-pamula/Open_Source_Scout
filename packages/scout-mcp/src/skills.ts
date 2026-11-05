@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import matter from 'gray-matter';
 import { fileURLToPath } from 'node:url';
 
@@ -250,7 +251,19 @@ export async function loadSkills(
     targetCwd = process.cwd();
   }
 
-  const skillsDir = path.join(targetCwd, '.scout', 'skills');
+  // Guard against daemon root cwd ('/' or non-writable root filesystem)
+  const isRootDir = !targetCwd || targetCwd === '/' || targetCwd === path.parse(targetCwd).root;
+  let skillsDir: string;
+
+  if (isRootDir) {
+    const scoutHome = process.env.SCOUT_HOME
+      ? path.resolve(process.env.SCOUT_HOME)
+      : path.join(os.homedir(), '.scout');
+    skillsDir = path.join(scoutHome, 'skills');
+  } else {
+    skillsDir = path.join(targetCwd, '.scout', 'skills');
+  }
+
   const skillsDirExists = await pathExists(skillsDir);
 
   if (!skillsDirExists) {
