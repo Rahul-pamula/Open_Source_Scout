@@ -36,7 +36,7 @@ import {
   recordValidationResults,
   recordTimelineEvent,
 } from '../evidence.js';
-import { runAdvisoryValidation } from '../validation.js';
+import { runAdvisoryValidation, runBuildVerification } from '../validation.js';
 import { loadSkills } from '../skills.js';
 import { ProgressCallback } from '../progress.js';
 
@@ -263,8 +263,17 @@ export class LocalHarness {
 
     // Advisory validation (runs scout:validate if present).
     await onProgress?.(60, 100, 'Running advisory validation checks');
-    const validationResult = await runAdvisoryValidation();
+    const validationResult = await runAdvisoryValidation(worktreePath, changedFiles);
     await recordValidationResults(sessionId, validationResult);
+
+    // Pre-Merge Validation Gate (Hard Stop):
+    // Refuse submission if production build or typechecking fails
+    const buildResult = await runBuildVerification(worktreePath);
+    if (!buildResult.verified) {
+      throw new Error(
+        `Pre-Merge Validation Gate failed: '${buildResult.command}' exited with non-zero code (${buildResult.exit_code}). Fix build and typecheck errors before submitting.\n${buildResult.stderr || buildResult.stdout}`,
+      );
+    }
 
     await onProgress?.(100, 100, 'Review submission completed successfully');
     try {
