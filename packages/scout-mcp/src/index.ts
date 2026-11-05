@@ -35,6 +35,7 @@ import { resolveProgressToken, createProgressCallback } from './progress.js';
 import { recordTimelineEvent } from './evidence.js';
 import { exportSessionBundle } from './bundle.js';
 import { streamReadFile } from './fileStream.js';
+import { runBuildVerification } from './validation.js';
 import { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
 import { parseCliAction, SCOUT_MCP_VERSION, SCOUT_MCP_HELP } from './cli.js';
 export { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
@@ -180,6 +181,10 @@ export const ListSkillsSchema = z.object({
 const ExportSessionBundleSchema = z.object({
   session_id: z.string().uuid(),
   output_path: z.string().optional(),
+});
+
+const VerifyBuildSchema = z.object({
+  session_id: z.string().uuid(),
 });
 
 // ---------------------------------------------------------------------------
@@ -391,6 +396,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           session_id: { type: 'string', description: 'The UUID of the session to bundle.' },
           output_path: { type: 'string', description: 'Optional destination file path for the archive.' },
+        },
+        required: ['session_id'],
+      },
+    },
+    {
+      name: 'verify_build',
+      description: 'Run production build and typecheck verification (tsc -b, build script, cargo check) on the session worktree.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          session_id: { type: 'string', description: 'The UUID of the session to verify.' },
         },
         required: ['session_id'],
       },
@@ -849,6 +865,32 @@ ${JSON.stringify(result, null, 2)}`
               text: JSON.stringify(
                 {
                   message: 'Successfully generated session archive bundle.',
+                  ...result,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      case 'verify_build': {
+        const { session_id } = VerifyBuildSchema.parse(request.params.arguments);
+        const repoCwd = await resolveSessionWorkspace(session_id);
+        const worktreePath = await getWorktreePath(session_id, repoCwd);
+        const result = await runBuildVerification(worktreePath);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  message: result.verified
+                    ? 'Build and typecheck verification passed successfully.'
+                    : 'Build or typecheck verification failed.',
                   ...result,
                 },
                 null,
