@@ -530,6 +530,54 @@ export function parseTestOutputSummary(output: string): ValidationSummary {
   return { total, passed, failed, duration_ms };
 }
 
+export interface BuildVerificationResult {
+  verified: boolean;
+  command: string | null;
+  type: 'build' | 'typecheck' | 'none';
+  stdout: string;
+  stderr: string;
+  exit_code: number | null;
+}
+
+export async function runBuildVerification(cwd: string = process.cwd()): Promise<BuildVerificationResult> {
+  const resolved = resolveBuildVerificationCommand(cwd);
+  if (!resolved) {
+    return {
+      verified: true,
+      command: null,
+      type: 'none',
+      stdout: 'No build or typecheck pipeline detected. Verification skipped.',
+      stderr: '',
+      exit_code: 0,
+    };
+  }
+
+  try {
+    const { stdout, stderr } = await execAsync(resolved.command, {
+      cwd,
+      timeout: 300000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return {
+      verified: true,
+      command: resolved.command,
+      type: resolved.type,
+      stdout: capValidationOutput(stdout),
+      stderr: capValidationOutput(stderr),
+      exit_code: 0,
+    };
+  } catch (err: any) {
+    return {
+      verified: false,
+      command: resolved.command,
+      type: resolved.type,
+      stdout: capValidationOutput(err.stdout || ''),
+      stderr: capValidationOutput(err.stderr || err.message || ''),
+      exit_code: typeof err.code === 'number' ? err.code : 1,
+    };
+  }
+}
+
 export async function runAdvisoryValidation(cwd: string = process.cwd(), changedFiles?: string[]) {
   let command: string | null = null;
 
