@@ -141,6 +141,40 @@ export function resolveBuildVerificationCommand(
 }
 
 /**
+ * Resolves the static analysis / lint command for a project repository.
+ */
+export function resolveLintCommand(cwd: string = process.cwd()): string | null {
+  const packageJsonPath = path.join(cwd, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const scripts = pkg.scripts || {};
+      const pm = detectNodePackageManager(cwd);
+      const runner = pm === 'npm' ? 'npm run' : pm;
+
+      if (scripts['lint']) {
+        return `${runner} lint`;
+      }
+      if (scripts['check']) {
+        return `${runner} check`;
+      }
+    } catch {}
+  }
+
+  // Go vet
+  if (detectGoProject(cwd)) {
+    return 'go vet ./...';
+  }
+
+  // Cargo clippy
+  if (fs.existsSync(path.join(cwd, 'Cargo.toml'))) {
+    return 'cargo clippy';
+  }
+
+  return null;
+}
+
+/**
  * Checks for a custom validation_command defined in scout.json, .scout.json, or .scout/config.json.
  */
 export function loadScoutConfigValidationCommand(cwd: string = process.cwd()): string | null {
@@ -571,6 +605,50 @@ export async function runBuildVerification(cwd: string = process.cwd()): Promise
       verified: false,
       command: resolved.command,
       type: resolved.type,
+      stdout: capValidationOutput(err.stdout || ''),
+      stderr: capValidationOutput(err.stderr || err.message || ''),
+      exit_code: typeof err.code === 'number' ? err.code : 1,
+    };
+  }
+}
+
+export interface LintCheckResult {
+  passed: boolean;
+  command: string | null;
+  stdout: string;
+  stderr: string;
+  exit_code: number | null;
+}
+
+export async function runLintCheck(cwd: string = process.cwd()): Promise<LintCheckResult> {
+  const command = resolveLintCommand(cwd);
+  if (!command) {
+    return {
+      passed: true,
+      command: null,
+      stdout: 'No static analysis or linter configuration detected. Lint check skipped.',
+      stderr: '',
+      exit_code: 0,
+    };
+  }
+
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      cwd,
+      timeout: 300000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return {
+      passed: true,
+      command,
+      stdout: capValidationOutput(stdout),
+      stderr: capValidationOutput(stderr),
+      exit_code: 0,
+    };
+  } catch (err: any) {
+    return {
+      passed: false,
+      command,
       stdout: capValidationOutput(err.stdout || ''),
       stderr: capValidationOutput(err.stderr || err.message || ''),
       exit_code: typeof err.code === 'number' ? err.code : 1,

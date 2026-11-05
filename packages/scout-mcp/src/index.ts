@@ -35,7 +35,7 @@ import { resolveProgressToken, createProgressCallback } from './progress.js';
 import { recordTimelineEvent } from './evidence.js';
 import { exportSessionBundle } from './bundle.js';
 import { streamReadFile } from './fileStream.js';
-import { runBuildVerification } from './validation.js';
+import { runBuildVerification, runLintCheck } from './validation.js';
 import { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
 import { parseCliAction, SCOUT_MCP_VERSION, SCOUT_MCP_HELP } from './cli.js';
 export { runDoctorDiagnostics, formatDoctorReport } from './doctor.js';
@@ -184,6 +184,10 @@ const ExportSessionBundleSchema = z.object({
 });
 
 const VerifyBuildSchema = z.object({
+  session_id: z.string().uuid(),
+});
+
+const LintCheckSchema = z.object({
   session_id: z.string().uuid(),
 });
 
@@ -407,6 +411,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object',
         properties: {
           session_id: { type: 'string', description: 'The UUID of the session to verify.' },
+        },
+        required: ['session_id'],
+      },
+    },
+    {
+      name: 'lint_check',
+      description: 'Run static analysis and workspace linters (oxlint, eslint, prettier --check, cargo clippy) on the session worktree.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          session_id: { type: 'string', description: 'The UUID of the session to lint.' },
         },
         required: ['session_id'],
       },
@@ -891,6 +906,32 @@ ${JSON.stringify(result, null, 2)}`
                   message: result.verified
                     ? 'Build and typecheck verification passed successfully.'
                     : 'Build or typecheck verification failed.',
+                  ...result,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      case 'lint_check': {
+        const { session_id } = LintCheckSchema.parse(request.params.arguments);
+        const repoCwd = await resolveSessionWorkspace(session_id);
+        const worktreePath = await getWorktreePath(session_id, repoCwd);
+        const result = await runLintCheck(worktreePath);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  message: result.passed
+                    ? 'Static analysis and lint check passed successfully.'
+                    : 'Static analysis or lint check failed.',
                   ...result,
                 },
                 null,
