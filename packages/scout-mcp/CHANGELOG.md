@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.1] - 2026-11-05
+
+Scout MCP v2.2.1 delivers critical reliability fixes and safe halt guardrails tracked under issue [#852](https://github.com/Rahul-pamula/Open_Source_Scout/issues/852) across 10 pull requests (PRs #968–#977):
+
+### Bug Fixes & Reliability Enhancements
+
+- **Git Root Discovery in `cleanup_session` & `removeWorktree`** (#968): Automatically resolves session workspace from local state when running inside decoupled MCP daemon environments or non-repo roots.
+- **Daemon Root Path Fallback in `list_skills`** (#969): Fixes `ENOENT: mkdir '/.scout'` error when `cwd` is root `/` by falling back to `SCOUT_HOME` or `os.homedir()/.scout`.
+- **Compiler Configuration Lock** (#970): Hardens `validatePathBoundary` to forbid write access to `tsconfig*.json`, preventing agents from bypassing compilation errors by weakening typecheck flags.
+- **Build & Typecheck Engine Detection** (#971): Added `resolveBuildVerificationCommand` to identify `build`, `typecheck`, and `tsc` scripts across package managers.
+- **New MCP Tool & Skill `scout.verify_build`** (#972): Dedicated skill and tool running production build and typecheck pipelines (`tsc -b`, `vite build`, `cargo check`).
+- **New MCP Tool & Skill `scout.lint_check`** (#973): Dedicated skill and tool running workspace linters (`oxlint`, `eslint`, `prettier --check`, `cargo clippy`).
+- **Module Resolution & Import Syntax Inspector** (#974): Dedicated skill safeguarding against `verbatimModuleSyntax` violations (`error TS1484`) and import path casing mismatches.
+- **Pre-Merge Validation Gate in `submit_for_review`** (#975): Refuses review submission if production build or typechecking fails, enforcing zero-defect delivery before PR creation.
+- **Thrashing Guard Throttle** (#976): Halts execution and transitions session to `BLOCKED_REQUIRES_HUMAN_FEEDBACK` if 3 consecutive failures occur on the same command or file.
+- **Documentation & Version Bump to v2.2.1** (#977): Comprehensive tracking documentation, architecture sync, and bump.
+
+---
+
 ## [2.2.0] - 2026-10-30
 
 Scout MCP v2.2.0 represents a comprehensive overhaul of the Model Context Protocol orchestration engine, delivering enterprise-grade Git worktree isolation, multi-language validation, dynamic skills discovery, real-time MCP resources, and production CLI tooling across 128 pull requests.
