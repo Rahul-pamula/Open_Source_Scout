@@ -197,4 +197,40 @@ export function validatePathBoundary(
   return absoluteTarget;
 }
 
+/**
+ * 3-Attempt Thrashing Guard:
+ * Monitors repeated failure attempts on specific files or actions within a session.
+ * Halts execution when an agent hits 3 consecutive identical failures.
+ */
+export class ThrashingGuard {
+  private static attempts = new Map<string, number>();
+
+  static recordFailure(sessionId: string, targetKey: string, threshold: number = 3): { blocked: boolean; count: number } {
+    const key = `${sessionId}:${targetKey}`;
+    const current = (this.attempts.get(key) || 0) + 1;
+    this.attempts.set(key, current);
+
+    return {
+      blocked: current >= threshold,
+      count: current,
+    };
+  }
+
+  static reset(sessionId: string, targetKey?: string): void {
+    if (targetKey) {
+      this.attempts.delete(`${sessionId}:${targetKey}`);
+    } else {
+      for (const key of this.attempts.keys()) {
+        if (key.startsWith(`${sessionId}:`)) {
+          this.attempts.delete(key);
+        }
+      }
+    }
+  }
+
+  static getFailureCount(sessionId: string, targetKey: string): number {
+    return this.attempts.get(`${sessionId}:${targetKey}`) || 0;
+  }
+}
+
 export { sanitizeEnvironment } from './harness.js';
