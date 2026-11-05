@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { CommandBoundaryGuard } from './guardrails.js';
+import { CommandBoundaryGuard, ThrashingGuard } from './guardrails.js';
 
 test('CommandBoundaryGuard', async (t) => {
   await t.test('legitimate commands allowed', () => {
@@ -182,6 +182,27 @@ test('validatePathBoundary', async (t) => {
     assert.throws(() => validatePathBoundary(worktree, '/etc/hosts', 'strict'), /Access to system path/);
 
     delete process.env.SCOUT_GUARDRAIL_LEVEL;
+  });
+
+  await t.test('ThrashingGuard throttles after 3 consecutive failures on same target', () => {
+    const sessId = 'test-session-thrash';
+    ThrashingGuard.reset(sessId);
+
+    const res1 = ThrashingGuard.recordFailure(sessId, 'npm run build');
+    assert.strictEqual(res1.blocked, false);
+    assert.strictEqual(res1.count, 1);
+
+    const res2 = ThrashingGuard.recordFailure(sessId, 'npm run build');
+    assert.strictEqual(res2.blocked, false);
+    assert.strictEqual(res2.count, 2);
+
+    const res3 = ThrashingGuard.recordFailure(sessId, 'npm run build');
+    assert.strictEqual(res3.blocked, true);
+    assert.strictEqual(res3.count, 3);
+
+    // Resetting clears the failure counter
+    ThrashingGuard.reset(sessId, 'npm run build');
+    assert.strictEqual(ThrashingGuard.getFailureCount(sessId, 'npm run build'), 0);
   });
 
   fs.rmSync(tmpDir, { recursive: true, force: true });

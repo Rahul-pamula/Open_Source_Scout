@@ -22,7 +22,7 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { validatePathBoundary, GuardrailError } from './guardrails.js';
+import { validatePathBoundary, GuardrailError, ThrashingGuard } from './guardrails.js';
 import { getWorktreePath, autoPruneWorktreesOnStartup, checkWorktreeDiskUsage, listWorktrees } from './git.js';
 import { applyStringEdit, generateUnifiedDiff, writeAtomicFile } from './editor.js';
 import { fileURLToPath } from 'url';
@@ -528,6 +528,37 @@ ${JSON.stringify(result, null, 2)}`
           undefined,
           onProgress,
         );
+
+        // Check if command failed and track with ThrashingGuard
+        if (result.exit_code !== 0 && result.exit_code !== null) {
+          const { blocked, count } = ThrashingGuard.recordFailure(session_id, command.trim());
+          if (blocked) {
+            await localHarness.markBlocked(
+              session_id,
+              `BLOCKED_REQUIRES_HUMAN_FEEDBACK: ThrashingGuard detected ${count} consecutive failures on command '${command.trim()}'.`,
+            );
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    {
+                      status: 'BLOCKED',
+                      error: 'BLOCKED_REQUIRES_HUMAN_FEEDBACK',
+                      message: `Thrashing guard triggered after ${count} consecutive failures on '${command.trim()}'. Session transitioned to BLOCKED.`,
+                      last_result: result,
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+        } else {
+          // Reset failure counter on successful execution
+          ThrashingGuard.reset(session_id, command.trim());
+        }
 
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
