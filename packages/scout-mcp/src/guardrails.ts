@@ -107,7 +107,12 @@ export class CommandBoundaryGuard {
 }
 
 
-export function validatePathBoundary(worktreePath: string, targetPath: string, level?: GuardrailLevel): string {
+export function validatePathBoundary(
+  worktreePath: string,
+  targetPath: string,
+  level?: GuardrailLevel,
+  operation: 'read' | 'write' = 'read',
+): string {
   const activeLevel = level || getGuardrailLevel();
 
   // Normalize Windows backslashes to standard forward slashes to prevent traversal bypasses across platforms
@@ -164,6 +169,13 @@ export function validatePathBoundary(worktreePath: string, targetPath: string, l
   // Prevent access to private SSH or TLS key files
   if (/^(?:id_rsa|id_ed25519|id_ecdsa|id_dsa)(?:\.pub)?$/.test(baseName) || /\.(?:pem|key|pfx|p12)$/i.test(baseName)) {
     handleGuardrailViolation(`Path boundary violation. Access to sensitive key or credential file ${baseName} is strictly forbidden.`, activeLevel);
+    return absoluteTarget;
+  }
+
+  // Compiler Configuration Lock (Security Boundary):
+  // Prohibit modifying tsconfig*.json to prevent bypassing compilation errors by disabling strictness flags
+  if (operation === 'write' && /^tsconfig(\..+)?\.json$/i.test(baseName)) {
+    handleGuardrailViolation(`Path boundary violation (Compiler Lock). Direct modification of TypeScript configuration ${baseName} is prohibited to preserve strict typecheck boundaries.`, activeLevel);
     return absoluteTarget;
   }
 
