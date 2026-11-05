@@ -120,6 +120,22 @@ test('validatePathBoundary', async (t) => {
     // Cloud credential directories
     assert.throws(() => validatePathBoundary(worktree, '.aws/credentials'), /Access to sensitive credential directory/);
     assert.throws(() => validatePathBoundary(worktree, '.ssh/authorized_keys'), /Access to sensitive credential directory/);
+
+    // tsconfig compiler lock on writes
+    assert.doesNotThrow(() => validatePathBoundary(worktree, 'tsconfig.json', 'strict', 'read'));
+    assert.doesNotThrow(() => validatePathBoundary(worktree, 'tsconfig.app.json', 'strict', 'read'));
+    assert.throws(
+      () => validatePathBoundary(worktree, 'tsconfig.json', 'strict', 'write'),
+      /Compiler Lock/,
+    );
+    assert.throws(
+      () => validatePathBoundary(worktree, 'tsconfig.app.json', 'strict', 'write'),
+      /Compiler Lock/,
+    );
+    assert.throws(
+      () => validatePathBoundary(worktree, 'nested/tsconfig.node.json', 'strict', 'write'),
+      /Compiler Lock/,
+    );
   });
 
   await t.test('normalizes cross-platform Windows and Unix path separators', () => {

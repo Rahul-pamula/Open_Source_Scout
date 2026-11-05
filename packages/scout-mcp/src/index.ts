@@ -521,7 +521,7 @@ ${JSON.stringify(result, null, 2)}`
         );
         const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
-        const validatedPath = validatePathBoundary(worktreePath, targetPath);
+        const validatedPath = validatePathBoundary(worktreePath, targetPath, undefined, 'write');
 
         await fs.mkdir(path.dirname(validatedPath), { recursive: true });
         await fs.writeFile(validatedPath, fileContent, 'utf8');
@@ -542,7 +542,7 @@ ${JSON.stringify(result, null, 2)}`
           EditFileSchema.parse(request.params.arguments);
         const repoCwd = await resolveSessionWorkspace(session_id);
         const worktreePath = await getWorktreePath(session_id, repoCwd);
-        const validatedPath = validatePathBoundary(worktreePath, path);
+        const validatedPath = validatePathBoundary(worktreePath, path, undefined, 'write');
 
         const stats = await fs.stat(validatedPath);
         const originalMode = stats.mode;
