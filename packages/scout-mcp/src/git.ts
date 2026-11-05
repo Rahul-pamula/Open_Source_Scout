@@ -115,6 +115,15 @@ export function generateWorktreeBranchName(sessionId: string, taskDescription?: 
   return slug ? `scout/${shortId}-${slug}` : `scout-session-${sessionId}`;
 }
 
+export async function findGitRoot(cwd: string = process.cwd()): Promise<string | null> {
+  try {
+    const { stdout } = await execAsync('git rev-parse --show-toplevel', { cwd });
+    return resolve(stdout.trim());
+  } catch {
+    return null;
+  }
+}
+
 export async function createWorktree(sessionId: string, cwd: string = process.cwd(), taskDescription?: string): Promise<string> {
   const repoRootOut = await execAsync('git rev-parse --show-toplevel', { cwd });
   const repoRoot = repoRootOut.stdout.trim();
@@ -179,29 +188,46 @@ export async function rollbackWorktreeCreation(
 }
 
 export async function removeWorktree(sessionId: string, cwd: string = process.cwd(), taskDescription?: string): Promise<void> {
-  const repoRootOut = await execAsync('git rev-parse --show-toplevel', { cwd });
-  const repoRoot = repoRootOut.stdout.trim();
+  let resolvedCwd = cwd;
+  let repoRoot = await findGitRoot(resolvedCwd);
+
+  if (!repoRoot) {
+    // If provided cwd is not a git repository (e.g. MCP daemon running in root or external dir),
+    // attempt resolving from local state sessions
+    try {
+      const state = await getLocalState();
+      const session = state.sessions[sessionId];
+      if (session?.workspace_path) {
+        resolvedCwd = session.workspace_path;
+        repoRoot = await findGitRoot(resolvedCwd);
+      }
+    } catch {}
+  }
+
+  if (!repoRoot) {
+    throw new Error(`Cannot remove worktree: ${cwd} is not a Git repository and no workspace mapping was found for session ${sessionId}.`);
+  }
   
   const worktreePath = join(repoRoot, '.scout-tmp', 'worktrees', sessionId);
   const branchName = generateWorktreeBranchName(sessionId, taskDescription);
   const legacyBranch = `scout-session-${sessionId}`;
 
   try {
-    await execWithGitLockRetry(`git worktree remove --force ${worktreePath}`, { cwd });
+    await execWithGitLockRetry(`git worktree remove --force ${worktreePath}`, { cwd: repoRoot });
   } catch (e) {
     await rm(worktreePath, { recursive: true, force: true }).catch(() => {});
-    await execWithGitLockRetry(`git worktree prune`, { cwd }).catch(() => {});
+    await execWithGitLockRetry(`git worktree prune`, { cwd: repoRoot }).catch(() => {});
   }
 
   try {
-    await execWithGitLockRetry(`git branch -D ${branchName}`, { cwd });
+    await execWithGitLockRetry(`git branch -D ${branchName}`, { cwd: repoRoot });
   } catch (e) {
     // Ignore
   }
 
   if (branchName !== legacyBranch) {
     try {
-      await execWithGitLockRetry(`git branch -D ${legacyBranch}`, { cwd });
+      await execWithGitLockRetry(`git branch -D ${legacyBranch}`, { cwd: repoRoot });
     } catch {
       // Ignore
     }

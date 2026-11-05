@@ -213,9 +213,9 @@ export class LocalHarness {
   // cleanup_session  (cancel + remove worktree)
   // -------------------------------------------------------------------------
 
-  async cleanupSession(sessionId: string): Promise<void> {
+  async cleanupSession(sessionId: string, cwd?: string): Promise<void> {
     await this.processManager.cancelSession(sessionId);
-    await removeWorktree(sessionId);
+    await removeWorktree(sessionId, cwd);
   }
 
   // -------------------------------------------------------------------------
