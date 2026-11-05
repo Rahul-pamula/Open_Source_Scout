@@ -530,7 +530,7 @@ ${JSON.stringify(result, null, 2)}`
         );
 
         // Check if command failed and track with ThrashingGuard
-        if (result.exit_code !== 0 && result.exit_code !== null) {
+        if (result.exitCode !== 0 && result.exitCode !== null) {
           const { blocked, count } = ThrashingGuard.recordFailure(session_id, command.trim());
           if (blocked) {
             await localHarness.markBlocked(
