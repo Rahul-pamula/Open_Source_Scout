@@ -97,6 +97,50 @@ export function buildNodeValidationCommand(
 }
 
 /**
+ * Resolves the verification command for building and typechecking a project.
+ */
+export function resolveBuildVerificationCommand(
+  cwd: string = process.cwd(),
+): { command: string; type: 'build' | 'typecheck' } | null {
+  const packageJsonPath = path.join(cwd, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const scripts = pkg.scripts || {};
+      const pm = detectNodePackageManager(cwd);
+      const runner = pm === 'npm' ? 'npm run' : pm;
+
+      if (scripts['build']) {
+        return { command: `${runner} build`, type: 'build' };
+      }
+      if (scripts['typecheck']) {
+        return { command: `${runner} typecheck`, type: 'typecheck' };
+      }
+      if (scripts['tsc']) {
+        return { command: `${runner} tsc`, type: 'typecheck' };
+      }
+    } catch {}
+  }
+
+  const tsconfigPath = path.join(cwd, 'tsconfig.json');
+  if (fs.existsSync(tsconfigPath)) {
+    return { command: 'npx tsc --noEmit', type: 'typecheck' };
+  }
+
+  // Go
+  if (detectGoProject(cwd)) {
+    return { command: 'go build ./...', type: 'build' };
+  }
+
+  // Rust
+  if (fs.existsSync(path.join(cwd, 'Cargo.toml'))) {
+    return { command: 'cargo check', type: 'typecheck' };
+  }
+
+  return null;
+}
+
+/**
  * Checks for a custom validation_command defined in scout.json, .scout.json, or .scout/config.json.
  */
 export function loadScoutConfigValidationCommand(cwd: string = process.cwd()): string | null {

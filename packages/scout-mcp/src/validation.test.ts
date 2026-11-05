@@ -20,6 +20,7 @@ import {
   parseTestOutputSummary,
   loadScoutConfigValidationCommand,
   resolveValidationCommand,
+  resolveBuildVerificationCommand,
 } from './validation.js';
 
 test('Validation Runner & Package Manager Detection', async (t) => {
@@ -349,5 +350,27 @@ test('Validation Runner & Package Manager Detection', async (t) => {
     const result = await runAdvisoryValidation(testDir);
     assert.strictEqual(result.validation_passed, false);
     assert.match(result.stdout + result.stderr, /Validation Failed/);
+  });
+
+  await t.test('detects build and typecheck scripts via resolveBuildVerificationCommand', () => {
+    fs.writeFileSync(
+      path.join(testDir, 'package.json'),
+      JSON.stringify({ scripts: { build: 'vite build', typecheck: 'tsc --noEmit' } }),
+    );
+    const buildCmd = resolveBuildVerificationCommand(testDir);
+    assert.deepStrictEqual(buildCmd, { command: 'npm run build', type: 'build' });
+
+    fs.writeFileSync(
+      path.join(testDir, 'package.json'),
+      JSON.stringify({ scripts: { typecheck: 'tsc --noEmit' } }),
+    );
+    const typecheckCmd = resolveBuildVerificationCommand(testDir);
+    assert.deepStrictEqual(typecheckCmd, { command: 'npm run typecheck', type: 'typecheck' });
+
+    fs.rmSync(path.join(testDir, 'package.json'));
+    fs.writeFileSync(path.join(testDir, 'tsconfig.json'), '{}');
+    const tsconfigCmd = resolveBuildVerificationCommand(testDir);
+    assert.deepStrictEqual(tsconfigCmd, { command: 'npx tsc --noEmit', type: 'typecheck' });
+    fs.rmSync(path.join(testDir, 'tsconfig.json'));
   });
 });
