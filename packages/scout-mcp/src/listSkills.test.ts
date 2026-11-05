@@ -234,5 +234,44 @@ trigger: CONDITIONAL
     const payload = JSON.parse(((res as any).content[0] as any).text);
     assert.strictEqual(payload.skills[0].name, 'always-rule');
   });
+
+  await t.test('falls back cleanly to SCOUT_HOME or os.homedir()/.scout when cwd is root "/"', async () => {
+    const customScoutHome = path.join(tmpDir, 'custom-scout-home');
+    const customSkillsDir = path.join(customScoutHome, 'skills');
+    await fs.mkdir(customSkillsDir, { recursive: true });
+
+    await fs.writeFile(
+      path.join(customSkillsDir, 'root-fallback-skill.md'),
+      `---
+name: root-fallback-skill
+description: Root fallback test skill.
+trigger: ALWAYS
+---
+# Root Fallback Active`,
+      'utf8',
+    );
+
+    const prevScoutHome = process.env.SCOUT_HOME;
+    process.env.SCOUT_HOME = customScoutHome;
+
+    try {
+      const res = await client.callTool({
+        name: 'list_skills',
+        arguments: {
+          cwd: '/',
+          task_description: 'test root fallback',
+        },
+      });
+      const payload = JSON.parse(((res as any).content[0] as any).text);
+      assert.ok(Array.isArray(payload.skills));
+      assert.ok(payload.skills.some((s: any) => s.name === 'root-fallback-skill'));
+    } finally {
+      if (prevScoutHome) {
+        process.env.SCOUT_HOME = prevScoutHome;
+      } else {
+        delete process.env.SCOUT_HOME;
+      }
+    }
+  });
 });
 
