@@ -260,7 +260,7 @@ export function MissionControl() {
 
   // --- Tracking Logic (From Operations) ---
   const fetchPipeline = async () => {
-    if (!session?.access_token) return;
+    if (!session?.access_token || !user) return;
 
     // Capture version to prevent overwriting optimistic state with stale fetch data
     const currentVersion = pipelineVersionRef.current;
@@ -270,10 +270,54 @@ export function MissionControl() {
         setIsTrackingLoading(true);
       }
 
-      const { data: resData, error: trackError } = await supabase.functions.invoke('tracking', {
-        body: { action: 'list' },
-      });
-      if (trackError) throw new Error('Failed to fetch tracking data: ' + trackError.message);
+      let edgeTasks: any[] = [];
+      try {
+        const { data: resData, error: trackError } = await supabase.functions.invoke('tracking', {
+          body: { action: 'list' },
+        });
+        if (!trackError && resData?.data) {
+          edgeTasks = Array.isArray(resData.data) ? resData.data : [];
+        }
+      } catch (e) {
+        console.warn('Edge function tracking list fallback triggered:', e);
+      }
+
+      // Also query direct tables from Supabase client to guarantee legacy & migrated data
+      // (in case edge function has not yet redeployed or only returns tasks)
+      let directTasks: any[] = [];
+      try {
+        const { data: tasksData } = await supabase.from('tasks').select('*').eq('user_id', user.id);
+        if (tasksData) directTasks = tasksData;
+      } catch (e) {
+        console.warn('Direct tasks query fallback:', e);
+      }
+
+      let directTracked: any[] = [];
+      try {
+        const { data: trackedData } = await supabase
+          .from('tracked_issues')
+          .select('*')
+          .eq('user_id', user.id);
+        if (trackedData) directTracked = trackedData;
+      } catch (e) {
+        console.warn('Direct tracked_issues query fallback:', e);
+      }
+
+      // Deduplicate all records by github_issue_url / external_url / id
+      const recordMap = new Map<string, any>();
+      const allRecords = [...directTracked, ...directTasks, ...edgeTasks];
+
+      for (const t of allRecords) {
+        const key = t.github_issue_url || t.external_url || t.id;
+        if (!key) continue;
+        const existing = recordMap.get(key);
+        if (!existing) {
+          recordMap.set(key, t);
+        } else {
+          // Merge prefer newer or non-null fields
+          recordMap.set(key, { ...existing, ...t });
+        }
+      }
 
       if (currentVersion !== pipelineVersionRef.current) {
         // An optimistic update happened while we were fetching!
@@ -281,7 +325,7 @@ export function MissionControl() {
         return;
       }
 
-      const normalizedData: Task[] = (resData.data || []).map((t: any) => ({
+      const normalizedData: Task[] = Array.from(recordMap.values()).map((t: any) => ({
         ...t,
         external_url: t.external_url || t.github_issue_url || '',
         github_issue_url: t.github_issue_url || t.external_url || '',
