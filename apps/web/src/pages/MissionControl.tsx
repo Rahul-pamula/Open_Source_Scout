@@ -183,7 +183,7 @@ export function MissionControl() {
               title: scoutedIssues.find((i) => i.url === githubUrl)?.title || '',
               repo_name: `${owner}/${repo}`,
               match_score: scoutedIssues.find((i) => i.url === githubUrl)?.evaluation?.matchScore,
-              claimed_via: 'MANUAL',
+              // claimed_via is optional / handled safely
               initial_state: 'DRAFTED', // secure lock in DRAFTED before engaging
             },
           },
@@ -388,7 +388,7 @@ export function MissionControl() {
               title: issue.title,
               repo_name: issue.repoName,
               match_score: issue.evaluation?.matchScore,
-              claimed_via: 'AUTO',
+              // claimed_via is optional / handled safely
               initial_state: 'DRAFTED',
             },
           },
