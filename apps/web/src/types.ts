@@ -30,10 +30,23 @@ export interface EvaluationResult {
 }
 
 // A combined type for the UI to consume
+export type ContestationLevel = 'uncontested' | 'low-competition' | 'contested';
+
+export interface ContestationAssessment {
+  level: ContestationLevel;
+  isContested: boolean;
+  claimant?: string;
+  matchedPhrase?: string;
+  confidence: number;
+  reason: string;
+}
+
+// A combined type for the UI to consume
 export interface ScoutedIssue extends NormalizedIssue {
   evaluation?: EvaluationResult;
   relevanceScore?: number;
   relevanceBreakdown?: import('./types/relevance').RelevanceScoreBreakdown;
+  contestation?: ContestationAssessment;
 }
 
 export interface NormalizedComment {
