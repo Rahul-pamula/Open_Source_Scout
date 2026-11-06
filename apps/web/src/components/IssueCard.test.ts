@@ -111,3 +111,84 @@ describe('IssueCard presentation and relevance badge tests', () => {
     assert.strictEqual(breakdown.total, 77);
   });
 });
+
+describe('IssueCard contestation badges', () => {
+  it('formats uncontested issue with 0 comments as green Fresh badge', () => {
+    const issue: ScoutedIssue = {
+      id: 'issue-fresh-1',
+      url: 'https://github.com/org/repo/issues/1',
+      title: 'Fresh uncontested issue',
+      body: 'Clean issue',
+      repoName: 'org/repo',
+      repoUrl: 'https://github.com/org/repo',
+      state: 'open',
+      isAssigned: false,
+      labels: ['good first issue'],
+      createdAt: '2026-11-05T00:00:00Z',
+      commentsCount: 0,
+      contestation: {
+        level: 'uncontested',
+        isContested: false,
+        confidence: 1.0,
+        reason: '0 comments — uncontested fresh opportunity',
+      },
+    };
+
+    assert.strictEqual(issue.commentsCount, 0);
+    assert.strictEqual(issue.contestation?.level, 'uncontested');
+    assert.strictEqual(issue.contestation?.isContested, false);
+  });
+
+  it('formats discussion issue with 1 comment as yellow Discussion badge', () => {
+    const issue: ScoutedIssue = {
+      id: 'issue-disc-1',
+      url: 'https://github.com/org/repo/issues/2',
+      title: 'Discussion issue',
+      body: 'Has discussion',
+      repoName: 'org/repo',
+      repoUrl: 'https://github.com/org/repo',
+      state: 'open',
+      isAssigned: false,
+      labels: ['help wanted'],
+      createdAt: '2026-11-05T00:00:00Z',
+      commentsCount: 1,
+      contestation: {
+        level: 'low-competition',
+        isContested: false,
+        confidence: 0.85,
+        reason: '1 comment general discussion',
+      },
+    };
+
+    assert.strictEqual(issue.commentsCount, 1);
+    assert.strictEqual(issue.contestation?.level, 'low-competition');
+    assert.strictEqual(issue.contestation?.isContested, false);
+  });
+
+  it('formats claimed issue as red Contested badge', () => {
+    const issue: ScoutedIssue = {
+      id: 'issue-claimed-1',
+      url: 'https://github.com/org/repo/issues/3',
+      title: 'Claimed issue',
+      body: 'Someone took it',
+      repoName: 'org/repo',
+      repoUrl: 'https://github.com/org/repo',
+      state: 'open',
+      isAssigned: false,
+      labels: ['help wanted'],
+      createdAt: '2026-11-05T00:00:00Z',
+      commentsCount: 2,
+      contestation: {
+        level: 'contested',
+        isContested: true,
+        claimant: 'bavarianway',
+        confidence: 0.95,
+        reason: '@bavarianway expressed claim intent',
+      },
+    };
+
+    assert.strictEqual(issue.contestation?.level, 'contested');
+    assert.strictEqual(issue.contestation?.isContested, true);
+    assert.strictEqual(issue.contestation?.claimant, 'bavarianway');
+  });
+});
