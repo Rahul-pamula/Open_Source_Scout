@@ -5,6 +5,7 @@ import type { ExperienceLevel } from '../types/user';
 import { buildGitHubSearchQuery, buildRelaxedGitHubSearchQuery } from '../utils/queryBuilder';
 
 import { calculateRelevanceScore } from '../utils/relevanceScorer';
+import { evaluateCommentContestation } from '../utils/claimDetector';
 
 interface UseIssueDiscoveryOptions {
   userProfile: { bio?: string; skills?: string[]; experience_level?: ExperienceLevel } | null;
@@ -122,16 +123,32 @@ export function useIssueDiscovery({
         };
 
         const breakdown = calculateRelevanceScore(target, effectiveProfile);
+        const contestation = evaluateCommentContestation(
+          issue.commentsCount ?? 0,
+          [],
+          issue.isAssigned,
+        );
 
         return {
           ...issue,
           relevanceScore: breakdown.total,
           relevanceBreakdown: breakdown,
+          contestation,
         };
       });
 
-      // Deterministic ranking: Sort descending by relevanceScore, secondary by recency
-      const rankedIssues = scoredIssues.sort((a, b) => {
+      // Deterministic ranking: Prioritize uncontested issues first, then relevanceScore, then recency
+      // Filter out heavily contested issues from the candidate discovery stream
+      const viableIssues = scoredIssues.filter((issue) => !issue.contestation?.isContested);
+      // Fallback to all scored candidates if filtering yields too few issues
+      const candidatePool = viableIssues.length >= 3 ? viableIssues : scoredIssues;
+
+      const rankedIssues = candidatePool.sort((a, b) => {
+        // Uncontested priority
+        const contestationPriority =
+          (a.contestation?.isContested ? 1 : 0) - (b.contestation?.isContested ? 1 : 0);
+        if (contestationPriority !== 0) return contestationPriority;
+
         const scoreDiff = (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0);
         if (scoreDiff !== 0) return scoreDiff;
         const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
