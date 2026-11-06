@@ -148,6 +148,16 @@ export function MissionControl() {
   const handleClaimIssue = async (githubUrl: string) => {
     if (claimingIssueUrl) return;
     try {
+      // Guard: Refuse to claim already-claimed or contested issues
+      const candidate = scoutedIssues.find((i) => i.url === githubUrl);
+      if (candidate?.isAssigned || candidate?.contestation?.isContested) {
+        showToast(
+          'error',
+          '⚠️ Cannot claim: Issue is already assigned or claimed by another contributor.',
+        );
+        return;
+      }
+
       setClaimingIssueUrl(githubUrl);
       const url = new URL(githubUrl);
       const parts = url.pathname.split('/').filter(Boolean);
@@ -334,10 +344,23 @@ export function MissionControl() {
       return;
     }
 
+    // Filter candidate pool to ONLY uncontested / unclaimed issues
+    const unclaimedCandidates = scoutedIssues.filter(
+      (issue) => !issue.isAssigned && !issue.contestation?.isContested,
+    );
+
+    if (unclaimedCandidates.length === 0) {
+      showToast(
+        'error',
+        '⚠️ No uncontested issues available to auto-claim. All candidates are claimed or contested.',
+      );
+      return;
+    }
+
     setIsAutomating(true);
     setAutomationError(null);
 
-    const targets = scoutedIssues.slice(0, automationBatchSize);
+    const targets = unclaimedCandidates.slice(0, automationBatchSize);
     let successCount = 0;
     const claimedUrls: string[] = [];
 
