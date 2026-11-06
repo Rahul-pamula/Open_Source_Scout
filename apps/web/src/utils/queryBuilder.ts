@@ -2,12 +2,16 @@ import type { ExperienceLevel } from '../types/user';
 import { normalizeExperienceLevel } from '../types/user';
 import { classifySkills } from './skillClassifier';
 
+export type ContestationFilterMode = 'fresh' | 'low-competition' | 'all';
+
 export interface GitHubSearchQueryOptions {
   skills?: (string | null | undefined)[];
   experienceLevel?: ExperienceLevel | null;
   state?: 'open' | 'closed';
   sort?: string;
   limitLanguages?: number;
+  contestationMode?: ContestationFilterMode;
+  noAssignee?: boolean;
 }
 
 /**
@@ -17,6 +21,25 @@ export interface GitHubSearchQueryOptions {
  * - Senior: Unrestricted issue scope (no restrictive entry label filter) allowing
  *   seniors to discover architectural, core feature, performance, and refactoring tickets.
  */
+/**
+ * Returns push-down comment qualifier based on contestation filter mode.
+ * - 'fresh' (Default): comments:0 (guarantees uncontested issues)
+ * - 'low-competition': comments:<=2 (filters out claimed or heavily contested threads)
+ * - 'all': no comment constraint
+ */
+export function getCommentQualifier(mode?: ContestationFilterMode): string | null {
+  switch (mode) {
+    case 'fresh':
+      return 'comments:0';
+    case 'low-competition':
+      return 'comments:<=2';
+    case 'all':
+      return null;
+    default:
+      return 'comments:0';
+  }
+}
+
 export function getLabelQualifiersForLevel(level?: ExperienceLevel | null): string[] {
   const normalized = normalizeExperienceLevel(level);
 
@@ -40,6 +63,18 @@ export function getLabelQualifiersForLevel(level?: ExperienceLevel | null): stri
 export function buildGitHubSearchQuery(options?: GitHubSearchQueryOptions): string {
   const state = options?.state ?? 'open';
   const parts: string[] = [`is:${state}`, 'is:issue'];
+
+  // Push-down no:assignee to prevent claimed issues from surfacing (enabled by default)
+  const noAssignee = options?.noAssignee ?? true;
+  if (noAssignee) {
+    parts.push('no:assignee');
+  }
+
+  // Push-down comment qualifier (defaults to fresh 'comments:0')
+  const commentQualifier = getCommentQualifier(options?.contestationMode ?? 'fresh');
+  if (commentQualifier) {
+    parts.push(commentQualifier);
+  }
 
   // Experience level labels
   const labelQualifiers = getLabelQualifiersForLevel(options?.experienceLevel);
@@ -79,6 +114,20 @@ export function buildGitHubSearchQuery(options?: GitHubSearchQueryOptions): stri
 export function buildRelaxedGitHubSearchQuery(options?: GitHubSearchQueryOptions): string {
   const state = options?.state ?? 'open';
   const parts: string[] = [`is:${state}`, 'is:issue'];
+
+  // In relaxed mode, still ensure issues are unassigned
+  const noAssignee = options?.noAssignee ?? true;
+  if (noAssignee) {
+    parts.push('no:assignee');
+  }
+
+  // In relaxed mode, relax comment ceiling to low-competition (comments:<=2) if fresh mode was requested
+  const relaxedCommentMode: ContestationFilterMode =
+    options?.contestationMode === 'all' ? 'all' : 'low-competition';
+  const commentQualifier = getCommentQualifier(relaxedCommentMode);
+  if (commentQualifier) {
+    parts.push(commentQualifier);
+  }
 
   // In relaxed mode, omit strict label constraints to maximize issue pool
   const classified = classifySkills(options?.skills ?? []);

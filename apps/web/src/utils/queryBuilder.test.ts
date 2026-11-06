@@ -34,8 +34,20 @@ describe('queryBuilder search query synthesis', () => {
       const query = buildGitHubSearchQuery();
       assert.equal(
         query,
-        'is:open is:issue label:"good first issue" language:TypeScript sort:updated-desc',
+        'is:open is:issue no:assignee comments:0 label:"good first issue" language:TypeScript sort:updated-desc',
       );
+    });
+
+    it('supports configurable contestation filter modes and noAssignee toggle', () => {
+      const freshQuery = buildGitHubSearchQuery({ contestationMode: 'fresh' });
+      assert.ok(freshQuery.includes('no:assignee comments:0'));
+
+      const lowCompQuery = buildGitHubSearchQuery({ contestationMode: 'low-competition' });
+      assert.ok(lowCompQuery.includes('no:assignee comments:<=2'));
+
+      const allQuery = buildGitHubSearchQuery({ contestationMode: 'all', noAssignee: false });
+      assert.ok(!allQuery.includes('comments:'));
+      assert.ok(!allQuery.includes('no:assignee'));
     });
 
     it('injects verified programming languages and filters out non-language frameworks', () => {
@@ -98,7 +110,10 @@ describe('queryBuilder search query synthesis', () => {
   describe('buildRelaxedGitHubSearchQuery', () => {
     it('constructs relaxed query defaulting to TypeScript with no label filters', () => {
       const relaxed = buildRelaxedGitHubSearchQuery();
-      assert.equal(relaxed, 'is:open is:issue language:TypeScript sort:updated-desc');
+      assert.equal(
+        relaxed,
+        'is:open is:issue no:assignee comments:<=2 language:TypeScript sort:updated-desc',
+      );
     });
 
     it('relaxes constraints to top language and omits entry-level label for Beginner', () => {
@@ -107,7 +122,10 @@ describe('queryBuilder search query synthesis', () => {
         experienceLevel: 'Beginner',
       });
 
-      assert.equal(relaxed, 'is:open is:issue language:Python sort:updated-desc');
+      assert.equal(
+        relaxed,
+        'is:open is:issue no:assignee comments:<=2 language:Python sort:updated-desc',
+      );
       assert.ok(!relaxed.includes('label:'));
     });
 
@@ -117,7 +135,10 @@ describe('queryBuilder search query synthesis', () => {
         experienceLevel: 'Intermediate',
       });
 
-      assert.equal(relaxed, 'is:open is:issue language:TypeScript sort:updated-desc');
+      assert.equal(
+        relaxed,
+        'is:open is:issue no:assignee comments:<=2 language:TypeScript sort:updated-desc',
+      );
     });
 
     it('respects custom state and sort options in relaxed queries', () => {
@@ -127,7 +148,10 @@ describe('queryBuilder search query synthesis', () => {
         sort: 'reactions-desc',
       });
 
-      assert.equal(relaxed, 'is:closed is:issue language:Rust sort:reactions-desc');
+      assert.equal(
+        relaxed,
+        'is:closed is:issue no:assignee comments:<=2 language:Rust sort:reactions-desc',
+      );
     });
   });
 
