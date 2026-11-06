@@ -42,21 +42,38 @@ export class TrackingService {
     const issueId = issueData.external_id || (issueUrl ? issueUrl.split('/').pop() : '') || '0';
 
     try {
-      const { data, error } = await supabase
+      const taskPayload: Record<string, any> = {
+        user_id: userId,
+        external_url: issueUrl,
+        external_id: issueId,
+        platform: issueData.platform || 'github',
+        title: issueData.title,
+        repo_name: issueData.repo_name,
+        state: initialState,
+        match_score: issueData.match_score || null,
+      };
+
+      if (issueData.claimed_via) {
+        taskPayload.claimed_via = issueData.claimed_via;
+      }
+
+      let { data, error } = await supabase
         .from('tasks')
-        .insert({
-          user_id: userId,
-          external_url: issueUrl,
-          external_id: issueId,
-          platform: issueData.platform || 'github',
-          title: issueData.title,
-          repo_name: issueData.repo_name,
-          state: initialState,
-          match_score: issueData.match_score || null,
-          claimed_via: issueData.claimed_via || 'MANUAL',
-        })
+        .insert(taskPayload)
         .select()
         .single();
+
+      // Gracefully retry without claimed_via if tasks table schema cache lacks the column
+      if (error && (error.message?.includes('claimed_via') || error.code === '42703' || error.code === 'PGRST204')) {
+        delete taskPayload.claimed_via;
+        const retry = await supabase
+          .from('tasks')
+          .insert(taskPayload)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (!error && data) {
         return {
@@ -66,19 +83,32 @@ export class TrackingService {
       }
 
       // If tasks table insert had an error, try legacy tracked_issues table
-      const { data: legacyData, error: legacyError } = await supabase
+      const legacyPayload: Record<string, any> = {
+        user_id: userId,
+        github_issue_url: issueUrl,
+        title: issueData.title,
+        repo_name: issueData.repo_name,
+        state: initialState,
+        match_score: issueData.match_score || null,
+        claimed_via: issueData.claimed_via || 'MANUAL',
+      };
+
+      let { data: legacyData, error: legacyError } = await supabase
         .from('tracked_issues')
-        .insert({
-          user_id: userId,
-          github_issue_url: issueUrl,
-          title: issueData.title,
-          repo_name: issueData.repo_name,
-          state: initialState,
-          match_score: issueData.match_score || null,
-          claimed_via: issueData.claimed_via || 'MANUAL',
-        })
+        .insert(legacyPayload)
         .select()
         .single();
+
+      if (legacyError && (legacyError.message?.includes('claimed_via') || legacyError.code === '42703' || legacyError.code === 'PGRST204')) {
+        delete legacyPayload.claimed_via;
+        const legacyRetry = await supabase
+          .from('tracked_issues')
+          .insert(legacyPayload)
+          .select()
+          .single();
+        legacyData = legacyRetry.data;
+        legacyError = legacyRetry.error;
+      }
 
       if (legacyError) {
         throw new Error(`Supabase Insert Error: ${error ? error.message : legacyError.message}`);
