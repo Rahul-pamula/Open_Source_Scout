@@ -1,10 +1,10 @@
 # Architecture: Open Source Scout (BYOB)
 
-> **WARNING: V1 ARCHITECTURE ONLY**
-> 
-> This document describes the **Scout v1 (BYOB Cloud Web App)** architecture. It is preserved for historical context and to document the web dashboard.
-> 
-> For the **Scout v2** local execution engine architecture, please see [SCOUT_V2_ARCHITECTURE.md](../SCOUT_V2_ARCHITECTURE.md).
+> **NOTICE: SCOUT EVOLUTION (V1 vs V2)**
+>
+> This document describes the **Scout v1 (BYOB Cloud Web App)** architecture and web dashboard.
+>
+> For the **Scout v2 autonomous coding engine**, Git worktrees, MCP protocols, and the 12-skill framework, please see [SCOUT_V2_ARCHITECTURE.md](../SCOUT_V2_ARCHITECTURE.md).
 
 ## Vision
 
