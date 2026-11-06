@@ -145,9 +145,11 @@ export class TrackingService {
       query = query.eq('state', dbState);
     }
 
-    let { data, error } = await query;
-    if (error) {
-      // Fallback to legacy tracked_issues
+    let { data: tasksData, error } = await query;
+    
+    // Always query legacy tracked_issues and merge to ensure zero data loss across migrations
+    let legacyData: any[] = [];
+    try {
       let legacyQuery = supabase
         .from('tracked_issues')
         .select('*')
@@ -155,12 +157,38 @@ export class TrackingService {
         .limit(limit);
 
       if (userId) legacyQuery = legacyQuery.eq('user_id', userId);
-      const { data: legacyData, error: legacyError } = await legacyQuery;
-      if (legacyError) {
-        throw new Error(`Supabase Select Error: ${error.message}`);
+      if (state) {
+        // Also respect state on legacy table if querying by state
+        legacyQuery = legacyQuery.eq('state', state);
       }
-      data = legacyData;
+      const legacyRes = await legacyQuery;
+      if (legacyRes.data) {
+        legacyData = legacyRes.data;
+      }
+    } catch (_) {
+      // Silently continue if tracked_issues table does not exist
     }
+
+    // Combine tasks and legacy tracked_issues, deduplicating by URL or ID
+    const combinedMap = new Map<string, any>();
+
+    // 1. Add legacy records first
+    for (const item of legacyData) {
+      const key = item.github_issue_url || item.external_url || item.id;
+      if (key) combinedMap.set(key, item);
+    }
+
+    // 2. Add/overwrite with newer tasks table records
+    for (const item of (tasksData || [])) {
+      const key = item.external_url || item.github_issue_url || item.id;
+      if (key) combinedMap.set(key, item);
+    }
+
+    const data = Array.from(combinedMap.values()).sort((a, b) => {
+      const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+      const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
     
     // Compatibility layer: Map V2 states back to V1 states for the UI
     const mappedData = (data || []).map(task => {
