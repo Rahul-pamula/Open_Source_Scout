@@ -51,6 +51,33 @@ export function IssueCard({
     }
   }
 
+  // Contestation Badge Status
+  const commentsCount = issue.commentsCount ?? 0;
+  const contestation = issue.contestation;
+  let contestationBadge = {
+    label:
+      commentsCount === 0
+        ? '🟢 Fresh (0 comments)'
+        : `🟡 ${commentsCount} comment${commentsCount === 1 ? '' : 's'}`,
+    style:
+      commentsCount === 0
+        ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+        : commentsCount <= 2
+          ? 'text-amber-700 bg-amber-50 border-amber-200'
+          : 'text-red-700 bg-red-50 border-red-200',
+    title:
+      contestation?.reason ||
+      (commentsCount === 0 ? 'Fresh uncontested issue' : `${commentsCount} comments`),
+  };
+
+  if (contestation?.isContested) {
+    contestationBadge = {
+      label: '🔴 Contested / Claimed',
+      style: 'text-red-700 bg-red-50 border-red-200',
+      title: contestation.reason,
+    };
+  }
+
   return (
     <div className="bg-white border border-zinc-200 p-4 flex flex-col transition-shadow hover:shadow-md h-full">
       {/* Header: Match Score & Intent */}
@@ -59,6 +86,13 @@ export function IssueCard({
           <div className="flex items-center gap-2">
             <span className={`font-mono text-[10px] font-bold tracking-widest ${scoreColor}`}>
               {scoreLabel}
+            </span>
+            <span
+              data-testid="contestation-badge"
+              className={`inline-flex items-center font-mono text-[10px] font-semibold px-2 py-0.5 rounded-full border ${contestationBadge.style}`}
+              title={contestationBadge.title}
+            >
+              {contestationBadge.label}
             </span>
             {relevance !== undefined && (
               <div className="relative inline-block">
