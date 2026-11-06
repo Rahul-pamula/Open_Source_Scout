@@ -36,8 +36,23 @@ export class TrackingService {
   async saveIssue(authHeader: string, userId: string, issueData: any): Promise<Task> {
     const supabase = this.getClient(authHeader);
     
-    // Allow caller to specify initial state (e.g. ENGAGED for manual claims)
-    const initialState: IssueState = issueData.initial_state || 'QUEUED';
+    // Compatibility layer: Map Scout v1 states (DRAFTED, DISCOVERED, EVALUATED, ENGAGED, etc.)
+    // to PostgreSQL execution_state ENUM values ('QUEUED', 'ACTIVE', 'CANCELLED', etc.)
+    const rawInitialState = issueData.initial_state || 'QUEUED';
+    let dbState = rawInitialState;
+    if (rawInitialState === 'ENGAGED' || rawInitialState === 'ASSIGNED') {
+      dbState = 'ACTIVE';
+    } else if (
+      rawInitialState === 'DISCOVERED' ||
+      rawInitialState === 'EVALUATED' ||
+      rawInitialState === 'DRAFTED'
+    ) {
+      dbState = 'QUEUED';
+    } else if (rawInitialState === 'REJECTED') {
+      dbState = 'CANCELLED';
+    }
+
+    const initialState: IssueState = dbState as IssueState;
     const issueUrl = issueData.external_url || issueData.github_issue_url || '';
     const issueId = issueData.external_id || (issueUrl ? issueUrl.split('/').pop() : '') || '0';
 
