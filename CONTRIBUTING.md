@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Open Source Scout!
 
-Please review our [Code of Conduct](CODE_OF_CONDUCT.md) before participating in the community.
+Please review our [Code of Conduct](CODE_OF_CONDUCT.md) and our [Coding Standards](CODING_STANDARDS.md) before participating in the community. All contributions must adhere to our zero-secrets policy and verification protocols.
 
 ## Project Structure
 
